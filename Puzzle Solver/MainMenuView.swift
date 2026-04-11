@@ -8,64 +8,159 @@
 import SwiftUI
 
 struct MainMenuView: View {
+    private let puzzleTypes: [PuzzleType] = [.sliding3x3, .sliding4x4, .rubiksCube, .cube2x2, .pyraminx, .skewb]
+
     var body: some View {
         ZStack {
-            Color.black
-                .edgesIgnoringSafeArea(.all)
+            AppTheme.Colors.background
+                .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                Text("Puzzle")
-                    .foregroundColor(Color(hex: 0xff99cc))
-                    .font(.system(size: 60))
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+                    Text("Puzzle Solver")
+                        .appTextStyle(.h1)
+                        .foregroundStyle(AppTheme.Colors.highlight)
 
-                Text("Solver")
-                    .foregroundColor(Color(hex: 0xccffff))
-                    .font(.system(size: 60))
-
-                Spacer()
-
-                NavigationLink(
-                    destination: NewPuzzleView(),
-                    label: {
-                        Text("New Puzzle")
-                            .foregroundColor(.black)
-                            .frame(width: 200, height: 50)
-                            .background(Color(hex: 0x99ccff))
-                            .cornerRadius(10)
-                    }
-                )
-
-                NavigationLink(
-                    destination: HowView(),
-                    label: {
-                        Text("How")
-                            .foregroundColor(.black)
-                            .frame(width: 200, height: 50)
-                            .background(Color(hex: 0xccffff))
-                            .cornerRadius(10)
-                    }
-                )
-
-                Button(action: {
-                    // Close the app
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }) {
-                    Text("Exit")
-                        .foregroundColor(.black)
-                        .frame(width: 200, height: 50)
-                        .background(Color(hex: 0xff99cc))
-                        .cornerRadius(10)
+                    Text("Choose a puzzle type")
+                        .appTextStyle(.h2)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
                 }
-                .padding(.bottom, 20)
+                .padding(.horizontal, AppTheme.Spacing.large)
+                .padding(.top, AppTheme.Spacing.xLarge)
+
+                ScrollView {
+                    VStack(spacing: AppTheme.Spacing.medium) {
+                        ForEach(puzzleTypes) { puzzleType in
+                            NavigationLink {
+                                destinationView(for: puzzleType)
+                            } label: {
+                                PuzzleMenuCard(puzzleType: puzzleType)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, AppTheme.Spacing.large)
+                    .padding(.bottom, AppTheme.Spacing.xLarge)
+                }
             }
-            .padding()
         }
-        .navigationBarHidden(true) // Hide the navigation bar
+        .navigationBarBackButtonHidden(true)
+    }
+
+    @ViewBuilder
+    private func destinationView(for puzzleType: PuzzleType) -> some View {
+        if puzzleType == .sliding3x3 {
+            NewPuzzleView()
+        } else {
+            ComingSoonView(puzzleName: puzzleType.title)
+        }
+    }
+}
+
+private struct PuzzleMenuCard: View {
+    let puzzleType: PuzzleType
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+                Text(puzzleType.title)
+                    .appTextStyle(.h2)
+                    .multilineTextAlignment(.leading)
+
+                Text(puzzleType.subtitle)
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+                    .multilineTextAlignment(.leading)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.accent)
+        }
+        .padding(.vertical, AppTheme.Spacing.small)
+        .padding(.horizontal, AppTheme.Spacing.small)
+        .appSurfaceCard()
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
+                .stroke(AppTheme.Colors.highlight.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
+private enum PuzzleType: String, CaseIterable, Identifiable {
+    case sliding3x3
+    case sliding4x4
+    case rubiksCube
+    case cube2x2
+    case pyraminx
+    case skewb
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .sliding3x3:
+            return "3×3 Sliding Puzzle"
+        case .sliding4x4:
+            return "4×4 Sliding Puzzle"
+        case .rubiksCube:
+            return "Rubik’s Cube"
+        case .cube2x2:
+            return "2×2 Cube"
+        case .pyraminx:
+            return "Pyraminx"
+        case .skewb:
+            return "Skewb"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .sliding3x3:
+            return "Ready now"
+        default:
+            return "Coming soon"
+        }
+    }
+}
+
+
+struct ComingSoonView: View {
+    let puzzleName: String
+
+    var body: some View {
+        ZStack {
+            AppTheme.Colors.background
+                .ignoresSafeArea()
+
+            VStack(spacing: AppTheme.Spacing.medium) {
+                Text(puzzleName)
+                    .appTextStyle(.h1)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+
+                Text("This mode is coming soon.")
+                    .appTextStyle(.h2)
+                    .multilineTextAlignment(.center)
+
+                Text("For now, try 3×3 Sliding Puzzle.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+            }
+            .padding(AppTheme.Spacing.xLarge)
+            .appSurfaceCard()
+            .padding(.horizontal, AppTheme.Spacing.large)
+        }
+        .navigationTitle("Coming Soon")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 struct MainMenuView_Previews: PreviewProvider {
     static var previews: some View {
-        MainMenuView()
+        NavigationStack {
+            MainMenuView()
+        }
     }
 }
