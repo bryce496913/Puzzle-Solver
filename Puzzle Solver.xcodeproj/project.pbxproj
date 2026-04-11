@@ -20,10 +20,10 @@
 		EE82B6932B699B1D00B2BC49 /* NewPuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */; };
 		EE82B6952B699B3000B2BC49 /* HowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6942B699B3000B2BC49 /* HowView.swift */; };
 		EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */; };
-		EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100002C01000000D00D01 /* AppDesignSystem.swift */; };
 		EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69A2B69B41400B2BC49 /* SolvingView.swift */; };
 		EE82B69D2B69CE2800B2BC49 /* PuzzleGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */; };
 		EE82B69F2B69CE4100B2BC49 /* PuzzleTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */; };
+		EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100002C01000000D00D01 /* AppDesignSystem.swift */; };
 		EEA100032C01012300D00D01 /* PuzzleTypeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */; };
 /* End PBXBuildFile section */
 
@@ -61,10 +61,10 @@
 		EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPuzzleView.swift; sourceTree = "<group>"; };
 		EE82B6942B699B3000B2BC49 /* HowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowView.swift; sourceTree = "<group>"; };
 		EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
-		EEA100002C01000000D00D01 /* AppDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDesignSystem.swift; sourceTree = "<group>"; };
 		EE82B69A2B69B41400B2BC49 /* SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolvingView.swift; sourceTree = "<group>"; };
 		EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleGridView.swift; sourceTree = "<group>"; };
 		EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleTileView.swift; sourceTree = "<group>"; };
+		EEA100002C01000000D00D01 /* AppDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDesignSystem.swift; sourceTree = "<group>"; };
 		EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleTypeCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -469,7 +469,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -502,7 +502,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -527,7 +527,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -546,7 +546,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -564,6 +564,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -581,6 +582,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
