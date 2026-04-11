@@ -31,12 +31,28 @@ struct MainMenuView: View {
                 ScrollView {
                     VStack(spacing: AppTheme.Spacing.medium) {
                         ForEach(puzzleTypes) { puzzleType in
-                            NavigationLink {
-                                destinationView(for: puzzleType)
-                            } label: {
-                                PuzzleMenuCard(puzzleType: puzzleType)
+                            if puzzleType.isEnabled {
+                                NavigationLink {
+                                    destinationView(for: puzzleType)
+                                } label: {
+                                    PuzzleTypeCard(
+                                        title: puzzleType.title,
+                                        subtitle: puzzleType.subtitle,
+                                        icon: puzzleType.icon,
+                                        isEnabled: true,
+                                        accentVariant: puzzleType.accentVariant
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                PuzzleTypeCard(
+                                    title: puzzleType.title,
+                                    subtitle: puzzleType.subtitle,
+                                    icon: puzzleType.icon,
+                                    isEnabled: false,
+                                    accentVariant: puzzleType.accentVariant
+                                )
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, AppTheme.Spacing.large)
@@ -54,38 +70,6 @@ struct MainMenuView: View {
         } else {
             ComingSoonView(puzzleName: puzzleType.title)
         }
-    }
-}
-
-private struct PuzzleMenuCard: View {
-    let puzzleType: PuzzleType
-
-    var body: some View {
-        HStack(spacing: AppTheme.Spacing.medium) {
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-                Text(puzzleType.title)
-                    .appTextStyle(.h2)
-                    .multilineTextAlignment(.leading)
-
-                Text(puzzleType.subtitle)
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
-                    .multilineTextAlignment(.leading)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.accent)
-        }
-        .padding(.vertical, AppTheme.Spacing.small)
-        .padding(.horizontal, AppTheme.Spacing.small)
-        .appSurfaceCard()
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large, style: .continuous)
-                .stroke(AppTheme.Colors.highlight.opacity(0.2), lineWidth: 1)
-        )
     }
 }
 
@@ -124,8 +108,32 @@ private enum PuzzleType: String, CaseIterable, Identifiable {
             return "Coming soon"
         }
     }
-}
 
+    var icon: String {
+        switch self {
+        case .sliding3x3:
+            return "square.grid.3x3.fill"
+        case .sliding4x4:
+            return "square.grid.4x3.fill"
+        case .rubiksCube:
+            return "cube.fill"
+        case .cube2x2:
+            return "square.grid.2x2.fill"
+        case .pyraminx:
+            return "triangle.fill"
+        case .skewb:
+            return "diamond.fill"
+        }
+    }
+
+    var isEnabled: Bool {
+        self == .sliding3x3
+    }
+
+    var accentVariant: PuzzleTypeCard.AccentVariant {
+        isEnabled ? .accent : .highlight
+    }
+}
 
 struct ComingSoonView: View {
     let puzzleName: String
