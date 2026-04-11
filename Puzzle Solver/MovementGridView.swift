@@ -2,7 +2,7 @@
 //  MovementGrideView.swift
 //  Puzzle Solver
 //
-//  Created by Aditi Abrol on 3/3/24.
+//  Created by Bryce Cameron on 3/3/24.
 //
 
 import SwiftUI
