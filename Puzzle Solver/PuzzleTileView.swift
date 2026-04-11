@@ -12,11 +12,14 @@ struct PuzzleTileView: View {
 
     var body: some View {
         Text(number.map(String.init) ?? "")
-            .font(.title)
+            .appTextStyle(.h2)
             .frame(width: 60, height: 60)
-            .background(Color.gray)
-            .foregroundColor(.black)
-            .cornerRadius(10)
+            .background(number == nil ? AppTheme.Colors.surface : AppTheme.Colors.accent.opacity(0.35))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
+                    .stroke(AppTheme.Colors.accent.opacity(0.25), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
     }
 }
 
