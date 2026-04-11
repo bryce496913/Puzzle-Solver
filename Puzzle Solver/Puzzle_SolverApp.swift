@@ -11,7 +11,7 @@ import SwiftUI
 struct Puzzle_SolverApp: App {
     var body: some Scene {
         WindowGroup {
-            AppRootView()
+            ContentView()
         }
     }
 }

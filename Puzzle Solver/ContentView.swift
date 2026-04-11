@@ -7,31 +7,36 @@
 
 import SwiftUI
 
-struct AppRootView: View {
-    @State private var isShowingSplash = true
+struct ContentView: View {
+    @State private var launchPhase: LaunchPhase = .splash
 
     var body: some View {
-        ZStack {
-            NavigationStack {
-                MainMenuView()
-            }
-            .opacity(isShowingSplash ? 0 : 1)
-
-            if isShowingSplash {
+        NavigationStack {
+            MainMenuView()
+        }
+        .overlay {
+            if launchPhase == .splash {
                 LaunchSplashView()
                     .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.3), value: isShowingSplash)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                isShowingSplash = false
+        .task {
+            guard launchPhase == .splash else { return }
+
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            withAnimation(.easeOut(duration: 0.3)) {
+                launchPhase = .menu
             }
         }
     }
 }
 
-struct LaunchSplashView: View {
+private enum LaunchPhase {
+    case splash
+    case menu
+}
+
+private struct LaunchSplashView: View {
     var body: some View {
         ZStack {
             AppTheme.Colors.background
@@ -41,12 +46,6 @@ struct LaunchSplashView: View {
                 .appTextStyle(.h1)
                 .foregroundStyle(AppTheme.Colors.highlight)
         }
-    }
-}
-
-struct ContentView: View {
-    var body: some View {
-        AppRootView()
     }
 }
 
