@@ -14,29 +14,30 @@ struct SolvingView: View {
 
     var body: some View {
         ZStack {
-            Color.black
-                .edgesIgnoringSafeArea(.all)
+            AppTheme.Colors.background
+                .ignoresSafeArea()
 
-            VStack {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                Text("Movement List")
+                    .appTextStyle(.h1)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+
                 ScrollView {
-                    VStack(alignment: .leading) {
-                        Text("Movement List:")
-                            .font(.title)
-                            .foregroundColor(.white)
-                            .padding(.bottom)
-
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
                         ForEach(movementList, id: \.self) { movement in
                             Text(movement)
-                                .foregroundColor(.white)
+                                .appTextStyle(.paragraph)
+                                .foregroundStyle(AppTheme.Colors.text)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-                    .padding()
                 }
-                Spacer()
+                .appSurfaceCard()
             }
+            .padding(AppTheme.Spacing.large)
         }
         .onAppear {
-            solvedState = initialState // Set the initial state
+            solvedState = initialState
             solvePuzzle()
         }
     }
@@ -44,27 +45,24 @@ struct SolvingView: View {
     private func solvePuzzle() {
         DispatchQueue.global().async {
             let puzzleSolver = PuzzleSolver()
-            
+
             let puzzleSolved = puzzleSolver.aStarSearch(start: initialState.map { $0.map { $0 != nil ? "\($0!)" : "0" } })
-            
-            // Combine boardPathStateList and movementHistory into a single array
+
             let combinedList = zip(puzzleSolved.boardPathStateList, puzzleSolved.movementHistory)
-            
-            // Convert combined list to a flat list of movements with proper formatting
+
             var flatMovementList: [String] = []
             for (board, movement) in combinedList {
                 flatMovementList.append(boardString(board))
                 flatMovementList.append("Move: \(movement)")
-                flatMovementList.append("") // Add an empty string to start the next move on a new line
+                flatMovementList.append("")
             }
-            
+
             DispatchQueue.main.async {
                 movementList = flatMovementList
             }
         }
     }
-    
-    // Convert a board state to a formatted string
+
     private func boardString(_ board: [[String]]) -> String {
         return board.map { $0.joined(separator: "  ") }.joined(separator: "\n")
     }

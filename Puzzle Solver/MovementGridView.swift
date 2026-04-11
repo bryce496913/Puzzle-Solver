@@ -11,15 +11,17 @@ struct MovementGridView: View {
     let boardState: [[Int?]]
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: AppTheme.Spacing.small) {
             ForEach(0..<3, id: \.self) { row in
-                HStack(spacing: 10) {
+                HStack(spacing: AppTheme.Spacing.small) {
                     ForEach(0..<3, id: \.self) { column in
                         MovementTileView(number: boardState[row][column])
                     }
                 }
             }
         }
+        .padding(AppTheme.Spacing.xSmall)
+        .appSurfaceCard()
     }
 }
 
@@ -27,12 +29,15 @@ struct MovementTileView: View {
     let number: Int?
 
     var body: some View {
-        Text(number != nil ? "\(number!)" : " ")
-            .font(.title)
-            .foregroundColor(.white)
+        Text(number != nil ? "\(number!)" : "")
+            .appTextStyle(.h3)
             .frame(width: 40, height: 40)
-            .background(Color.blue)
-            .cornerRadius(8)
+            .background(number == nil ? AppTheme.Colors.surface : AppTheme.Colors.highlight.opacity(0.35))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
+                    .stroke(AppTheme.Colors.highlight.opacity(0.35), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
             .padding(2)
     }
 }
@@ -46,4 +51,3 @@ struct MovementGridView_Previews: PreviewProvider {
         ])
     }
 }
-

@@ -11,15 +11,17 @@ struct PuzzleGridView: View {
     let boardState: [[Int?]]
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: AppTheme.Spacing.small) {
             ForEach(0..<3, id: \.self) { row in
-                HStack(spacing: 10) {
+                HStack(spacing: AppTheme.Spacing.small) {
                     ForEach(0..<3, id: \.self) { column in
                         PuzzleTileView(number: boardState[row][column])
                     }
                 }
             }
         }
+        .padding(AppTheme.Spacing.small)
+        .appSurfaceCard()
     }
 }
 
