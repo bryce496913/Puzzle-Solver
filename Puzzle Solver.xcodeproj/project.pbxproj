@@ -20,6 +20,7 @@
 		EE82B6932B699B1D00B2BC49 /* NewPuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */; };
 		EE82B6952B699B3000B2BC49 /* HowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6942B699B3000B2BC49 /* HowView.swift */; };
 		EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */; };
+		EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100002C01000000D00D01 /* AppDesignSystem.swift */; };
 		EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69A2B69B41400B2BC49 /* SolvingView.swift */; };
 		EE82B69D2B69CE2800B2BC49 /* PuzzleGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */; };
 		EE82B69F2B69CE4100B2BC49 /* PuzzleTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */; };
@@ -59,6 +60,7 @@
 		EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPuzzleView.swift; sourceTree = "<group>"; };
 		EE82B6942B699B3000B2BC49 /* HowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowView.swift; sourceTree = "<group>"; };
 		EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
+		EEA100002C01000000D00D01 /* AppDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDesignSystem.swift; sourceTree = "<group>"; };
 		EE82B69A2B69B41400B2BC49 /* SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolvingView.swift; sourceTree = "<group>"; };
 		EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleGridView.swift; sourceTree = "<group>"; };
 		EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleTileView.swift; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 				EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */,
 				EE38313C2B950E3E00D96988 /* MovementGridView.swift */,
 				EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */,
+				EEA100002C01000000D00D01 /* AppDesignSystem.swift */,
 				EE82B66A2B69931600B2BC49 /* Assets.xcassets */,
 				EE82B66C2B69931600B2BC49 /* Preview Content */,
 				EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */,
@@ -294,6 +297,7 @@
 				EE82B6952B699B3000B2BC49 /* HowView.swift in Sources */,
 				EE82B6692B69931500B2BC49 /* ContentView.swift in Sources */,
 				EE82B6672B69931500B2BC49 /* Puzzle_SolverApp.swift in Sources */,
+				EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */,
 				EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
