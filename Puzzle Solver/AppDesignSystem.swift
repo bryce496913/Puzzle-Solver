@@ -83,6 +83,32 @@ struct AppPrimaryButtonStyle: ButtonStyle {
     }
 }
 
+struct AppSolidButtonStyle: ButtonStyle {
+    let fillColor: Color
+
+    init(fillColor: Color = AppTheme.Colors.accent) {
+        self.fillColor = fillColor
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .appTextStyle(.h2)
+            .foregroundStyle(AppTheme.Colors.text)
+            .padding(.horizontal, AppTheme.Spacing.large)
+            .padding(.vertical, AppTheme.Spacing.small)
+            .frame(maxWidth: .infinity)
+            .background(fillColor)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous)
+                    .stroke(AppTheme.Colors.text.opacity(0.2), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 private struct AppTextStyleModifier: ViewModifier {
     let style: AppTextStyle
 
