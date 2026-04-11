@@ -31,28 +31,18 @@ struct MainMenuView: View {
                 ScrollView {
                     VStack(spacing: AppTheme.Spacing.medium) {
                         ForEach(puzzleTypes) { puzzleType in
-                            if puzzleType.isEnabled {
-                                NavigationLink {
-                                    destinationView(for: puzzleType)
-                                } label: {
-                                    PuzzleTypeCard(
-                                        title: puzzleType.title,
-                                        subtitle: puzzleType.subtitle,
-                                        icon: puzzleType.icon,
-                                        isEnabled: true,
-                                        accentVariant: puzzleType.accentVariant
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            } else {
+                            NavigationLink {
+                                destinationView(for: puzzleType)
+                            } label: {
                                 PuzzleTypeCard(
                                     title: puzzleType.title,
                                     subtitle: puzzleType.subtitle,
                                     icon: puzzleType.icon,
-                                    isEnabled: false,
+                                    isEnabled: true,
                                     accentVariant: puzzleType.accentVariant
                                 )
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, AppTheme.Spacing.large)
@@ -68,7 +58,7 @@ struct MainMenuView: View {
         if puzzleType == .sliding3x3 {
             NewPuzzleView()
         } else {
-            ComingSoonView(puzzleName: puzzleType.title)
+            ComingSoonPuzzleView(puzzleName: puzzleType.title)
         }
     }
 }
@@ -126,16 +116,16 @@ private enum PuzzleType: String, CaseIterable, Identifiable {
         }
     }
 
-    var isEnabled: Bool {
+    var isImplemented: Bool {
         self == .sliding3x3
     }
 
     var accentVariant: PuzzleTypeCard.AccentVariant {
-        isEnabled ? .accent : .highlight
+        isImplemented ? .accent : .highlight
     }
 }
 
-struct ComingSoonView: View {
+struct ComingSoonPuzzleView: View {
     let puzzleName: String
 
     var body: some View {
@@ -143,24 +133,30 @@ struct ComingSoonView: View {
             AppTheme.Colors.background
                 .ignoresSafeArea()
 
-            VStack(spacing: AppTheme.Spacing.medium) {
-                Text(puzzleName)
-                    .appTextStyle(.h1)
-                    .foregroundStyle(AppTheme.Colors.highlight)
+            VStack {
+                VStack(spacing: AppTheme.Spacing.medium) {
+                    Text(puzzleName)
+                        .appTextStyle(.h1)
+                        .foregroundStyle(AppTheme.Colors.highlight)
+                        .multilineTextAlignment(.center)
 
-                Text("This mode is coming soon.")
-                    .appTextStyle(.h2)
-                    .multilineTextAlignment(.center)
+                    Text("Coming Soon")
+                        .appTextStyle(.h2)
+                        .foregroundStyle(AppTheme.Colors.text)
 
-                Text("For now, try 3×3 Sliding Puzzle.")
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+                    Text("This puzzle mode is planned for a future version.")
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.78))
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: 320)
+                .padding(AppTheme.Spacing.xLarge)
+                .appSurfaceCard()
             }
-            .padding(AppTheme.Spacing.xLarge)
-            .appSurfaceCard()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, AppTheme.Spacing.large)
         }
-        .navigationTitle("Coming Soon")
+        .navigationTitle(puzzleName)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
