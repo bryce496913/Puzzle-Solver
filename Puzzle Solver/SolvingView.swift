@@ -9,67 +9,92 @@ import SwiftUI
 
 struct SolvingView: View {
     let initialState: [[Int?]]
-    @State private var solvedState: [[Int?]] = Array(repeating: Array(repeating: nil, count: 3), count: 3)
-    @State private var movementList: [String] = []
+
+    @State private var isSolving = true
+    @State private var solveResult: SlidingPuzzleSolveResult?
+    @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
             AppTheme.Colors.background
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                Text("Movement List")
-                    .appTextStyle(.h1)
-                    .foregroundStyle(AppTheme.Colors.highlight)
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                    Text("Solution")
+                        .appTextStyle(.h1)
+                        .foregroundStyle(AppTheme.Colors.highlight)
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                        ForEach(movementList, id: \.self) { movement in
-                            Text(movement)
+                    if isSolving {
+                        ProgressView("Solving puzzle…")
+                            .appTextStyle(.paragraph)
+                            .foregroundStyle(AppTheme.Colors.text)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, AppTheme.Spacing.small)
+                    } else if let errorMessage {
+                        Text(errorMessage)
+                            .appTextStyle(.paragraph)
+                            .foregroundStyle(AppTheme.Colors.highlight)
+                    } else if let solveResult {
+                        if !solveResult.isSolvable {
+                            Text("This puzzle is unsolvable. Please return and enter a solvable 3×3 board.")
                                 .appTextStyle(.paragraph)
-                                .foregroundStyle(AppTheme.Colors.text)
+                                .foregroundStyle(AppTheme.Colors.highlight)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .appSurfaceCard()
+                        }
+
+                        ForEach(Array(solveResult.steps.enumerated()), id: \.offset) { index, step in
+                            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                                Text("Step \(index)")
+                                    .appTextStyle(.h3)
+                                    .foregroundStyle(AppTheme.Colors.text)
+
+                                if let moveLabel = step.moveLabel {
+                                    Text(moveLabel)
+                                        .appTextStyle(.paragraph)
+                                        .foregroundStyle(AppTheme.Colors.highlight)
+                                } else {
+                                    Text("Initial state")
+                                        .appTextStyle(.paragraph)
+                                        .foregroundStyle(AppTheme.Colors.highlight)
+                                }
+
+                                MovementGridView(boardState: step.state.asBoard())
+                            }
                         }
                     }
                 }
-                .appSurfaceCard()
+                .padding(AppTheme.Spacing.large)
             }
-            .padding(AppTheme.Spacing.large)
         }
-        .onAppear {
-            solvedState = initialState
-            solvePuzzle()
+        .task {
+            await solvePuzzle()
         }
     }
 
-    private func solvePuzzle() {
-        DispatchQueue.global().async {
-            let puzzleSolver = PuzzleSolver()
+    @MainActor
+    private func solvePuzzle() async {
+        isSolving = true
+        errorMessage = nil
 
-            let puzzleSolved = puzzleSolver.aStarSearch(start: initialState.map { $0.map { $0 != nil ? "\($0!)" : "0" } })
-
-            let combinedList = zip(puzzleSolved.boardPathStateList, puzzleSolved.movementHistory)
-
-            var flatMovementList: [String] = []
-            for (board, movement) in combinedList {
-                flatMovementList.append(boardString(board))
-                flatMovementList.append("Move: \(movement)")
-                flatMovementList.append("")
-            }
-
-            DispatchQueue.main.async {
-                movementList = flatMovementList
-            }
+        guard let startState = SlidingPuzzleState(board: initialState) else {
+            isSolving = false
+            errorMessage = "Invalid puzzle input. Please go back and re-enter all tiles."
+            return
         }
-    }
 
-    private func boardString(_ board: [[String]]) -> String {
-        return board.map { $0.joined(separator: "  ") }.joined(separator: "\n")
+        let result = await Task.detached(priority: .userInitiated) {
+            SlidingPuzzleSolver().solve(from: startState)
+        }.value
+
+        solveResult = result
+        isSolving = false
     }
 }
 
 struct SolvingView_Previews: PreviewProvider {
     static var previews: some View {
-        SolvingView(initialState: [[1, 2, 3], [4, 5, 6], [7, 8, nil]])
+        SolvingView(initialState: [[1, 2, 3], [4, 5, 6], [7, nil, 8]])
     }
 }
