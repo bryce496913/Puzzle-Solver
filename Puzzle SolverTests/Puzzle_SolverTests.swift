@@ -2,7 +2,7 @@
 //  Puzzle_SolverTests.swift
 //  Puzzle SolverTests
 //
-//  Created by Aditi Abrol on 30/1/24.
+//  Created by Bryce Cameron on 30/1/24.
 //
 
 import XCTest

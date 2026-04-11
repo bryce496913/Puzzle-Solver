@@ -2,7 +2,7 @@
 //  PuzzleSolver.swift
 //  Puzzle Solver
 //
-//  Created by Aditi Abrol on 2/3/24.
+//  Created by Bryce Cameron on 2/3/24.
 //
 
 import Foundation
@@ -162,4 +162,3 @@ class PuzzleSolver {
         return nil
     }
 }
-
