@@ -17,7 +17,7 @@ struct PuzzleTileView: View {
             .background(number == nil ? AppTheme.Colors.surface : AppTheme.Colors.accent.opacity(0.35))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
-                    .stroke(AppTheme.Colors.accent.opacity(0.25), lineWidth: 1)
+                    .stroke(AppTheme.Colors.text, lineWidth: 1.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
     }

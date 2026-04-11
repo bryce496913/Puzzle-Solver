@@ -70,7 +70,7 @@ struct NewPuzzleView: View {
                             Text("Back")
                         }
                     )
-                    .buttonStyle(AppPrimaryButtonStyle())
+                    .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.surface))
 
                     NavigationLink(
                         destination: NewPuzzleView(),
@@ -78,7 +78,7 @@ struct NewPuzzleView: View {
                             Text("Reset")
                         }
                     )
-                    .buttonStyle(AppPrimaryButtonStyle())
+                    .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.accent))
                 }
             }
             .padding(AppTheme.Spacing.large)
@@ -139,7 +139,7 @@ struct PuzzleTileSolvedView: View {
             .background(backgroundColor)
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
-                    .stroke(isSelected ? AppTheme.Colors.highlight : AppTheme.Colors.accent.opacity(0.25), lineWidth: 2)
+                    .stroke(isSelected ? AppTheme.Colors.highlight : AppTheme.Colors.text, lineWidth: isSelected ? 2 : 1.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
             .onTapGesture {
