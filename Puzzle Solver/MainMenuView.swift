@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MainMenuView: View {
-    private let puzzleTypes: [PuzzleType] = [.sliding3x3, .sliding4x4, .rubiksCube, .cube2x2, .pyraminx, .skewb]
+    private let puzzleTypes = PuzzleType.all
 
     var body: some View {
         ZStack {
@@ -38,10 +38,11 @@ struct MainMenuView: View {
                                     title: puzzleType.title,
                                     subtitle: puzzleType.subtitle,
                                     icon: puzzleType.icon,
-                                    isEnabled: true,
+                                    isEnabled: puzzleType.availability == .available,
                                     accentVariant: puzzleType.accentVariant
                                 )
                             }
+                            .disabled(puzzleType.availability == .comingSoon)
                             .buttonStyle(.plain)
                         }
                     }
@@ -55,74 +56,93 @@ struct MainMenuView: View {
 
     @ViewBuilder
     private func destinationView(for puzzleType: PuzzleType) -> some View {
-        if puzzleType == .sliding3x3 {
+        switch puzzleType.destination {
+        case .newPuzzle:
             NewPuzzleView()
-        } else {
+        case .comingSoon:
             ComingSoonPuzzleView(puzzleName: puzzleType.title)
         }
     }
 }
 
-private enum PuzzleType: String, CaseIterable, Identifiable {
-    case sliding3x3
-    case sliding4x4
-    case rubiksCube
-    case cube2x2
-    case pyraminx
-    case skewb
+private struct PuzzleType: Identifiable {
+    enum Availability {
+        case available
+        case comingSoon
 
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .sliding3x3:
-            return "3×3 Sliding Puzzle"
-        case .sliding4x4:
-            return "4×4 Sliding Puzzle"
-        case .rubiksCube:
-            return "Rubik’s Cube"
-        case .cube2x2:
-            return "2×2 Cube"
-        case .pyraminx:
-            return "Pyraminx"
-        case .skewb:
-            return "Skewb"
+        var subtitle: String {
+            switch self {
+            case .available:
+                return "Ready now"
+            case .comingSoon:
+                return "Coming soon"
+            }
         }
     }
+
+    enum Destination {
+        case newPuzzle
+        case comingSoon
+    }
+
+    let id: String
+    let title: String
+    let icon: String
+    let availability: Availability
+    let destination: Destination
 
     var subtitle: String {
-        switch self {
-        case .sliding3x3:
-            return "Ready now"
-        default:
-            return "Coming soon"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .sliding3x3:
-            return "square.grid.3x3.fill"
-        case .sliding4x4:
-            return "square.grid.4x3.fill"
-        case .rubiksCube:
-            return "cube.fill"
-        case .cube2x2:
-            return "square.grid.2x2.fill"
-        case .pyraminx:
-            return "triangle.fill"
-        case .skewb:
-            return "diamond.fill"
-        }
-    }
-
-    var isImplemented: Bool {
-        self == .sliding3x3
+        availability.subtitle
     }
 
     var accentVariant: PuzzleTypeCard.AccentVariant {
-        isImplemented ? .accent : .highlight
+        availability == .available ? .accent : .highlight
     }
+
+    static let all: [PuzzleType] = [
+        PuzzleType(
+            id: "sliding-3x3",
+            title: "3×3 Sliding Puzzle",
+            icon: "square.grid.3x3.fill",
+            availability: .available,
+            destination: .newPuzzle
+        ),
+        PuzzleType(
+            id: "sliding-4x4",
+            title: "4×4 Sliding Puzzle",
+            icon: "square.grid.4x3.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
+        ),
+        PuzzleType(
+            id: "rubiks-cube",
+            title: "Rubik’s Cube",
+            icon: "cube.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
+        ),
+        PuzzleType(
+            id: "cube-2x2",
+            title: "2×2 Cube",
+            icon: "square.grid.2x2.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
+        ),
+        PuzzleType(
+            id: "pyraminx",
+            title: "Pyraminx",
+            icon: "triangle.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
+        ),
+        PuzzleType(
+            id: "skewb",
+            title: "Skewb",
+            icon: "diamond.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
+        )
+    ]
 }
 
 struct ComingSoonPuzzleView: View {
