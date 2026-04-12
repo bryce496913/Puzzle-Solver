@@ -38,9 +38,6 @@ struct SlidingPuzzleEntryView: View {
         return SlidingPuzzleState(size: boardSize, tiles: tiles)
     }
 
-    private var gridColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: boardSize)
-    }
 
     var body: some View {
         ZStack {
@@ -52,18 +49,15 @@ struct SlidingPuzzleEntryView: View {
                     .appTextStyle(.h1)
                     .foregroundStyle(AppTheme.Colors.highlight)
 
-                LazyVGrid(columns: gridColumns, spacing: AppTheme.Spacing.small) {
-                    ForEach(tileAssignments.indices, id: \.self) { index in
-                        PuzzleTileSolvedView(
-                            number: tileAssignments[index],
-                            backgroundColor: tileBackgroundColor(number: tileAssignments[index]),
-                            isSelected: selectedTileIndex == index,
-                            onTap: {
-                                selectedTileIndex = index
-                            }
-                        )
-                    }
-                }
+                SlidingPuzzleBoardView(
+                    boardValues: tileAssignments,
+                    boardSize: boardSize,
+                    selectedTileIndex: selectedTileIndex,
+                    onTileTap: { index in
+                        selectedTileIndex = index
+                    },
+                    mode: .input
+                )
                 .appSurfaceCard()
 
                 VStack(spacing: AppTheme.Spacing.medium) {
@@ -126,33 +120,6 @@ struct SlidingPuzzleEntryView: View {
     private func clearSelectedTile() {
         guard let selectedTileIndex else { return }
         tileAssignments[selectedTileIndex] = nil
-    }
-
-    private func tileBackgroundColor(number: Int?) -> Color {
-        number == nil ? AppTheme.Colors.surface : AppTheme.Colors.accent.opacity(0.35)
-    }
-}
-
-struct PuzzleTileSolvedView: View {
-    let number: Int?
-    let backgroundColor: Color
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Text(number.map(String.init) ?? "")
-            .appTextStyle(.h2)
-            .frame(maxWidth: .infinity)
-            .frame(height: 64)
-            .background(backgroundColor)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
-                    .stroke(isSelected ? AppTheme.Colors.highlight : AppTheme.Colors.text, lineWidth: isSelected ? 2 : 1.5)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
-            .onTapGesture {
-                onTap()
-            }
     }
 }
 

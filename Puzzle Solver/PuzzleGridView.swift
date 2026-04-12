@@ -10,16 +10,20 @@ import SwiftUI
 struct PuzzleGridView: View {
     let boardState: [[Int?]]
 
+    private var boardSize: Int {
+        boardState.count
+    }
+
+    private var flattenedBoardValues: [Int?] {
+        boardState.flatMap { $0 }
+    }
+
     var body: some View {
-        VStack(spacing: AppTheme.Spacing.small) {
-            ForEach(0..<3, id: \.self) { row in
-                HStack(spacing: AppTheme.Spacing.small) {
-                    ForEach(0..<3, id: \.self) { column in
-                        PuzzleTileView(number: boardState[row][column])
-                    }
-                }
-            }
-        }
+        SlidingPuzzleBoardView(
+            boardValues: flattenedBoardValues,
+            boardSize: boardSize,
+            mode: .display
+        )
         .padding(AppTheme.Spacing.small)
         .appSurfaceCard()
     }

@@ -14,24 +14,16 @@ struct MovementGridView: View {
         boardState.count
     }
 
-    var body: some View {
-        GeometryReader { geometry in
-            let availableWidth = max(geometry.size.width - (AppTheme.Spacing.small * 2), 1)
-            let spacingTotal = AppTheme.Spacing.small * CGFloat(max(boardSize - 1, 0))
-            let tileSize = max((availableWidth - spacingTotal) / CGFloat(max(boardSize, 1)), 32)
+    private var flattenedBoardValues: [Int?] {
+        boardState.flatMap { $0 }
+    }
 
-            VStack(spacing: AppTheme.Spacing.small) {
-                ForEach(0..<boardSize, id: \.self) { row in
-                    HStack(spacing: AppTheme.Spacing.small) {
-                        ForEach(0..<boardSize, id: \.self) { column in
-                            MovementTileView(number: boardState[row][column], tileSize: tileSize)
-                        }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .aspectRatio(1, contentMode: .fit)
+    var body: some View {
+        SlidingPuzzleBoardView(
+            boardValues: flattenedBoardValues,
+            boardSize: boardSize,
+            mode: .solution
+        )
     }
 }
 
@@ -65,23 +57,6 @@ struct SolutionStepCardView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
         }
         .appSurfaceCard()
-    }
-}
-
-struct MovementTileView: View {
-    let number: Int?
-    let tileSize: CGFloat
-
-    var body: some View {
-        Text(number.map(String.init) ?? "")
-            .appTextStyle(.h3)
-            .frame(width: tileSize, height: tileSize)
-            .background(number == nil ? AppTheme.Colors.surface.opacity(0.8) : AppTheme.Colors.highlight.opacity(0.35))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
-                    .stroke(AppTheme.Colors.highlight.opacity(0.45), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
     }
 }
 
