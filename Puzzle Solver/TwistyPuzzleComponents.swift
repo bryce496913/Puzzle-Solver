@@ -172,6 +172,47 @@ struct TwistyMoveListView: View {
     }
 }
 
+struct TwistyNumberedMoveListView: View {
+    let title: String
+    let moves: [TwistyMove]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Text(title)
+                .appTextStyle(.h2)
+
+            if moves.isEmpty {
+                Text("No moves needed — this puzzle is already solved.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
+            } else {
+                VStack(spacing: AppTheme.Spacing.xSmall) {
+                    ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
+                        HStack(spacing: AppTheme.Spacing.small) {
+                            Text("\(index + 1).")
+                                .appTextStyle(.h3)
+                                .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+                                .frame(width: 28, alignment: .leading)
+
+                            Text(move.token)
+                                .appTextStyle(.h2)
+                                .foregroundStyle(AppTheme.Colors.highlight)
+
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, AppTheme.Spacing.small)
+                        .padding(.vertical, AppTheme.Spacing.xSmall)
+                        .background(AppTheme.Colors.background.opacity(0.3))
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
 struct TwistyStepPlaybackControlsView: View {
     let currentStepNumber: Int
     let totalSteps: Int
