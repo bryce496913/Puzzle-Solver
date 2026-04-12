@@ -10,37 +10,78 @@ import SwiftUI
 struct MovementGridView: View {
     let boardState: [[Int?]]
 
-    var body: some View {
-        let size = boardState.count
+    private var boardSize: Int {
+        boardState.count
+    }
 
-        VStack(spacing: AppTheme.Spacing.small) {
-            ForEach(0..<size, id: \.self) { row in
-                HStack(spacing: AppTheme.Spacing.small) {
-                    ForEach(0..<size, id: \.self) { column in
-                        MovementTileView(number: boardState[row][column])
+    var body: some View {
+        GeometryReader { geometry in
+            let availableWidth = max(geometry.size.width - (AppTheme.Spacing.small * 2), 1)
+            let spacingTotal = AppTheme.Spacing.small * CGFloat(max(boardSize - 1, 0))
+            let tileSize = max((availableWidth - spacingTotal) / CGFloat(max(boardSize, 1)), 32)
+
+            VStack(spacing: AppTheme.Spacing.small) {
+                ForEach(0..<boardSize, id: \.self) { row in
+                    HStack(spacing: AppTheme.Spacing.small) {
+                        ForEach(0..<boardSize, id: \.self) { column in
+                            MovementTileView(number: boardState[row][column], tileSize: tileSize)
+                        }
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
         }
-        .padding(AppTheme.Spacing.xSmall)
+        .aspectRatio(1, contentMode: .fit)
+    }
+}
+
+struct SolutionStepCardView: View {
+    let step: SlidingPuzzleSolutionStep
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Step \(step.stepNumber)")
+                    .appTextStyle(.h2)
+                    .foregroundStyle(AppTheme.Colors.text)
+
+                Spacer(minLength: AppTheme.Spacing.small)
+
+                if let moveLabel = step.moveLabel {
+                    Text(moveLabel)
+                        .appTextStyle(.h3)
+                        .foregroundStyle(AppTheme.Colors.highlight)
+                        .multilineTextAlignment(.trailing)
+                } else {
+                    Text("Initial state")
+                        .appTextStyle(.h3)
+                        .foregroundStyle(AppTheme.Colors.highlight)
+                }
+            }
+
+            MovementGridView(boardState: step.state.boardRows())
+                .padding(AppTheme.Spacing.xSmall)
+                .background(AppTheme.Colors.background.opacity(0.35))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
+        }
         .appSurfaceCard()
     }
 }
 
 struct MovementTileView: View {
     let number: Int?
+    let tileSize: CGFloat
 
     var body: some View {
-        Text(number != nil ? "\(number!)" : "")
+        Text(number.map(String.init) ?? "")
             .appTextStyle(.h3)
-            .frame(width: 40, height: 40)
-            .background(number == nil ? AppTheme.Colors.surface : AppTheme.Colors.highlight.opacity(0.35))
+            .frame(width: tileSize, height: tileSize)
+            .background(number == nil ? AppTheme.Colors.surface.opacity(0.8) : AppTheme.Colors.highlight.opacity(0.35))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
-                    .stroke(AppTheme.Colors.highlight.opacity(0.35), lineWidth: 1)
+                    .stroke(AppTheme.Colors.highlight.opacity(0.45), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
-            .padding(2)
     }
 }
 
@@ -51,5 +92,7 @@ struct MovementGridView_Previews: PreviewProvider {
             [4, 5, 6],
             [7, 8, nil]
         ])
+        .padding()
+        .background(AppTheme.Colors.background)
     }
 }

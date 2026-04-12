@@ -14,6 +14,10 @@ struct SolvingView: View {
     @State private var solveResult: SlidingPuzzleSolveResult?
     @State private var errorMessage: String?
 
+    private var puzzleTitle: String {
+        "\(initialState.size)×\(initialState.size) Sliding Puzzle"
+    }
+
     var body: some View {
         ZStack {
             AppTheme.Colors.background
@@ -21,46 +25,23 @@ struct SolvingView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                    Text("Solution")
+                    Text(puzzleTitle)
                         .appTextStyle(.h1)
                         .foregroundStyle(AppTheme.Colors.highlight)
 
                     if isSolving {
-                        ProgressView("Solving puzzle…")
-                            .appTextStyle(.paragraph)
-                            .foregroundStyle(AppTheme.Colors.text)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, AppTheme.Spacing.small)
+                        solvingStateCard
                     } else if let errorMessage {
                         Text(errorMessage)
                             .appTextStyle(.paragraph)
                             .foregroundStyle(AppTheme.Colors.highlight)
+                            .appSurfaceCard()
                     } else if let solveResult {
-                        if !solveResult.isSolvable {
-                            Text("This puzzle is unsolvable. Please return and enter a solvable \(initialState.size)×\(initialState.size) board.")
-                                .appTextStyle(.paragraph)
-                                .foregroundStyle(AppTheme.Colors.highlight)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .appSurfaceCard()
-                        }
+                        resultSummaryCard(for: solveResult)
 
-                        ForEach(Array(solveResult.steps.enumerated()), id: \.offset) { _, step in
-                            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                                Text("Step \(step.stepNumber)")
-                                    .appTextStyle(.h3)
-                                    .foregroundStyle(AppTheme.Colors.text)
-
-                                if let moveLabel = step.moveLabel {
-                                    Text(moveLabel)
-                                        .appTextStyle(.paragraph)
-                                        .foregroundStyle(AppTheme.Colors.highlight)
-                                } else {
-                                    Text("Initial state")
-                                        .appTextStyle(.paragraph)
-                                        .foregroundStyle(AppTheme.Colors.highlight)
-                                }
-
-                                MovementGridView(boardState: step.state.boardRows())
+                        if solveResult.isSolvable {
+                            ForEach(Array(solveResult.steps.enumerated()), id: \.offset) { _, step in
+                                SolutionStepCardView(step: step)
                             }
                         }
                     }
@@ -71,6 +52,47 @@ struct SolvingView: View {
         .task {
             await solvePuzzle()
         }
+    }
+
+    private var solvingStateCard: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            ProgressView()
+                .tint(AppTheme.Colors.highlight)
+
+            Text("Solving puzzle…")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text)
+
+            Text("Finding the successful solution path for this \(initialState.size)×\(initialState.size) board.")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+
+    private func resultSummaryCard(for result: SlidingPuzzleSolveResult) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Text(result.isSolvable ? "Status: Solvable" : "Status: Unsolvable")
+                .appTextStyle(.h2)
+                .foregroundStyle(result.isSolvable ? AppTheme.Colors.text : AppTheme.Colors.highlight)
+
+            Text("Move count: \(result.moveCount)")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text)
+
+            if result.isSolvable {
+                Text("Ordered solution steps: \(result.steps.count)")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+            } else {
+                Text("This board cannot be solved. Return to edit your tiles and try again.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
     }
 
     @MainActor
