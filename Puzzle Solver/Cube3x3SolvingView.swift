@@ -7,6 +7,8 @@ struct Cube3x3SolvingView: View {
     @State private var solveResult: TwistySolveResult?
     @State private var currentStepIndex = 0
     @State private var showsStepCards = false
+    @State private var isAutoPlaying = false
+    @State private var autoPlayTask: Task<Void, Never>?
 
     private let notationRenderer = StandardTwistyNotationRenderer()
 
@@ -14,14 +16,19 @@ struct Cube3x3SolvingView: View {
         solveResult?.makeStepViewData(renderer: notationRenderer) ?? []
     }
 
+    private var playbackMoves: [TwistyMove] {
+        guard let solveResult, solveResult.isSolvable else { return [] }
+        return solveResult.moves
+    }
+
     private var stepPreviewNets: [Cube3x3StickerNet] {
-        guard let solveResult else { return [] }
+        guard !playbackMoves.isEmpty else { return [] }
 
         var state = initialState
         var previews: [Cube3x3StickerNet] = []
 
-        for step in solveResult.steps {
-            if let token = step.move?.token, let move = Cube3x3Move(rawValue: token) {
+        for token in playbackMoves.map(\.token) {
+            if let move = Cube3x3Move(rawValue: token) {
                 state = state.applying(move)
             }
             previews.append(state.makeStickerNet())
@@ -45,7 +52,7 @@ struct Cube3x3SolvingView: View {
                 if solveResult.isSolvable {
                     TwistyNumberedMoveListView(title: "Ordered move list", moves: solveResult.moves)
 
-                    if !stepViewData.isEmpty {
+                    if !playbackMoves.isEmpty {
                         stepPreviewsSection
                     }
                 } else {
@@ -55,6 +62,9 @@ struct Cube3x3SolvingView: View {
         }
         .task {
             await solveCube()
+        }
+        .onDisappear {
+            stopAutoPlay()
         }
         .navigationTitle("3×3 Results")
         .navigationBarTitleDisplayMode(.inline)
@@ -136,15 +146,21 @@ struct Cube3x3SolvingView: View {
             if showsStepCards {
                 TwistyStepPlaybackControlsView(
                     currentStepNumber: currentStepIndex + 1,
-                    totalSteps: stepViewData.count,
-                    isAutoPlaying: false,
+                    totalSteps: playbackMoves.count,
+                    currentMoveText: playbackMoves[safe: currentStepIndex]?.token,
+                    isAutoPlaying: isAutoPlaying,
                     onPrevious: moveToPreviousStep,
                     onNext: moveToNextStep,
-                    onToggleAutoPlay: {}
+                    onToggleAutoPlay: toggleAutoPlay
                 )
 
                 CubeMoveStepCardView(
-                    step: stepViewData[currentStepIndex],
+                    step: stepViewData[safe: currentStepIndex] ?? TwistySolutionStepViewData(
+                        id: UUID(),
+                        stepNumber: currentStepIndex + 1,
+                        primaryText: playbackMoves[safe: currentStepIndex]?.token ?? "—",
+                        secondaryText: nil
+                    ),
                     previewNet: stepPreviewNets[safe: currentStepIndex],
                     previewCaption: "Cube state after this move"
                 )
@@ -185,18 +201,68 @@ struct Cube3x3SolvingView: View {
     }
 
     private func moveToPreviousStep() {
+        stopAutoPlay()
         guard currentStepIndex > 0 else { return }
         currentStepIndex -= 1
     }
 
     private func moveToNextStep() {
-        guard !stepViewData.isEmpty else { return }
-        currentStepIndex = min(currentStepIndex + 1, stepViewData.count - 1)
+        guard !playbackMoves.isEmpty else { return }
+
+        if currentStepIndex < playbackMoves.count - 1 {
+            currentStepIndex += 1
+        } else {
+            stopAutoPlay()
+        }
+    }
+
+    private func toggleAutoPlay() {
+        if isAutoPlaying {
+            stopAutoPlay()
+        } else {
+            startAutoPlay()
+        }
+    }
+
+    private func startAutoPlay() {
+        guard playbackMoves.count > 1 else { return }
+
+        if currentStepIndex >= playbackMoves.count - 1 {
+            currentStepIndex = 0
+        }
+
+        stopAutoPlay()
+        isAutoPlaying = true
+
+        autoPlayTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1.1))
+
+                if Task.isCancelled {
+                    return
+                }
+
+                await MainActor.run {
+                    if currentStepIndex < playbackMoves.count - 1 {
+                        currentStepIndex += 1
+                    } else {
+                        stopAutoPlay()
+                    }
+                }
+            }
+        }
+    }
+
+    private func stopAutoPlay() {
+        isAutoPlaying = false
+        autoPlayTask?.cancel()
+        autoPlayTask = nil
     }
 
     @MainActor
     private func solveCube() async {
         isSolving = true
+        stopAutoPlay()
 
         let result = await Task.detached(priority: .userInitiated) {
             await Cube3x3Solver().solve(from: initialState)
@@ -204,7 +270,7 @@ struct Cube3x3SolvingView: View {
 
         solveResult = result
         currentStepIndex = 0
-        showsStepCards = !result.steps.isEmpty
+        showsStepCards = !result.moves.isEmpty
         isSolving = false
     }
 }
