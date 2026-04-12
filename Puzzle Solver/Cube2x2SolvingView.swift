@@ -25,10 +25,10 @@ struct Cube2x2SolvingView: View {
                         solveSummaryCard(for: solveResult)
 
                         if solveResult.isSolvable {
-                            orderedMoveListCard(for: solveResult)
+                            TwistyMoveListView(title: "Ordered move list", moves: solveResult.moves)
 
                             ForEach(solveResult.makeStepViewData(renderer: notationRenderer)) { stepData in
-                                Cube2x2SolutionStepCardView(step: stepData)
+                                TwistyStepCardView(step: stepData)
                             }
                         } else {
                             unsolvableCard
@@ -80,25 +80,6 @@ struct Cube2x2SolvingView: View {
         .appSurfaceCard()
     }
 
-    private func orderedMoveListCard(for result: TwistySolveResult) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text("Ordered move list")
-                .appTextStyle(.h2)
-
-            if result.moves.isEmpty {
-                Text("No moves needed — this cube is already solved.")
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
-            } else {
-                Text(result.moves.map(\.token).joined(separator: " "))
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.highlight)
-                    .textSelection(.enabled)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appSurfaceCard()
-    }
 
     private var unsolvableCard: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
@@ -124,49 +105,6 @@ struct Cube2x2SolvingView: View {
 
         solveResult = result
         isSolving = false
-    }
-}
-
-private struct Cube2x2SolutionStepCardView: View {
-    let step: TwistySolutionStepViewData
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
-                Text("Step \(step.stepNumber)")
-                    .appTextStyle(.h2)
-
-                Spacer(minLength: AppTheme.Spacing.small)
-
-                Text(step.primaryText)
-                    .appTextStyle(.h2)
-                    .foregroundStyle(AppTheme.Colors.highlight)
-                    .padding(.horizontal, AppTheme.Spacing.small)
-                    .padding(.vertical, AppTheme.Spacing.xSmall)
-                    .background(AppTheme.Colors.background.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
-            }
-
-            if let secondaryText = step.secondaryText {
-                Text(secondaryText)
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.8))
-            }
-
-            HStack(spacing: AppTheme.Spacing.xSmall) {
-                Image(systemName: "cube.transparent")
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.78))
-                Text("Cube preview coming soon")
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
-            }
-            .padding(AppTheme.Spacing.small)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppTheme.Colors.background.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appSurfaceCard()
     }
 }
 
