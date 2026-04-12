@@ -18,19 +18,38 @@ final class Puzzle_SolverTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    func testCube3x3SolverSolvesShortScramble() async throws {
+        let scramble: [Cube3x3Move] = [.r, .u, .fPrime, .l2, .d]
+        let scrambled = Cube3x3State.solved.applying(sequence: scramble)
+
+        let result = await Cube3x3Solver().solve(from: scrambled)
+
+        XCTAssertTrue(result.isSolvable)
+        XCTAssertFalse(result.moves.isEmpty)
+
+        let solved = result.moves.reduce(scrambled) { partial, move in
+            guard let cubeMove = Cube3x3Move(rawValue: move.token) else {
+                XCTFail("Unexpected move token returned: \(move.token)")
+                return partial
+            }
+            return partial.applying(cubeMove)
+        }
+        XCTAssertEqual(solved, .solved)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testCube3x3StateValidationRejectsParityMismatch() throws {
+        var invalid = Cube3x3State.solved
+        var perm = invalid.cornerPermutation
+        perm.swapAt(0, 1)
+        invalid = Cube3x3State(
+            cornerPermutation: perm,
+            cornerOrientation: invalid.cornerOrientation,
+            edgePermutation: invalid.edgePermutation,
+            edgeOrientation: invalid.edgeOrientation
+        )
+
+        let validation = invalid.validate()
+        XCTAssertFalse(validation.isValid)
     }
 
 }

@@ -207,6 +207,10 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
             if edgeOrientation.reduce(0, +) % 2 != 0 {
                 issues.append("Edge orientation parity is invalid (sum mod 2 must be 0).")
             }
+
+            if Self.parity(of: cornerPermutation) != Self.parity(of: edgePermutation) {
+                issues.append("Permutation parity mismatch between corners and edges.")
+            }
         }
 
         return issues.isEmpty ? .valid : .invalid(issues)
@@ -330,6 +334,26 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
         [.back, .left],
         [.back, .right]
     ]
+
+    private static func parity(of permutation: [UInt8]) -> Int {
+        var seen = Array(repeating: false, count: permutation.count)
+        var parity = 0
+
+        for start in permutation.indices where !seen[start] {
+            var length = 0
+            var cursor = start
+            while !seen[cursor] {
+                seen[cursor] = true
+                cursor = Int(permutation[cursor])
+                length += 1
+            }
+            if length > 0 {
+                parity ^= (length - 1) & 1
+            }
+        }
+
+        return parity
+    }
 }
 
 private struct Cube3x3Transform {
@@ -406,7 +430,292 @@ struct Cube3x3Solver: TwistyPuzzleSolver {
     typealias State = Cube3x3State
 
     func solve(from initialState: Cube3x3State) async -> TwistySolveResult {
-        .placeholderResult(for: initialState.puzzleType)
+        let start = Date()
+        let validation = initialState.validate()
+        guard validation.isValid else {
+            let issues = if case .invalid(let reasons) = validation {
+                reasons.joined(separator: " ")
+            } else {
+                "Invalid cube state."
+            }
+
+            return TwistySolveResult(
+                puzzleType: .cube3x3,
+                isSolvable: false,
+                moves: [],
+                steps: [TwistySolutionStep(move: nil, explanation: issues)],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: nil
+            )
+        }
+
+        if initialState.isSolved {
+            return TwistySolveResult(
+                puzzleType: .cube3x3,
+                isSolvable: true,
+                moves: [],
+                steps: [TwistySolutionStep(move: nil, explanation: "Cube is already solved.")],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: "Solved"
+            )
+        }
+
+        let planner = Cube3x3StagePlanner()
+        guard let solution = planner.solve(initialState) else {
+            return TwistySolveResult(
+                puzzleType: .cube3x3,
+                isSolvable: false,
+                moves: [],
+                steps: [TwistySolutionStep(move: nil, explanation: "No solution found within search limits.")],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: nil
+            )
+        }
+
+        let simplified = Cube3x3MoveOptimizer.simplify(solution)
+        let steps = simplified.enumerated().map { index, move in
+            TwistySolutionStep(move: move.twistyMove, explanation: "Step \(index + 1): apply \(move.rawValue).")
+        }
+
+        return TwistySolveResult(
+            puzzleType: .cube3x3,
+            isSolvable: true,
+            moves: simplified.map(\.twistyMove),
+            steps: steps,
+            elapsedTime: Date().timeIntervalSince(start),
+            finalStateDescription: "Solved"
+        )
+    }
+}
+
+/// Solver pipeline that incrementally constrains more cubies until the whole cube is solved.
+/// This is intentionally stage-based to keep memory usage bounded for mobile devices.
+private struct Cube3x3StagePlanner {
+    private let allMoves = Cube3x3Move.allCases
+
+    func solve(_ initialState: Cube3x3State) -> [Cube3x3Move]? {
+        var state = initialState
+        var allSteps: [Cube3x3Move] = []
+
+        for stage in Cube3x3SolveStage.defaultStages {
+            guard let sequence = search(stage: stage, from: state) else {
+                return nil
+            }
+            allSteps.append(contentsOf: sequence)
+            state = state.applying(sequence: sequence)
+        }
+
+        return state.isSolved ? allSteps : nil
+    }
+
+    private func search(stage: Cube3x3SolveStage, from start: Cube3x3State) -> [Cube3x3Move]? {
+        if stage.goal(start) { return [] }
+
+        let searcher = Cube3x3IDDFSSearcher(
+            allowedMoves: stage.allowedMoves,
+            goal: stage.goal,
+            heuristic: stage.heuristic
+        )
+
+        return searcher.search(from: start, maxDepth: stage.maxDepth)
+    }
+}
+
+private struct Cube3x3SolveStage {
+    let name: String
+    let allowedMoves: [Cube3x3Move]
+    let maxDepth: Int
+    let goal: (Cube3x3State) -> Bool
+    let heuristic: (Cube3x3State) -> Int
+
+    static var defaultStages: [Cube3x3SolveStage] {
+        [
+            Cube3x3SolveStage(
+                name: "Cross",
+                allowedMoves: Cube3x3Move.allCases,
+                maxDepth: 9,
+                goal: { state in
+                    state.edgePermutation[4] == 4 && state.edgePermutation[5] == 5 &&
+                    state.edgePermutation[6] == 6 && state.edgePermutation[7] == 7 &&
+                    state.edgeOrientation[4] == 0 && state.edgeOrientation[5] == 0 &&
+                    state.edgeOrientation[6] == 0 && state.edgeOrientation[7] == 0
+                },
+                heuristic: { state in
+                    let misplaced = [4, 5, 6, 7].reduce(into: 0) { partial, index in
+                        if state.edgePermutation[index] != index || state.edgeOrientation[index] != 0 {
+                            partial += 1
+                        }
+                    }
+                    return (misplaced + 1) / 2
+                }
+            ),
+            Cube3x3SolveStage(
+                name: "F2L corners",
+                allowedMoves: Cube3x3Move.allCases,
+                maxDepth: 10,
+                goal: { state in
+                    [4, 5, 6, 7].allSatisfy { index in
+                        state.edgePermutation[index] == index &&
+                        state.edgeOrientation[index] == 0 &&
+                        state.cornerPermutation[index] == index &&
+                        state.cornerOrientation[index] == 0
+                    }
+                },
+                heuristic: { state in
+                    let misplacedEdges = [4, 5, 6, 7].filter { state.edgePermutation[$0] != $0 || state.edgeOrientation[$0] != 0 }.count
+                    let misplacedCorners = [4, 5, 6, 7].filter { state.cornerPermutation[$0] != $0 || state.cornerOrientation[$0] != 0 }.count
+                    return max((misplacedEdges + 1) / 2, (misplacedCorners + 1) / 2)
+                }
+            ),
+            Cube3x3SolveStage(
+                name: "Middle edges",
+                allowedMoves: Cube3x3Move.allCases,
+                maxDepth: 11,
+                goal: { state in
+                    [4, 5, 6, 7].allSatisfy { index in
+                        state.edgePermutation[index] == index &&
+                        state.edgeOrientation[index] == 0 &&
+                        state.cornerPermutation[index] == index &&
+                        state.cornerOrientation[index] == 0
+                    } &&
+                    [8, 9, 10, 11].allSatisfy { index in
+                        state.edgePermutation[index] == index &&
+                        state.edgeOrientation[index] == 0
+                    }
+                },
+                heuristic: { state in
+                    let misplaced = [8, 9, 10, 11].filter { state.edgePermutation[$0] != $0 || state.edgeOrientation[$0] != 0 }.count
+                    return (misplaced + 1) / 2
+                }
+            ),
+            Cube3x3SolveStage(
+                name: "Last layer orientation",
+                allowedMoves: [.u, .uPrime, .u2, .r, .rPrime, .r2, .l, .lPrime, .l2, .f, .fPrime, .f2, .b, .bPrime, .b2],
+                maxDepth: 10,
+                goal: { state in
+                    state.cornerOrientation[0] == 0 &&
+                    state.cornerOrientation[1] == 0 &&
+                    state.cornerOrientation[2] == 0 &&
+                    state.cornerOrientation[3] == 0 &&
+                    state.edgeOrientation[0] == 0 &&
+                    state.edgeOrientation[1] == 0 &&
+                    state.edgeOrientation[2] == 0 &&
+                    state.edgeOrientation[3] == 0
+                },
+                heuristic: { state in
+                    let badCorners = [0, 1, 2, 3].filter { state.cornerOrientation[$0] != 0 }.count
+                    let badEdges = [0, 1, 2, 3].filter { state.edgeOrientation[$0] != 0 }.count
+                    return max((badCorners + 2) / 3, (badEdges + 1) / 2)
+                }
+            ),
+            Cube3x3SolveStage(
+                name: "Final permutation",
+                allowedMoves: Cube3x3Move.allCases,
+                maxDepth: 13,
+                goal: { $0.isSolved },
+                heuristic: { state in
+                    let misplacedCorners = (0..<8).filter { state.cornerPermutation[$0] != $0 }.count
+                    let misplacedEdges = (0..<12).filter { state.edgePermutation[$0] != $0 }.count
+                    return max((misplacedCorners + 3) / 4, (misplacedEdges + 3) / 4)
+                }
+            )
+        ]
+    }
+}
+
+private struct Cube3x3IDDFSSearcher {
+    let allowedMoves: [Cube3x3Move]
+    let goal: (Cube3x3State) -> Bool
+    let heuristic: (Cube3x3State) -> Int
+
+    func search(from start: Cube3x3State, maxDepth: Int) -> [Cube3x3Move]? {
+        var path: [Cube3x3Move] = []
+        for limit in 0...maxDepth {
+            if depthLimited(state: start, depthRemaining: limit, path: &path, previousMove: nil) {
+                return path
+            }
+        }
+        return nil
+    }
+
+    private func depthLimited(
+        state: Cube3x3State,
+        depthRemaining: Int,
+        path: inout [Cube3x3Move],
+        previousMove: Cube3x3Move?
+    ) -> Bool {
+        if goal(state) { return true }
+        if depthRemaining == 0 { return false }
+        if heuristic(state) > depthRemaining { return false }
+
+        for move in allowedMoves {
+            if let previousMove, move.baseTurn == previousMove.baseTurn {
+                continue
+            }
+
+            let next = state.applying(move)
+            path.append(move)
+            if depthLimited(state: next, depthRemaining: depthRemaining - 1, path: &path, previousMove: move) {
+                return true
+            }
+            path.removeLast()
+        }
+
+        return false
+    }
+}
+
+private enum Cube3x3MoveOptimizer {
+    static func simplify(_ moves: [Cube3x3Move]) -> [Cube3x3Move] {
+        var stack: [Cube3x3Move] = []
+
+        for move in moves {
+            guard let last = stack.last, last.baseTurn == move.baseTurn else {
+                stack.append(move)
+                continue
+            }
+
+            stack.removeLast()
+            let turns = (turns(for: last) + turns(for: move)) % 4
+            if let merged = merge(base: move.baseTurn, turns: turns) {
+                stack.append(merged)
+            }
+        }
+
+        return stack
+    }
+
+    private static func turns(for move: Cube3x3Move) -> Int {
+        switch move {
+        case .u, .d, .l, .r, .f, .b: return 1
+        case .u2, .d2, .l2, .r2, .f2, .b2: return 2
+        case .uPrime, .dPrime, .lPrime, .rPrime, .fPrime, .bPrime: return 3
+        }
+    }
+
+    private static func merge(base: Cube3x3FaceTurn, turns: Int) -> Cube3x3Move? {
+        switch (base, turns) {
+        case (_, 0): return nil
+        case (.u, 1): return .u
+        case (.u, 2): return .u2
+        case (.u, 3): return .uPrime
+        case (.d, 1): return .d
+        case (.d, 2): return .d2
+        case (.d, 3): return .dPrime
+        case (.l, 1): return .l
+        case (.l, 2): return .l2
+        case (.l, 3): return .lPrime
+        case (.r, 1): return .r
+        case (.r, 2): return .r2
+        case (.r, 3): return .rPrime
+        case (.f, 1): return .f
+        case (.f, 2): return .f2
+        case (.f, 3): return .fPrime
+        case (.b, 1): return .b
+        case (.b, 2): return .b2
+        case (.b, 3): return .bPrime
+        default: return nil
+        }
     }
 }
 
