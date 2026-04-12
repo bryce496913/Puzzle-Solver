@@ -4,43 +4,25 @@ struct TwistyPuzzlePickerView: View {
     private let twistyPuzzleTypes = TwistyPuzzleType.catalog
 
     var body: some View {
-        ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
+        TwistyScreenContainer {
+            TwistyScreenHeader(
+                title: "Twisty Puzzles",
+                subtitle: "Choose a twisty puzzle type"
+            )
 
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
-                VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-                    Text("Twisty Puzzles")
-                        .appTextStyle(.h1)
-                        .foregroundStyle(AppTheme.Colors.highlight)
-
-                    Text("Choose a twisty puzzle type")
-                        .appTextStyle(.h2)
-                        .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+            ForEach(twistyPuzzleTypes) { catalogItem in
+                NavigationLink {
+                    destinationView(for: catalogItem.puzzleType)
+                } label: {
+                    PuzzleTypeCard(
+                        title: catalogItem.title,
+                        subtitle: catalogItem.subtitle,
+                        icon: catalogItem.icon,
+                        isEnabled: catalogItem.isEnabled,
+                        accentVariant: catalogItem.isEnabled ? .accent : .highlight
+                    )
                 }
-                .padding(.horizontal, AppTheme.Spacing.large)
-                .padding(.top, AppTheme.Spacing.xLarge)
-
-                ScrollView {
-                    VStack(spacing: AppTheme.Spacing.medium) {
-                        ForEach(twistyPuzzleTypes) { catalogItem in
-                            NavigationLink {
-                                destinationView(for: catalogItem.puzzleType)
-                            } label: {
-                                PuzzleTypeCard(
-                                    title: catalogItem.title,
-                                    subtitle: catalogItem.subtitle,
-                                    icon: catalogItem.icon,
-                                    isEnabled: catalogItem.isEnabled,
-                                    accentVariant: catalogItem.isEnabled ? .accent : .highlight
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, AppTheme.Spacing.large)
-                    .padding(.bottom, AppTheme.Spacing.xLarge)
-                }
+                .buttonStyle(.plain)
             }
         }
         .navigationTitle("Twisty Puzzles")

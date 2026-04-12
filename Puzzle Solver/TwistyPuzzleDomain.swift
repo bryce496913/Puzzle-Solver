@@ -137,7 +137,6 @@ struct TwistySolutionStepViewData: Identifiable, Hashable, Sendable {
 }
 
 struct TwistySolveSummaryViewData: Sendable {
-    let title: String
     let statusText: String
     let moveCountText: String
     let stepCountText: String
@@ -183,7 +182,6 @@ struct StandardTwistyNotationRenderer: TwistyNotationRenderer {
 extension TwistySolveResult {
     func makeSummaryViewData() -> TwistySolveSummaryViewData {
         TwistySolveSummaryViewData(
-            title: puzzleType.metadata.title,
             statusText: isSolvable ? "Status: Solvable" : "Status: Unsolvable",
             moveCountText: "Move count: \(moveCount)",
             stepCountText: "Ordered solution steps: \(steps.count)"
