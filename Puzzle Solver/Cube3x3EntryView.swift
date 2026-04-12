@@ -40,7 +40,7 @@ struct Cube3x3EntryView: View {
         case .success:
             return .ready("Great! Your cube input looks valid. Tap Solve when you're ready.")
         case .failure(let error):
-            return .invalid(error.message)
+            return .invalid(friendlyValidationMessage(for: error))
         }
     }
 
@@ -185,7 +185,11 @@ struct Cube3x3EntryView: View {
 
         let stateResult = Cube3x3StateBuilder.makeState(from: stickerAssignments)
         guard case .success(let cubeState) = stateResult else {
-            inputError = "We couldn’t start solving from this input yet. Please verify each face and try again."
+            if case .failure(let error) = stateResult {
+                inputError = friendlyValidationMessage(for: error)
+            } else {
+                inputError = "Please check your cube input and try again."
+            }
             return
         }
 
@@ -200,6 +204,22 @@ struct Cube3x3EntryView: View {
         selectedSticker = nil
         solveState = nil
         shouldNavigateToSolve = false
+    }
+
+    private func friendlyValidationMessage(for error: Cube3x3StateBuildError) -> String {
+        let raw = error.message.lowercased()
+
+        if raw.contains("fill in all 54 stickers") || raw.contains("missing stickers") {
+            return "Please fill every sticker before solving."
+        }
+        if raw.contains("impossible color combination") || raw.contains("duplicated") {
+            return "Some pieces don’t match a real 3×3 cube. Recheck nearby stickers."
+        }
+        if raw.contains("parity") || raw.contains("orientation") || raw.contains("permutation") || raw.contains("invalid cube state") {
+            return "This sticker layout can’t be solved as entered. Please verify each face."
+        }
+
+        return "We couldn’t use this cube input yet. Please review and try again."
     }
 }
 

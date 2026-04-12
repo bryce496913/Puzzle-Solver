@@ -5,6 +5,7 @@ struct Cube3x3SolvingView: View {
 
     @State private var isSolving = true
     @State private var solveResult: TwistySolveResult?
+    @State private var solveFailureMessage: String?
     @State private var currentStepIndex = 0
     @State private var showsStepCards = false
     @State private var isAutoPlaying = false
@@ -46,6 +47,8 @@ struct Cube3x3SolvingView: View {
 
             if isSolving {
                 solvingStateCard
+            } else if let solveFailureMessage {
+                unsolvableCard(message: solveFailureMessage)
             } else if let solveResult {
                 solveSummaryCard(for: solveResult)
 
@@ -56,7 +59,7 @@ struct Cube3x3SolvingView: View {
                         stepPreviewsSection
                     }
                 } else {
-                    unsolvableCard(message: stepViewData.first?.secondaryText)
+                    unsolvableCard(message: friendlyFailureMessage(from: solveResult))
                 }
             }
         }
@@ -117,7 +120,7 @@ struct Cube3x3SolvingView: View {
     @ViewBuilder
     private func unsolvableCard(message: String?) -> some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text("We couldn't find a solution for this sticker input.")
+            Text("We couldn’t solve this cube.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.highlight)
 
@@ -127,7 +130,7 @@ struct Cube3x3SolvingView: View {
                     .foregroundStyle(AppTheme.Colors.text.opacity(0.9))
             }
 
-            Text("This usually means one or more stickers were entered incorrectly. Go back, verify each face, and try again.")
+            Text("Please go back, check each face, and try again.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.88))
         }
@@ -263,15 +266,42 @@ struct Cube3x3SolvingView: View {
     private func solveCube() async {
         isSolving = true
         stopAutoPlay()
+        solveFailureMessage = nil
+        solveResult = nil
 
         let result = await Task.detached(priority: .userInitiated) {
             await Cube3x3Solver().solve(from: initialState)
         }.value
 
+        if Task.isCancelled {
+            solveFailureMessage = "Solving was interrupted. Please try again."
+            isSolving = false
+            return
+        }
+
+        guard result.puzzleType == .cube3x3 else {
+            solveFailureMessage = "Something went wrong while solving. Please try again."
+            isSolving = false
+            return
+        }
+
         solveResult = result
         currentStepIndex = 0
         showsStepCards = !result.moves.isEmpty
         isSolving = false
+    }
+
+    private func friendlyFailureMessage(from result: TwistySolveResult) -> String {
+        if let detail = result.steps.first?.explanation.lowercased() {
+            if detail.contains("invalid") || detail.contains("parity") || detail.contains("orientation") || detail.contains("permutation") {
+                return "This cube entry doesn’t describe a valid 3×3 state."
+            }
+            if detail.contains("search limit") || detail.contains("no solution") {
+                return "We couldn’t finish solving this entry. Please check your stickers and retry."
+            }
+        }
+
+        return "Please verify your sticker input and try again."
     }
 }
 
