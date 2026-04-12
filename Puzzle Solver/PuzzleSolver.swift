@@ -58,7 +58,7 @@ struct SlidingPuzzleState: Hashable {
     }
 
     var goalTiles: [Int] {
-        Array(1..<(tileCount)) + [0]
+        Array(1..<tileCount) + [0]
     }
 
     var isGoal: Bool {
@@ -92,7 +92,7 @@ struct SlidingPuzzleState: Hashable {
         }
     }
 
-    /// Manhattan distance heuristic for A*.
+    /// Manhattan distance heuristic.
     func manhattanDistance() -> Int {
         var distance = 0
 
@@ -185,14 +185,27 @@ struct SlidingPuzzleSolveResult {
     static func unsolvable(initial: SlidingPuzzleState) -> SlidingPuzzleSolveResult {
         SlidingPuzzleSolveResult(
             isSolvable: false,
-            steps: [
-                .init(state: initial, stepNumber: 0, move: nil)
-            ]
+            steps: [.init(state: initial, stepNumber: 0, move: nil)]
         )
     }
 }
 
+protocol SlidingPuzzleHeuristic {
+    func estimate(for state: SlidingPuzzleState) -> Int
+}
+
+struct ManhattanHeuristic: SlidingPuzzleHeuristic {
+    func estimate(for state: SlidingPuzzleState) -> Int {
+        state.manhattanDistance()
+    }
+}
+
 final class SlidingPuzzleSolver {
+    private enum Strategy {
+        case aStar
+        case idaStar
+    }
+
     private struct FrontierNode: Comparable {
         let state: SlidingPuzzleState
         let gCost: Int
@@ -213,6 +226,17 @@ final class SlidingPuzzleSolver {
         let moveFromParent: SlidingPuzzleMove?
     }
 
+    private enum IDAIterationResult {
+        case found
+        case nextBound(Int)
+    }
+
+    private let heuristic: SlidingPuzzleHeuristic
+
+    init(heuristic: SlidingPuzzleHeuristic = ManhattanHeuristic()) {
+        self.heuristic = heuristic
+    }
+
     func solve(from initialState: SlidingPuzzleState) -> SlidingPuzzleSolveResult {
         guard initialState.isSolvable() else {
             return .unsolvable(initial: initialState)
@@ -225,20 +249,41 @@ final class SlidingPuzzleSolver {
             )
         }
 
+        let strategy = strategy(for: initialState.size)
+        switch strategy {
+        case .aStar:
+            return solveWithAStar(from: initialState)
+        case .idaStar:
+            return solveWithIDAStar(from: initialState)
+        }
+    }
+
+    private func strategy(for boardSize: Int) -> Strategy {
+        switch boardSize {
+        case 4:
+            return .idaStar
+        default:
+            return .aStar
+        }
+    }
+
+    private func solveWithAStar(from initialState: SlidingPuzzleState) -> SlidingPuzzleSolveResult {
         var frontier = PriorityQueue<FrontierNode>()
         var bestCostByState: [SlidingPuzzleState: Int] = [initialState: 0]
         var links: [SlidingPuzzleState: StateLink] = [
             initialState: StateLink(parent: nil, moveFromParent: nil)
         ]
 
-        frontier.push(.init(state: initialState, gCost: 0, hCost: initialState.manhattanDistance()))
+        frontier.push(.init(state: initialState, gCost: 0, hCost: heuristic.estimate(for: initialState)))
 
         while let current = frontier.pop() {
             guard current.gCost <= (bestCostByState[current.state] ?? Int.max) else { continue }
 
             if current.state.isGoal {
-                let orderedSteps = reconstructPath(from: current.state, links: links)
-                return SlidingPuzzleSolveResult(isSolvable: true, steps: orderedSteps)
+                return SlidingPuzzleSolveResult(
+                    isSolvable: true,
+                    steps: reconstructPath(from: current.state, links: links)
+                )
             }
 
             for neighbor in current.state.neighbors() {
@@ -250,7 +295,7 @@ final class SlidingPuzzleSolver {
                         .init(
                             state: neighbor.state,
                             gCost: tentativeG,
-                            hCost: neighbor.state.manhattanDistance()
+                            hCost: heuristic.estimate(for: neighbor.state)
                         )
                     )
                 }
@@ -258,6 +303,88 @@ final class SlidingPuzzleSolver {
         }
 
         return .unsolvable(initial: initialState)
+    }
+
+    private func solveWithIDAStar(from initialState: SlidingPuzzleState) -> SlidingPuzzleSolveResult {
+        var bound = heuristic.estimate(for: initialState)
+        var path: [SlidingPuzzleState] = [initialState]
+        var moves: [SlidingPuzzleMove] = []
+        var activePathSet: Set<SlidingPuzzleState> = [initialState]
+
+        while true {
+            switch searchIDA(
+                path: &path,
+                moves: &moves,
+                gCost: 0,
+                bound: bound,
+                activePathSet: &activePathSet
+            ) {
+            case .found:
+                return SlidingPuzzleSolveResult(
+                    isSolvable: true,
+                    steps: makeStepsFromPath(path: path, moves: moves)
+                )
+            case .nextBound(let nextBound):
+                if nextBound == Int.max {
+                    return .unsolvable(initial: initialState)
+                }
+                bound = nextBound
+            }
+        }
+    }
+
+    private func searchIDA(path: inout [SlidingPuzzleState],
+                           moves: inout [SlidingPuzzleMove],
+                           gCost: Int,
+                           bound: Int,
+                           activePathSet: inout Set<SlidingPuzzleState>) -> IDAIterationResult {
+        guard let current = path.last else {
+            return .nextBound(Int.max)
+        }
+
+        let fCost = gCost + heuristic.estimate(for: current)
+        if fCost > bound {
+            return .nextBound(fCost)
+        }
+
+        if current.isGoal {
+            return .found
+        }
+
+        var minimumOverflow = Int.max
+
+        let orderedNeighbors = current.neighbors().sorted {
+            heuristic.estimate(for: $0.state) < heuristic.estimate(for: $1.state)
+        }
+
+        for neighbor in orderedNeighbors {
+            if activePathSet.contains(neighbor.state) {
+                continue
+            }
+
+            path.append(neighbor.state)
+            moves.append(neighbor.move)
+            activePathSet.insert(neighbor.state)
+
+            switch searchIDA(
+                path: &path,
+                moves: &moves,
+                gCost: gCost + 1,
+                bound: bound,
+                activePathSet: &activePathSet
+            ) {
+            case .found:
+                return .found
+            case .nextBound(let candidateBound):
+                minimumOverflow = min(minimumOverflow, candidateBound)
+            }
+
+            _ = path.popLast()
+            _ = moves.popLast()
+            activePathSet.remove(neighbor.state)
+        }
+
+        return .nextBound(minimumOverflow)
     }
 
     private func reconstructPath(from goal: SlidingPuzzleState,
@@ -273,6 +400,14 @@ final class SlidingPuzzleSolver {
 
         return reversed.reversed().enumerated().map { index, item in
             SlidingPuzzleSolutionStep(state: item.0, stepNumber: index, move: item.1)
+        }
+    }
+
+    private func makeStepsFromPath(path: [SlidingPuzzleState],
+                                   moves: [SlidingPuzzleMove]) -> [SlidingPuzzleSolutionStep] {
+        path.enumerated().map { index, state in
+            let move = index == 0 ? nil : moves[index - 1]
+            return SlidingPuzzleSolutionStep(state: state, stepNumber: index, move: move)
         }
     }
 }
