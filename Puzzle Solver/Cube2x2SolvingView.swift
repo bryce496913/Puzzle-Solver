@@ -16,42 +16,35 @@ struct Cube2x2SolvingView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
+        TwistyScreenContainer {
+            TwistyScreenHeader(
+                title: "2×2 Cube Solution",
+                subtitle: "Review the move list and step-by-step walkthrough."
+            )
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                    Text("2×2 Cube Solution")
-                        .appTextStyle(.h1)
-                        .foregroundStyle(AppTheme.Colors.highlight)
+            if isSolving {
+                solvingStateCard
+            } else if let solveResult {
+                solveSummaryCard(for: solveResult)
 
-                    if isSolving {
-                        solvingStateCard
-                    } else if let solveResult {
-                        solveSummaryCard(for: solveResult)
+                if solveResult.isSolvable {
+                    TwistyMoveListView(title: "Ordered move list", moves: solveResult.moves)
 
-                        if solveResult.isSolvable {
-                            TwistyMoveListView(title: "Ordered move list", moves: solveResult.moves)
+                    if !stepViewData.isEmpty {
+                        TwistyStepPlaybackControlsView(
+                            currentStepNumber: currentStepIndex + 1,
+                            totalSteps: stepViewData.count,
+                            isAutoPlaying: isAutoPlaying,
+                            onPrevious: moveToPreviousStep,
+                            onNext: moveToNextStep,
+                            onToggleAutoPlay: toggleAutoPlay
+                        )
 
-                            if !stepViewData.isEmpty {
-                                TwistyStepPlaybackControlsView(
-                                    currentStepNumber: currentStepIndex + 1,
-                                    totalSteps: stepViewData.count,
-                                    isAutoPlaying: isAutoPlaying,
-                                    onPrevious: moveToPreviousStep,
-                                    onNext: moveToNextStep,
-                                    onToggleAutoPlay: toggleAutoPlay
-                                )
-
-                                TwistyStepCardView(step: stepViewData[currentStepIndex])
-                            }
-                        } else {
-                            unsolvableCard
-                        }
+                        TwistyStepCardView(step: stepViewData[currentStepIndex])
                     }
+                } else {
+                    unsolvableCard
                 }
-                .padding(AppTheme.Spacing.large)
             }
         }
         .task {

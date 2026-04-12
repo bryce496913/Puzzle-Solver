@@ -3,24 +3,24 @@ import SwiftUI
 struct Cube2x2EntryView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedColor: CubeStickerColor = .white
-    @State private var stickerAssignments: [StickerCoordinate: CubeStickerColor] = [:]
+    @State private var selectedColor: Cube2x2StickerColor = .white
+    @State private var stickerAssignments: [Cube2x2StickerCoordinate: Cube2x2StickerColor] = [:]
     @State private var inputError: String?
     @State private var solveState: Cube2x2State?
     @State private var shouldNavigateToSolve = false
 
-    private var colorCounts: [CubeStickerColor: Int] {
+    private var colorCounts: [Cube2x2StickerColor: Int] {
         Dictionary(grouping: stickerAssignments.values, by: { $0 }).mapValues(\.count)
     }
 
     private var validationStatus: CubeEntryValidationStatus {
-        let requiredStickerCount = StickerCoordinate.allCases.count
+        let requiredStickerCount = Cube2x2StickerCoordinate.allCases.count
         let assigned = stickerAssignments.count
         if assigned < requiredStickerCount {
             return .incomplete("Fill all 24 stickers. Remaining: \(requiredStickerCount - assigned).")
         }
 
-        for color in CubeStickerColor.allCases {
+        for color in Cube2x2StickerColor.allCases {
             let count = colorCounts[color, default: 0]
             if count != 4 {
                 return .invalid("Each color must appear exactly 4 times. \(color.label) currently has \(count).")
@@ -40,53 +40,40 @@ struct Cube2x2EntryView: View {
     }
 
     var body: some View {
-        ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
+        TwistyScreenContainer {
+            TwistyScreenHeader(
+                title: "2×2 Cube Entry",
+                subtitle: "Enter your sticker colors to build a valid cube state."
+            )
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                    Text("2×2 Cube Entry")
-                        .appTextStyle(.h1)
-                        .foregroundStyle(AppTheme.Colors.highlight)
+            helperCard
+                .appSurfaceCard()
 
-                    helperCard
-                        .appSurfaceCard()
+            colorPickerRow
+                .appSurfaceCard()
 
-                    colorPickerRow
-                        .appSurfaceCard()
+            CubeNetInputView(stickerAssignments: $stickerAssignments, selectedColor: selectedColor)
+                .appSurfaceCard()
 
-                    CubeNetInputView(stickerAssignments: $stickerAssignments, selectedColor: selectedColor)
-                        .appSurfaceCard()
+            if let inputError {
+                TwistyInlineStatusMessage(message: inputError)
+            }
 
-                    if let inputError {
-                        Text(inputError)
-                            .appTextStyle(.paragraph)
-                            .foregroundStyle(AppTheme.Colors.highlight)
-                            .padding(AppTheme.Spacing.small)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppTheme.Colors.highlight.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
-                    }
+            Button {
+                startSolveFlow()
+            } label: {
+                Text("Solve")
+            }
+            .buttonStyle(AppPrimaryButtonStyle())
+            .disabled(!isReadyToSolve)
+            .opacity(isReadyToSolve ? 1 : 0.5)
 
-                    Button {
-                        startSolveFlow()
-                    } label: {
-                        Text("Solve")
-                    }
-                    .buttonStyle(AppPrimaryButtonStyle())
-                    .disabled(!isReadyToSolve)
-                    .opacity(isReadyToSolve ? 1 : 0.5)
+            HStack(spacing: AppTheme.Spacing.medium) {
+                Button("Back") { dismiss() }
+                    .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.surface))
 
-                    HStack(spacing: AppTheme.Spacing.medium) {
-                        Button("Back") { dismiss() }
-                            .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.surface))
-
-                        Button("Reset") { resetEntry() }
-                            .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.accent))
-                    }
-                }
-                .padding(AppTheme.Spacing.large)
+                Button("Reset") { resetEntry() }
+                    .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.accent))
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -128,7 +115,7 @@ struct Cube2x2EntryView: View {
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
 
             HStack(spacing: AppTheme.Spacing.small) {
-                ForEach(CubeStickerColor.allCases, id: \.self) { color in
+                ForEach(Cube2x2StickerColor.allCases, id: \.self) { color in
                     let count = colorCounts[color, default: 0]
                     let isExact = count == 4
 
@@ -156,7 +143,7 @@ struct Cube2x2EntryView: View {
                 .appTextStyle(.h2)
 
             HStack(spacing: AppTheme.Spacing.small) {
-                ForEach(CubeStickerColor.allCases, id: \.self) { color in
+                ForEach(Cube2x2StickerColor.allCases, id: \.self) { color in
                     Button {
                         selectedColor = color
                     } label: {
@@ -232,8 +219,8 @@ private enum CubeEntryValidationStatus {
 }
 
 private struct CubeNetInputView: View {
-    @Binding var stickerAssignments: [StickerCoordinate: CubeStickerColor]
-    let selectedColor: CubeStickerColor
+    @Binding var stickerAssignments: [Cube2x2StickerCoordinate: Cube2x2StickerColor]
+    let selectedColor: Cube2x2StickerColor
 
     private let netRows: [[String?]] = [
         [nil, "U", nil, nil],
@@ -242,7 +229,7 @@ private struct CubeNetInputView: View {
     ]
 
     private var faceModels: [String: TwistyFaceModel] {
-        Dictionary(uniqueKeysWithValues: CubeFaceSlot.allCases.map { slot in
+        Dictionary(uniqueKeysWithValues: Cube2x2FaceSlot.allCases.map { slot in
             let stickers = slot.coordinates.enumerated().map { index, coordinate in
                 TwistyFaceSticker(
                     id: "\(slot.rawValue)-\(index)",
@@ -267,7 +254,7 @@ private struct CubeNetInputView: View {
                 .appTextStyle(.h2)
 
             CubeNetView(layoutRows: netRows, facesByID: faceModels, stickerSize: 30) { faceID, sticker in
-                guard let slot = CubeFaceSlot(rawValue: faceID),
+                guard let slot = Cube2x2FaceSlot(rawValue: faceID),
                       let stickerIndex = Int(sticker.id.split(separator: "-").last ?? ""),
                       slot.coordinates.indices.contains(stickerIndex) else {
                     return
@@ -281,103 +268,7 @@ private struct CubeNetInputView: View {
     }
 }
 
-private enum Cube2x2StateBuilder {
-    private static let cornerDefinitions: [CornerDefinition] = [
-        .init(position: "URF", stickers: [.u11, .r00, .f01], solvedColors: [.white, .red, .green]),
-        .init(position: "UFL", stickers: [.u10, .f00, .l01], solvedColors: [.white, .green, .orange]),
-        .init(position: "ULB", stickers: [.u00, .l00, .b01], solvedColors: [.white, .orange, .blue]),
-        .init(position: "UBR", stickers: [.u01, .b00, .r01], solvedColors: [.white, .blue, .red]),
-        .init(position: "DFR", stickers: [.d01, .f11, .r10], solvedColors: [.yellow, .green, .red]),
-        .init(position: "DLF", stickers: [.d00, .l11, .f10], solvedColors: [.yellow, .orange, .green]),
-        .init(position: "DBL", stickers: [.d10, .b11, .l10], solvedColors: [.yellow, .blue, .orange]),
-        .init(position: "DRB", stickers: [.d11, .r11, .b10], solvedColors: [.yellow, .red, .blue])
-    ]
-
-    static func makeState(from assignments: [StickerCoordinate: CubeStickerColor]) -> Result<Cube2x2State, String> {
-        guard assignments.count == StickerCoordinate.allCases.count else {
-            return .failure("Please fill in all 24 stickers.")
-        }
-
-        var permutation = Array(repeating: UInt8(0), count: 8)
-        var orientation = Array(repeating: UInt8(0), count: 8)
-        var usedCubies: Set<Int> = []
-
-        for (positionIndex, definition) in cornerDefinitions.enumerated() {
-            let colors = definition.stickers.compactMap { assignments[$0] }
-            guard colors.count == 3 else {
-                return .failure("Missing stickers around corner \(definition.position).")
-            }
-
-            let sortedObserved = colors.sorted(by: { $0.rawValue < $1.rawValue })
-
-            guard let cubieIndex = cornerDefinitions.firstIndex(where: { $0.solvedColors.sorted(by: { $0.rawValue < $1.rawValue }) == sortedObserved }) else {
-                return .failure("Corner \(definition.position) has an impossible color combination.")
-            }
-
-            if usedCubies.contains(cubieIndex) {
-                return .failure("A corner cubie is duplicated. Please re-check sticker placement.")
-            }
-            usedCubies.insert(cubieIndex)
-
-            let cubieUDColor = cornerDefinitions[cubieIndex].solvedColors[0]
-            guard let udIndex = colors.firstIndex(of: cubieUDColor) else {
-                return .failure("Corner orientation is invalid at \(definition.position).")
-            }
-
-            permutation[positionIndex] = UInt8(cubieIndex)
-            orientation[positionIndex] = UInt8(udIndex)
-        }
-
-        let orientationSum = orientation.reduce(0, +)
-        if orientationSum % 3 != 0 {
-            return .failure("This cube orientation is invalid. Please review your sticker colors.")
-        }
-
-        if !isEvenPermutation(permutation.map(Int.init)) {
-            return .failure("This corner permutation is not reachable on a physical 2×2 cube.")
-        }
-
-        return .success(Cube2x2State(cornerPermutation: permutation, cornerOrientation: orientation))
-    }
-
-    private static func isEvenPermutation(_ values: [Int]) -> Bool {
-        var inversionCount = 0
-        for i in 0..<values.count {
-            for j in (i + 1)..<values.count where values[i] > values[j] {
-                inversionCount += 1
-            }
-        }
-        return inversionCount % 2 == 0
-    }
-}
-
-private struct CornerDefinition {
-    let position: String
-    let stickers: [StickerCoordinate]
-    let solvedColors: [CubeStickerColor]
-}
-
-private enum CubeStickerColor: String, CaseIterable {
-    case white
-    case yellow
-    case red
-    case orange
-    case blue
-    case green
-
-    var label: String { rawValue.capitalized }
-
-    var shortLabel: String {
-        switch self {
-        case .white: return "W"
-        case .yellow: return "Y"
-        case .red: return "R"
-        case .orange: return "O"
-        case .blue: return "B"
-        case .green: return "G"
-        }
-    }
-
+private extension Cube2x2StickerColor {
     var displayColor: Color {
         switch self {
         case .white: return TwistyStickerPalette.standard.white
@@ -388,35 +279,6 @@ private enum CubeStickerColor: String, CaseIterable {
         case .green: return TwistyStickerPalette.standard.green
         }
     }
-}
-
-private enum CubeFaceSlot: String, CaseIterable {
-    case u = "U"
-    case l = "L"
-    case f = "F"
-    case r = "R"
-    case b = "B"
-    case d = "D"
-
-    var coordinates: [StickerCoordinate] {
-        switch self {
-        case .u: return [.u00, .u01, .u10, .u11]
-        case .l: return [.l00, .l01, .l10, .l11]
-        case .f: return [.f00, .f01, .f10, .f11]
-        case .r: return [.r00, .r01, .r10, .r11]
-        case .b: return [.b00, .b01, .b10, .b11]
-        case .d: return [.d00, .d01, .d10, .d11]
-        }
-    }
-}
-
-private enum StickerCoordinate: CaseIterable, Hashable {
-    case u00, u01, u10, u11
-    case l00, l01, l10, l11
-    case f00, f01, f10, f11
-    case r00, r01, r10, r11
-    case b00, b01, b10, b11
-    case d00, d01, d10, d11
 }
 
 #Preview {

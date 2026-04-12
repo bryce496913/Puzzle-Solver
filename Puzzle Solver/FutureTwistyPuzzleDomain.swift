@@ -49,7 +49,6 @@ struct SkewbSolver: TwistyPuzzleSolver {
 }
 
 struct TwistyPuzzleImplementationPlan: Sendable {
-    let puzzleType: TwistyPuzzleType
     let plannedStateType: String
     let plannedSolverType: String
     let entryExpectation: String
@@ -72,7 +71,6 @@ extension TwistyPuzzleType {
             return nil
         case .cube3x3:
             return TwistyPuzzleImplementationPlan(
-                puzzleType: self,
                 plannedStateType: "Cube3x3State",
                 plannedSolverType: "Cube3x3Solver",
                 entryExpectation: "3×3 facelet entry with validation",
@@ -80,7 +78,6 @@ extension TwistyPuzzleType {
             )
         case .pyraminx:
             return TwistyPuzzleImplementationPlan(
-                puzzleType: self,
                 plannedStateType: "PyraminxState",
                 plannedSolverType: "PyraminxSolver",
                 entryExpectation: "Tip + edge sticker entry with constraints",
@@ -88,7 +85,6 @@ extension TwistyPuzzleType {
             )
         case .skewb:
             return TwistyPuzzleImplementationPlan(
-                puzzleType: self,
                 plannedStateType: "SkewbState",
                 plannedSolverType: "SkewbSolver",
                 entryExpectation: "Corner-centric net entry and validation",

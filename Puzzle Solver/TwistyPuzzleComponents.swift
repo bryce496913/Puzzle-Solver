@@ -1,5 +1,55 @@
 import SwiftUI
 
+
+struct TwistyScreenContainer<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack {
+            AppTheme.Colors.background
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                    content()
+                }
+                .padding(AppTheme.Spacing.large)
+            }
+        }
+    }
+}
+
+struct TwistyScreenHeader: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text(title)
+                .appTextStyle(.h1)
+                .foregroundStyle(AppTheme.Colors.highlight)
+
+            Text(subtitle)
+                .appTextStyle(.h2)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+        }
+    }
+}
+
+struct TwistyInlineStatusMessage: View {
+    let message: String
+
+    var body: some View {
+        Text(message)
+            .appTextStyle(.paragraph)
+            .foregroundStyle(AppTheme.Colors.highlight)
+            .padding(AppTheme.Spacing.small)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppTheme.Colors.highlight.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+    }
+}
+
 struct TwistyStickerPalette {
     let white: Color
     let yellow: Color
@@ -173,7 +223,7 @@ struct TwistyStepCardView: View {
     let step: TwistySolutionStepViewData
     let previewText: String
 
-    init(step: TwistySolutionStepViewData, previewText: String = "Cube preview coming soon") {
+    init(step: TwistySolutionStepViewData, previewText: String = "Puzzle preview coming soon") {
         self.step = step
         self.previewText = previewText
     }
