@@ -28,12 +28,48 @@ struct SlidingPuzzleEntryView: View {
         Set(tileAssignments.compactMap { $0 })
     }
 
-    private var isConfigurationValid: Bool {
-        tileAssignments.filter { $0 == nil }.count == 1 && usedValues.count == allowedValues.count
+    private var emptyTileCount: Int {
+        tileAssignments.filter { $0 == nil }.count
+    }
+
+    private var uniqueAssignedCount: Int {
+        usedValues.count
+    }
+
+    private var validationState: PuzzleEntryValidationState {
+        let assignedCount = tileAssignments.compactMap { $0 }.count
+        if assignedCount < allowedValues.count {
+            return .incomplete
+        }
+
+        guard emptyTileCount == 1, uniqueAssignedCount == allowedValues.count else {
+            return .invalid
+        }
+
+        return .ready
+    }
+
+    private var canSolve: Bool {
+        validationState == .ready && entryState != nil
+    }
+
+    private var helperText: String {
+        switch validationState {
+        case .incomplete:
+            let missingCount = allowedValues.count - tileAssignments.compactMap { $0 }.count
+            if missingCount == 1 {
+                return "Add 1 more tile value, then leave exactly one tile empty."
+            }
+            return "Add \(missingCount) more tile values. Leave exactly one tile empty."
+        case .invalid:
+            return "That board setup is invalid. Use each number once and keep one empty tile."
+        case .ready:
+            return "Looks good. Tap Solve when you're ready."
+        }
     }
 
     private var entryState: SlidingPuzzleState? {
-        guard isConfigurationValid else { return nil }
+        guard validationState == .ready else { return nil }
         let tiles = tileAssignments.map { $0 ?? 0 }
         return SlidingPuzzleState(size: boardSize, tiles: tiles)
     }
@@ -61,6 +97,8 @@ struct SlidingPuzzleEntryView: View {
                 .appSurfaceCard()
 
                 VStack(spacing: AppTheme.Spacing.medium) {
+                    helperBanner
+
                     SlidingPuzzleKeypadView(
                         boardSize: boardSize,
                         selectedValue: nil,
@@ -81,7 +119,8 @@ struct SlidingPuzzleEntryView: View {
                         Text("Solve")
                     }
                     .buttonStyle(AppPrimaryButtonStyle())
-                    .disabled(entryState == nil)
+                    .disabled(!canSolve)
+                    .opacity(canSolve ? 1 : 0.5)
                 }
                 .appSurfaceCard()
 
@@ -106,6 +145,20 @@ struct SlidingPuzzleEntryView: View {
         .navigationBarHidden(true)
     }
 
+    private var helperBanner: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text(helperText)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(validationState == .invalid ? AppTheme.Colors.highlight : AppTheme.Colors.text.opacity(0.9))
+
+            Text("Tip: select a board tile first, then tap a number or Blank.")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, AppTheme.Spacing.xSmall)
+    }
+
     private func assign(value: Int) {
         guard let selectedTileIndex else { return }
 
@@ -121,6 +174,12 @@ struct SlidingPuzzleEntryView: View {
         guard let selectedTileIndex else { return }
         tileAssignments[selectedTileIndex] = nil
     }
+}
+
+private enum PuzzleEntryValidationState {
+    case incomplete
+    case invalid
+    case ready
 }
 
 struct SlidingPuzzleKeypadView: View {
@@ -160,7 +219,8 @@ struct SlidingPuzzleKeypadView: View {
                 title: "Blank",
                 isDisabled: false,
                 isSelected: false,
-                onTap: onClear
+                onTap: onClear,
+                subtitle: "Clear selected tile"
             )
         }
     }
@@ -171,20 +231,29 @@ struct KeypadButton: View {
     let isDisabled: Bool
     let isSelected: Bool
     let onTap: () -> Void
+    var subtitle: String?
 
     var body: some View {
         Button(action: onTap) {
-            Text(title)
-                .appTextStyle(.h3)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(backgroundColor)
-                .foregroundStyle(AppTheme.Colors.text)
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
-                        .stroke(borderColor, lineWidth: 1.5)
-                )
+            VStack(spacing: 0) {
+                Text(title)
+                    .appTextStyle(.h3)
+                    .foregroundStyle(AppTheme.Colors.text)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.8))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: subtitle == nil ? 44 : 52)
+            .background(backgroundColor)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
+                    .stroke(borderColor, lineWidth: 1.5)
+            )
         }
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.4 : 1)
