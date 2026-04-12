@@ -1,14 +1,5 @@
 import SwiftUI
 
-/// Backward-compatible name used by navigation.
-struct NewPuzzleView: View {
-    let puzzleSize: Int
-
-    var body: some View {
-        SlidingPuzzleEntryView(boardSize: puzzleSize)
-    }
-}
-
 struct SlidingPuzzleEntryView: View {
     let boardSize: Int
 

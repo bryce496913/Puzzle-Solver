@@ -1,10 +1,3 @@
-//
-//  PuzzleSolver.swift
-//  Puzzle Solver
-//
-//  Created by Bryce Cameron on 2/3/24.
-//
-
 import Foundation
 
 enum SlidingPuzzleMove: String, CaseIterable, Hashable {

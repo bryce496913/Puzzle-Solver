@@ -1,31 +1,4 @@
-//
-//  MovementGrideView.swift
-//  Puzzle Solver
-//
-//  Created by Bryce Cameron on 3/3/24.
-//
-
 import SwiftUI
-
-struct MovementGridView: View {
-    let boardState: [[Int?]]
-
-    private var boardSize: Int {
-        boardState.count
-    }
-
-    private var flattenedBoardValues: [Int?] {
-        boardState.flatMap { $0 }
-    }
-
-    var body: some View {
-        SlidingPuzzleBoardView(
-            boardValues: flattenedBoardValues,
-            boardSize: boardSize,
-            mode: .solution
-        )
-    }
-}
 
 struct SolutionStepCardView: View {
     let step: SlidingPuzzleSolutionStep
@@ -51,7 +24,11 @@ struct SolutionStepCardView: View {
                 }
             }
 
-            MovementGridView(boardState: step.state.boardRows())
+            SlidingPuzzleBoardView(
+                boardValues: step.state.boardRows().flatMap { $0 },
+                boardSize: step.state.size,
+                mode: .solution
+            )
                 .padding(AppTheme.Spacing.xSmall)
                 .background(AppTheme.Colors.background.opacity(0.35))
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
@@ -60,13 +37,19 @@ struct SolutionStepCardView: View {
     }
 }
 
-struct MovementGridView_Previews: PreviewProvider {
+struct SolutionStepCardView_Previews: PreviewProvider {
     static var previews: some View {
-        MovementGridView(boardState: [
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, nil]
-        ])
+        SolutionStepCardView(
+            step: .init(
+                state: SlidingPuzzleState(board: [
+                    [1, 2, 3],
+                    [4, 5, 6],
+                    [7, nil, 8]
+                ])!,
+                stepNumber: 1,
+                move: .right
+            )
+        )
         .padding()
         .background(AppTheme.Colors.background)
     }
