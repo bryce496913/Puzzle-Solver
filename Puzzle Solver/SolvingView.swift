@@ -37,16 +37,16 @@ struct SolvingView: View {
                             .foregroundStyle(AppTheme.Colors.highlight)
                     } else if let solveResult {
                         if !solveResult.isSolvable {
-                            Text("This puzzle is unsolvable. Please return and enter a solvable 3×3 board.")
+                            Text("This puzzle is unsolvable. Please return and enter a solvable \(initialState.count)×\(initialState.count) board.")
                                 .appTextStyle(.paragraph)
                                 .foregroundStyle(AppTheme.Colors.highlight)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .appSurfaceCard()
                         }
 
-                        ForEach(Array(solveResult.steps.enumerated()), id: \.offset) { index, step in
+                        ForEach(Array(solveResult.steps.enumerated()), id: \.offset) { _, step in
                             VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                                Text("Step \(index)")
+                                Text("Step \(step.stepNumber)")
                                     .appTextStyle(.h3)
                                     .foregroundStyle(AppTheme.Colors.text)
 
@@ -60,7 +60,7 @@ struct SolvingView: View {
                                         .foregroundStyle(AppTheme.Colors.highlight)
                                 }
 
-                                MovementGridView(boardState: step.state.asBoard())
+                                MovementGridView(boardState: step.state.boardRows())
                             }
                         }
                     }

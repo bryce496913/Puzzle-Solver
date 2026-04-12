@@ -13,6 +13,7 @@ enum SlidingPuzzleMove: String, CaseIterable, Hashable {
     case left
     case right
 
+    /// Human-friendly action for UI display.
     var label: String {
         switch self {
         case .up:
@@ -27,68 +28,87 @@ enum SlidingPuzzleMove: String, CaseIterable, Hashable {
     }
 }
 
+/// Reusable board model for NxN sliding puzzles (e.g. 3x3, 4x4).
 struct SlidingPuzzleState: Hashable {
-    static let boardSize = 3
-    static let tileCount = boardSize * boardSize
-    static let goalTiles = [1, 2, 3, 4, 5, 6, 7, 8, 0]
-
+    let size: Int
     let tiles: [Int]
 
-    init?(tiles: [Int]) {
-        guard tiles.count == Self.tileCount else { return nil }
+    init?(size: Int, tiles: [Int]) {
+        guard size > 1 else { return nil }
+        let tileCount = size * size
+        guard tiles.count == tileCount else { return nil }
+
+        let expectedValues = Set(0..<tileCount)
         let unique = Set(tiles)
-        guard unique.count == Self.tileCount, unique == Set(0..<Self.tileCount) else { return nil }
+        guard unique.count == tileCount, unique == expectedValues else { return nil }
+
+        self.size = size
         self.tiles = tiles
     }
 
     init?(board: [[Int?]]) {
+        guard let size = board.first?.count, size > 1 else { return nil }
+        guard board.count == size, board.allSatisfy({ $0.count == size }) else { return nil }
         let flattened = board.flatMap { $0 }.map { $0 ?? 0 }
-        self.init(tiles: flattened)
+        self.init(size: size, tiles: flattened)
+    }
+
+    var tileCount: Int {
+        size * size
+    }
+
+    var goalTiles: [Int] {
+        Array(1..<(tileCount)) + [0]
     }
 
     var isGoal: Bool {
-        tiles == Self.goalTiles
+        tiles == goalTiles
     }
 
     var blankIndex: Int {
         tiles.firstIndex(of: 0) ?? 0
     }
 
-    var blankRow: Int { blankIndex / Self.boardSize }
-    var blankCol: Int { blankIndex % Self.boardSize }
-
-    func neighbors() -> [(state: SlidingPuzzleState, move: SlidingPuzzleMove)] {
-        var nextStates: [(SlidingPuzzleState, SlidingPuzzleMove)] = []
-
-        for move in SlidingPuzzleMove.allCases {
-            guard let target = targetIndex(for: move) else { continue }
-            var nextTiles = tiles
-            nextTiles.swapAt(blankIndex, target)
-            if let nextState = SlidingPuzzleState(tiles: nextTiles) {
-                nextStates.append((nextState, move))
-            }
-        }
-
-        return nextStates
+    var blankRow: Int {
+        blankIndex / size
     }
 
+    var blankCol: Int {
+        blankIndex % size
+    }
+
+    /// Row index from bottom, starting at 1.
+    var blankRowFromBottom: Int {
+        size - blankRow
+    }
+
+    func neighbors() -> [(state: SlidingPuzzleState, move: SlidingPuzzleMove)] {
+        SlidingPuzzleMove.allCases.compactMap { move in
+            guard let target = targetIndex(for: move) else { return nil }
+            var nextTiles = tiles
+            nextTiles.swapAt(blankIndex, target)
+            guard let state = SlidingPuzzleState(size: size, tiles: nextTiles) else { return nil }
+            return (state: state, move: move)
+        }
+    }
+
+    /// Manhattan distance heuristic for A*.
     func manhattanDistance() -> Int {
         var distance = 0
 
         for (index, tile) in tiles.enumerated() where tile != 0 {
             let goalIndex = tile - 1
-            let currentRow = index / Self.boardSize
-            let currentCol = index % Self.boardSize
-            let goalRow = goalIndex / Self.boardSize
-            let goalCol = goalIndex % Self.boardSize
+            let currentRow = index / size
+            let currentCol = index % size
+            let goalRow = goalIndex / size
+            let goalCol = goalIndex % size
             distance += abs(currentRow - goalRow) + abs(currentCol - goalCol)
         }
 
         return distance
     }
 
-    func isSolvable() -> Bool {
-        // For odd-width boards (3x3), the puzzle is solvable when inversion count is even.
+    func inversionCount() -> Int {
         let values = tiles.filter { $0 != 0 }
         var inversions = 0
 
@@ -98,38 +118,47 @@ struct SlidingPuzzleState: Hashable {
             }
         }
 
-        return inversions % 2 == 0
+        return inversions
     }
 
-    func asBoard() -> [[Int?]] {
-        var board = Array(
-            repeating: Array(repeating: Optional<Int>.none, count: Self.boardSize),
-            count: Self.boardSize
-        )
+    /// Solvability rules:
+    /// - Odd width: inversion count must be even.
+    /// - Even width: depends on inversion parity and blank row from bottom.
+    func isSolvable() -> Bool {
+        let inversions = inversionCount()
 
-        for row in 0..<Self.boardSize {
-            for col in 0..<Self.boardSize {
-                let value = tiles[row * Self.boardSize + col]
-                board[row][col] = value == 0 ? nil : value
-            }
+        if size % 2 == 1 {
+            return inversions % 2 == 0
         }
 
-        return board
+        let blankOnEvenRowFromBottom = blankRowFromBottom % 2 == 0
+        let inversionsEven = inversions % 2 == 0
+        return blankOnEvenRowFromBottom ? !inversionsEven : inversionsEven
+    }
+
+    /// Converts the flat storage to grid rows for rendering.
+    func boardRows() -> [[Int?]] {
+        stride(from: 0, to: tiles.count, by: size).map { start in
+            (0..<size).map { offset in
+                let value = tiles[start + offset]
+                return value == 0 ? nil : value
+            }
+        }
     }
 
     private func targetIndex(for move: SlidingPuzzleMove) -> Int? {
         switch move {
         case .up:
             guard blankRow > 0 else { return nil }
-            return blankIndex - Self.boardSize
+            return blankIndex - size
         case .down:
-            guard blankRow < Self.boardSize - 1 else { return nil }
-            return blankIndex + Self.boardSize
+            guard blankRow < size - 1 else { return nil }
+            return blankIndex + size
         case .left:
             guard blankCol > 0 else { return nil }
             return blankIndex - 1
         case .right:
-            guard blankCol < Self.boardSize - 1 else { return nil }
+            guard blankCol < size - 1 else { return nil }
             return blankIndex + 1
         }
     }
@@ -137,6 +166,7 @@ struct SlidingPuzzleState: Hashable {
 
 struct SlidingPuzzleSolutionStep: Hashable {
     let state: SlidingPuzzleState
+    let stepNumber: Int
     let move: SlidingPuzzleMove?
 
     var moveLabel: String? {
@@ -148,8 +178,17 @@ struct SlidingPuzzleSolveResult {
     let isSolvable: Bool
     let steps: [SlidingPuzzleSolutionStep]
 
+    var moveCount: Int {
+        max(steps.count - 1, 0)
+    }
+
     static func unsolvable(initial: SlidingPuzzleState) -> SlidingPuzzleSolveResult {
-        SlidingPuzzleSolveResult(isSolvable: false, steps: [.init(state: initial, move: nil)])
+        SlidingPuzzleSolveResult(
+            isSolvable: false,
+            steps: [
+                .init(state: initial, stepNumber: 0, move: nil)
+            ]
+        )
     }
 }
 
@@ -180,7 +219,10 @@ final class SlidingPuzzleSolver {
         }
 
         if initialState.isGoal {
-            return SlidingPuzzleSolveResult(isSolvable: true, steps: [.init(state: initialState, move: nil)])
+            return SlidingPuzzleSolveResult(
+                isSolvable: true,
+                steps: [.init(state: initialState, stepNumber: 0, move: nil)]
+            )
         }
 
         var frontier = PriorityQueue<FrontierNode>()
@@ -220,25 +262,23 @@ final class SlidingPuzzleSolver {
 
     private func reconstructPath(from goal: SlidingPuzzleState,
                                  links: [SlidingPuzzleState: StateLink]) -> [SlidingPuzzleSolutionStep] {
-        var reversed: [SlidingPuzzleSolutionStep] = []
+        var reversed: [(SlidingPuzzleState, SlidingPuzzleMove?)] = []
         var cursor: SlidingPuzzleState? = goal
 
         while let state = cursor {
             let link = links[state]
-            reversed.append(.init(state: state, move: link?.moveFromParent))
+            reversed.append((state, link?.moveFromParent))
             cursor = link?.parent
         }
 
-        return reversed.reversed()
+        return reversed.reversed().enumerated().map { index, item in
+            SlidingPuzzleSolutionStep(state: item.0, stepNumber: index, move: item.1)
+        }
     }
 }
 
 private struct PriorityQueue<Element: Comparable> {
     private var storage: [Element] = []
-
-    var isEmpty: Bool {
-        storage.isEmpty
-    }
 
     mutating func push(_ value: Element) {
         storage.append(value)

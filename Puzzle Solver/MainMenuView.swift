@@ -57,8 +57,8 @@ struct MainMenuView: View {
     @ViewBuilder
     private func destinationView(for puzzleType: PuzzleType) -> some View {
         switch puzzleType.destination {
-        case .newPuzzle:
-            NewPuzzleView()
+        case let .newPuzzle(size):
+            NewPuzzleView(puzzleSize: size)
         case .comingSoon:
             ComingSoonPuzzleView(puzzleName: puzzleType.title)
         }
@@ -81,7 +81,7 @@ private struct PuzzleType: Identifiable {
     }
 
     enum Destination {
-        case newPuzzle
+        case newPuzzle(size: Int)
         case comingSoon
     }
 
@@ -105,14 +105,14 @@ private struct PuzzleType: Identifiable {
             title: "3×3 Sliding Puzzle",
             icon: "square.grid.3x3.fill",
             availability: .available,
-            destination: .newPuzzle
+            destination: .newPuzzle(size: 3)
         ),
         PuzzleType(
             id: "sliding-4x4",
             title: "4×4 Sliding Puzzle",
             icon: "square.grid.4x3.fill",
-            availability: .comingSoon,
-            destination: .comingSoon
+            availability: .available,
+            destination: .newPuzzle(size: 4)
         ),
         PuzzleType(
             id: "rubiks-cube",

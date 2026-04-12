@@ -11,10 +11,12 @@ struct MovementGridView: View {
     let boardState: [[Int?]]
 
     var body: some View {
+        let size = boardState.count
+
         VStack(spacing: AppTheme.Spacing.small) {
-            ForEach(0..<3, id: \.self) { row in
+            ForEach(0..<size, id: \.self) { row in
                 HStack(spacing: AppTheme.Spacing.small) {
-                    ForEach(0..<3, id: \.self) { column in
+                    ForEach(0..<size, id: \.self) { column in
                         MovementTileView(number: boardState[row][column])
                     }
                 }
