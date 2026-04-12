@@ -16,7 +16,7 @@ enum TwistyPuzzleType: String, CaseIterable, Identifiable, Sendable {
                 shortTitle: "2×2",
                 icon: "square.grid.2x2.fill",
                 availability: .available,
-                subtitle: "Phase 2 target",
+                subtitle: "Ready now",
                 supportedNotation: [.wca]
             )
         case .cube3x3:
@@ -25,7 +25,7 @@ enum TwistyPuzzleType: String, CaseIterable, Identifiable, Sendable {
                 shortTitle: "3×3",
                 icon: "cube.fill",
                 availability: .available,
-                subtitle: "Phase 3 target",
+                subtitle: "Ready now",
                 supportedNotation: [.wca]
             )
         case .pyraminx:
