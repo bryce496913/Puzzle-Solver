@@ -122,6 +122,53 @@ struct TwistyMoveListView: View {
     }
 }
 
+struct TwistyStepPlaybackControlsView: View {
+    let currentStepNumber: Int
+    let totalSteps: Int
+    let isAutoPlaying: Bool
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+    let onToggleAutoPlay: () -> Void
+
+    private var canGoPrevious: Bool {
+        currentStepNumber > 1
+    }
+
+    private var canGoNext: Bool {
+        currentStepNumber < totalSteps
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Text("Step \(currentStepNumber) of \(totalSteps)")
+                .appTextStyle(.h3)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+
+            HStack(spacing: AppTheme.Spacing.small) {
+                Button(action: onPrevious) {
+                    Label("Previous", systemImage: "chevron.left")
+                }
+                .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.background.opacity(0.42)))
+                .disabled(!canGoPrevious)
+
+                Button(action: onToggleAutoPlay) {
+                    Label(isAutoPlaying ? "Pause" : "Play", systemImage: isAutoPlaying ? "pause.fill" : "play.fill")
+                }
+                .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.accent.opacity(0.75)))
+                .disabled(totalSteps < 2)
+
+                Button(action: onNext) {
+                    Label("Next", systemImage: "chevron.right")
+                }
+                .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.background.opacity(0.42)))
+                .disabled(!canGoNext)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
 struct TwistyStepCardView: View {
     let step: TwistySolutionStepViewData
     let previewText: String
