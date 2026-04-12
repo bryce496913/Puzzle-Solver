@@ -13,36 +13,30 @@ struct Cube2x2EntryView: View {
         Dictionary(grouping: stickerAssignments.values, by: { $0 }).mapValues(\.count)
     }
 
-    private var validationMessage: String {
+    private var validationStatus: CubeEntryValidationStatus {
+        let requiredStickerCount = StickerCoordinate.allCases.count
         let assigned = stickerAssignments.count
-        if assigned < StickerCoordinate.allCases.count {
-            return "Fill all 24 stickers. Remaining: \(StickerCoordinate.allCases.count - assigned)."
+        if assigned < requiredStickerCount {
+            return .incomplete("Fill all 24 stickers. Remaining: \(requiredStickerCount - assigned).")
         }
 
         for color in CubeStickerColor.allCases {
             let count = colorCounts[color, default: 0]
             if count != 4 {
-                return "Each color must appear exactly 4 times. \(color.label) has \(count)."
+                return .invalid("Each color must appear exactly 4 times. \(color.label) currently has \(count).")
             }
         }
 
         switch Cube2x2StateBuilder.makeState(from: stickerAssignments) {
         case .success:
-            return "Looks good. Tap Solve when you're ready."
-        case .failure(let message):
-            return message
+            return .ready("Great! Your cube input looks valid. Tap Solve when you're ready.")
+        case .failure:
+            return .invalid("This sticker layout doesn’t form a valid 2×2 cube state yet. Double-check corner colors and try again.")
         }
     }
 
     private var isReadyToSolve: Bool {
-        if stickerAssignments.count != StickerCoordinate.allCases.count { return false }
-        for color in CubeStickerColor.allCases where colorCounts[color, default: 0] != 4 {
-            return false
-        }
-        if case .failure = Cube2x2StateBuilder.makeState(from: stickerAssignments) {
-            return false
-        }
-        return true
+        validationStatus.isReady
     }
 
     var body: some View {
@@ -69,6 +63,10 @@ struct Cube2x2EntryView: View {
                         Text(inputError)
                             .appTextStyle(.paragraph)
                             .foregroundStyle(AppTheme.Colors.highlight)
+                            .padding(AppTheme.Spacing.small)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.Colors.highlight.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
                     }
 
                     Button {
@@ -106,15 +104,50 @@ struct Cube2x2EntryView: View {
             Text("How to enter your cube")
                 .appTextStyle(.h2)
 
-            Text("1) Choose a color below. 2) Tap stickers on the cube net to paint them. 3) Enter only what you currently see on your cube, one sticker at a time.")
+            Text("1) Pick a color below. 2) Tap stickers on the cube net to paint them. 3) Enter what you see on your real cube, one sticker at a time.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
 
-            Text(validationMessage)
+            Text("Tip: each color must appear exactly 4 times in a complete 2×2 state.")
                 .appTextStyle(.paragraph)
-                .foregroundStyle(isReadyToSolve ? AppTheme.Colors.text : AppTheme.Colors.highlight)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
+
+            Text(validationStatus.message)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(validationStatus.messageColor)
+
+            colorCountSummary
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var colorCountSummary: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text("Color count check")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
+
+            HStack(spacing: AppTheme.Spacing.small) {
+                ForEach(CubeStickerColor.allCases, id: \.self) { color in
+                    let count = colorCounts[color, default: 0]
+                    let isExact = count == 4
+
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(color.displayColor)
+                            .frame(width: 12, height: 12)
+
+                        Text("\(count)/4")
+                            .appTextStyle(.paragraph)
+                            .foregroundStyle(isExact ? AppTheme.Colors.text : AppTheme.Colors.highlight)
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(AppTheme.Colors.background.opacity(0.35))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                }
+            }
+        }
     }
 
     private var colorPickerRow: some View {
@@ -152,9 +185,7 @@ struct Cube2x2EntryView: View {
 
         let stateResult = Cube2x2StateBuilder.makeState(from: stickerAssignments)
         guard case .success(let cubeState) = stateResult else {
-            if case .failure(let message) = stateResult {
-                inputError = message
-            }
+            inputError = "We couldn’t start solving from this input yet. Please check the highlighted validation notes and try again."
             return
         }
 
@@ -168,6 +199,35 @@ struct Cube2x2EntryView: View {
         selectedColor = .white
         solveState = nil
         shouldNavigateToSolve = false
+    }
+}
+
+private enum CubeEntryValidationStatus {
+    case incomplete(String)
+    case invalid(String)
+    case ready(String)
+
+    var message: String {
+        switch self {
+        case .incomplete(let message), .invalid(let message), .ready(let message):
+            return message
+        }
+    }
+
+    var isReady: Bool {
+        if case .ready = self {
+            return true
+        }
+        return false
+    }
+
+    var messageColor: Color {
+        switch self {
+        case .ready:
+            return AppTheme.Colors.text
+        case .incomplete, .invalid:
+            return AppTheme.Colors.highlight
+        }
     }
 }
 

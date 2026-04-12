@@ -83,11 +83,11 @@ struct Cube2x2SolvingView: View {
 
     private var unsolvableCard: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text("This cube state could not be solved from the current sticker input.")
+            Text("We couldn't find a solution for this sticker input.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.highlight)
 
-            Text("Go back, verify your sticker colors, and try again.")
+            Text("This usually means one or more stickers were entered incorrectly. Go back, verify each face, and try again.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.88))
         }
