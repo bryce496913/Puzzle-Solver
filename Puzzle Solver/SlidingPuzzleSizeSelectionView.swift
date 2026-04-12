@@ -19,7 +19,7 @@ struct SlidingPuzzleSizeSelectionView: View {
 
                 VStack(spacing: AppTheme.Spacing.medium) {
                     NavigationLink {
-                        NewPuzzleView(puzzleSize: 3)
+                        SlidingPuzzleEntryView(boardSize: 3)
                     } label: {
                         PuzzleTypeCard(
                             title: "3×3 Puzzle",
@@ -31,7 +31,7 @@ struct SlidingPuzzleSizeSelectionView: View {
                     .buttonStyle(.plain)
 
                     NavigationLink {
-                        NewPuzzleView(puzzleSize: 4)
+                        SlidingPuzzleEntryView(boardSize: 4)
                     } label: {
                         PuzzleTypeCard(
                             title: "4×4 Puzzle",
