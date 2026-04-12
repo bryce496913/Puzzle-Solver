@@ -5,11 +5,9 @@ struct Cube2x2EntryView: View {
 
     @State private var selectedColor: CubeStickerColor = .white
     @State private var stickerAssignments: [StickerCoordinate: CubeStickerColor] = [:]
-    @State private var isSolving = false
-    @State private var solveResult: TwistySolveResult?
     @State private var inputError: String?
-
-    private let notationRenderer = StandardTwistyNotationRenderer()
+    @State private var solveState: Cube2x2State?
+    @State private var shouldNavigateToSolve = false
 
     private var colorCounts: [CubeStickerColor: Int] {
         Dictionary(grouping: stickerAssignments.values, by: { $0 }).mapValues(\.count)
@@ -74,31 +72,13 @@ struct Cube2x2EntryView: View {
                     }
 
                     Button {
-                        Task { await solveCube() }
+                        startSolveFlow()
                     } label: {
-                        Text(isSolving ? "Solving…" : "Solve")
+                        Text("Solve")
                     }
                     .buttonStyle(AppPrimaryButtonStyle())
-                    .disabled(!isReadyToSolve || isSolving)
-                    .opacity((isReadyToSolve && !isSolving) ? 1 : 0.5)
-
-                    if let solveResult {
-                        solveSummaryCard(for: solveResult)
-
-                        ForEach(solveResult.makeStepViewData(renderer: notationRenderer)) { stepData in
-                            VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-                                Text("Step \(stepData.stepNumber): \(stepData.primaryText)")
-                                    .appTextStyle(.h3)
-                                if let secondaryText = stepData.secondaryText {
-                                    Text(secondaryText)
-                                        .appTextStyle(.paragraph)
-                                        .foregroundStyle(AppTheme.Colors.text.opacity(0.8))
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .appSurfaceCard()
-                        }
-                    }
+                    .disabled(!isReadyToSolve)
+                    .opacity(isReadyToSolve ? 1 : 0.5)
 
                     HStack(spacing: AppTheme.Spacing.medium) {
                         Button("Back") { dismiss() }
@@ -114,6 +94,11 @@ struct Cube2x2EntryView: View {
         .navigationBarBackButtonHidden(true)
         .navigationTitle("2×2 Cube")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $shouldNavigateToSolve) {
+            if let solveState {
+                Cube2x2SolvingView(initialState: solveState)
+            }
+        }
     }
 
     private var helperCard: some View {
@@ -162,50 +147,27 @@ struct Cube2x2EntryView: View {
         }
     }
 
-    private func solveSummaryCard(for result: TwistySolveResult) -> some View {
-        let summary = result.makeSummaryViewData()
-        return VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text(summary.statusText)
-                .appTextStyle(.h2)
-                .foregroundStyle(result.isSolvable ? AppTheme.Colors.text : AppTheme.Colors.highlight)
-            Text(summary.moveCountText)
-                .appTextStyle(.paragraph)
-            Text(summary.stepCountText)
-                .appTextStyle(.paragraph)
-                .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appSurfaceCard()
-    }
-
-    @MainActor
-    private func solveCube() async {
+    private func startSolveFlow() {
         inputError = nil
-        solveResult = nil
-        isSolving = true
 
         let stateResult = Cube2x2StateBuilder.makeState(from: stickerAssignments)
         guard case .success(let cubeState) = stateResult else {
             if case .failure(let message) = stateResult {
                 inputError = message
             }
-            isSolving = false
             return
         }
 
-        let result = await Task.detached(priority: .userInitiated) {
-            await Cube2x2Solver().solve(from: cubeState)
-        }.value
-
-        solveResult = result
-        isSolving = false
+        solveState = cubeState
+        shouldNavigateToSolve = true
     }
 
     private func resetEntry() {
         stickerAssignments = [:]
         inputError = nil
-        solveResult = nil
         selectedColor = .white
+        solveState = nil
+        shouldNavigateToSolve = false
     }
 }
 
