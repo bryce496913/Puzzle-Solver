@@ -1,14 +1,7 @@
-//
-//  MainMenuView.swift
-//  Puzzle Solver
-//
-//  Created by Bryce on 30/1/24.
-//
-
 import SwiftUI
 
-struct MainMenuView: View {
-    private let puzzleCategories = PuzzleCategory.all
+struct TwistyPuzzlePickerView: View {
+    private let twistyPuzzleTypes = TwistyPuzzleType.all
 
     var body: some View {
         ZStack {
@@ -17,11 +10,11 @@ struct MainMenuView: View {
 
             VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-                    Text("Puzzle Solver")
+                    Text("Twisty Puzzles")
                         .appTextStyle(.h1)
                         .foregroundStyle(AppTheme.Colors.highlight)
 
-                    Text("Choose a puzzle type")
+                    Text("Choose a twisty puzzle type")
                         .appTextStyle(.h2)
                         .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
                 }
@@ -30,19 +23,18 @@ struct MainMenuView: View {
 
                 ScrollView {
                     VStack(spacing: AppTheme.Spacing.medium) {
-                        ForEach(puzzleCategories) { puzzleCategory in
+                        ForEach(twistyPuzzleTypes) { puzzleType in
                             NavigationLink {
-                                destinationView(for: puzzleCategory)
+                                destinationView(for: puzzleType)
                             } label: {
                                 PuzzleTypeCard(
-                                    title: puzzleCategory.title,
-                                    subtitle: puzzleCategory.subtitle,
-                                    icon: puzzleCategory.icon,
-                                    isEnabled: puzzleCategory.availability == .available,
-                                    accentVariant: puzzleCategory.accentVariant
+                                    title: puzzleType.title,
+                                    subtitle: puzzleType.subtitle,
+                                    icon: puzzleType.icon,
+                                    isEnabled: puzzleType.availability == .available,
+                                    accentVariant: puzzleType.accentVariant
                                 )
                             }
-                            .disabled(puzzleCategory.availability == .comingSoon)
                             .buttonStyle(.plain)
                         }
                     }
@@ -51,23 +43,22 @@ struct MainMenuView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden(true)
+        .navigationTitle("Twisty Puzzles")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     @ViewBuilder
-    private func destinationView(for puzzleCategory: PuzzleCategory) -> some View {
-        switch puzzleCategory.destination {
-        case .slidingPuzzleSizeSelection:
-            SlidingPuzzleSizeSelectionView()
-        case .twistyPuzzlePicker:
-            TwistyPuzzlePickerView()
+    private func destinationView(for puzzleType: TwistyPuzzleType) -> some View {
+        switch puzzleType.destination {
+        case .cube2x2:
+            Cube2x2EntryView()
         case .comingSoon:
-            ComingSoonPuzzleView(puzzleName: puzzleCategory.title)
+            ComingSoonPuzzleView(puzzleName: puzzleType.title)
         }
     }
 }
 
-private struct PuzzleCategory: Identifiable {
+private struct TwistyPuzzleType: Identifiable {
     enum Availability {
         case available
         case comingSoon
@@ -75,7 +66,7 @@ private struct PuzzleCategory: Identifiable {
         var subtitle: String {
             switch self {
             case .available:
-                return "Ready now"
+                return "Phase 2 target"
             case .comingSoon:
                 return "Coming soon"
             }
@@ -83,8 +74,7 @@ private struct PuzzleCategory: Identifiable {
     }
 
     enum Destination {
-        case slidingPuzzleSizeSelection
-        case twistyPuzzlePicker
+        case cube2x2
         case comingSoon
     }
 
@@ -102,27 +92,39 @@ private struct PuzzleCategory: Identifiable {
         availability == .available ? .accent : .highlight
     }
 
-    static let all: [PuzzleCategory] = [
-        PuzzleCategory(
-            id: "sliding",
-            title: "Sliding Puzzle",
-            icon: "square.grid.3x3.fill",
+    static let all: [TwistyPuzzleType] = [
+        TwistyPuzzleType(
+            id: "cube-2x2",
+            title: "2×2 Cube",
+            icon: "square.grid.2x2.fill",
             availability: .available,
-            destination: .slidingPuzzleSizeSelection
+            destination: .cube2x2
         ),
-        PuzzleCategory(
-            id: "twisty",
-            title: "Twisty Puzzles",
-            icon: "cube.transparent.fill",
-            availability: .available,
-            destination: .twistyPuzzlePicker
+        TwistyPuzzleType(
+            id: "rubiks-cube",
+            title: "3×3 Rubik’s Cube",
+            icon: "cube.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
+        ),
+        TwistyPuzzleType(
+            id: "pyraminx",
+            title: "Pyraminx",
+            icon: "triangle.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
+        ),
+        TwistyPuzzleType(
+            id: "skewb",
+            title: "Skewb",
+            icon: "diamond.fill",
+            availability: .comingSoon,
+            destination: .comingSoon
         )
     ]
 }
 
-struct ComingSoonPuzzleView: View {
-    let puzzleName: String
-
+private struct Cube2x2EntryView: View {
     var body: some View {
         ZStack {
             AppTheme.Colors.background
@@ -130,16 +132,16 @@ struct ComingSoonPuzzleView: View {
 
             VStack {
                 VStack(spacing: AppTheme.Spacing.medium) {
-                    Text(puzzleName)
+                    Text("2×2 Cube")
                         .appTextStyle(.h1)
                         .foregroundStyle(AppTheme.Colors.highlight)
                         .multilineTextAlignment(.center)
 
-                    Text("Coming Soon")
+                    Text("Phase 2 in progress")
                         .appTextStyle(.h2)
                         .foregroundStyle(AppTheme.Colors.text)
 
-                    Text("This puzzle mode is planned for a future version.")
+                    Text("This is the first active twisty puzzle target. Solver-specific tools and workflows will be added here next.")
                         .appTextStyle(.paragraph)
                         .foregroundStyle(AppTheme.Colors.text.opacity(0.78))
                         .multilineTextAlignment(.center)
@@ -151,15 +153,13 @@ struct ComingSoonPuzzleView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, AppTheme.Spacing.large)
         }
-        .navigationTitle(puzzleName)
+        .navigationTitle("2×2 Cube")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-struct MainMenuView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            MainMenuView()
-        }
+#Preview {
+    NavigationStack {
+        TwistyPuzzlePickerView()
     }
 }
