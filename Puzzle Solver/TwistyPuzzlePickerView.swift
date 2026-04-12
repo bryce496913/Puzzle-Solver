@@ -34,7 +34,9 @@ struct TwistyPuzzlePickerView: View {
         switch puzzleType {
         case .cube2x2:
             Cube2x2EntryView()
-        case .cube3x3, .pyraminx, .skewb:
+        case .cube3x3:
+            Cube3x3EntryView()
+        case .pyraminx, .skewb:
             FutureTwistyPuzzlePlaceholderView(puzzleType: puzzleType)
         }
     }

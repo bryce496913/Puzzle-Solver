@@ -24,8 +24,8 @@ enum TwistyPuzzleType: String, CaseIterable, Identifiable, Sendable {
                 title: "3×3 Rubik’s Cube",
                 shortTitle: "3×3",
                 icon: "cube.fill",
-                availability: .comingSoon,
-                subtitle: "Coming soon",
+                availability: .available,
+                subtitle: "Phase 3 target",
                 supportedNotation: [.wca]
             )
         case .pyraminx:
