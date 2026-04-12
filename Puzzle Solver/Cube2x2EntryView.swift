@@ -175,54 +175,49 @@ private struct CubeNetInputView: View {
     @Binding var stickerAssignments: [StickerCoordinate: CubeStickerColor]
     let selectedColor: CubeStickerColor
 
-    private let netRows: [[FacePosition?]] = [
-        [nil, .u00, .u01, nil, nil, nil, nil, nil],
-        [nil, .u10, .u11, nil, nil, nil, nil, nil],
-        [.l00, .l01, .f00, .f01, .r00, .r01, .b00, .b01],
-        [.l10, .l11, .f10, .f11, .r10, .r11, .b10, .b11],
-        [nil, .d00, .d01, nil, nil, nil, nil, nil],
-        [nil, .d10, .d11, nil, nil, nil, nil, nil]
+    private let netRows: [[String?]] = [
+        [nil, "U", nil, nil],
+        ["L", "F", "R", "B"],
+        [nil, "D", nil, nil]
     ]
+
+    private var faceModels: [String: TwistyFaceModel] {
+        Dictionary(uniqueKeysWithValues: CubeFaceSlot.allCases.map { slot in
+            let stickers = slot.coordinates.enumerated().map { index, coordinate in
+                TwistyFaceSticker(
+                    id: "\(slot.rawValue)-\(index)",
+                    color: stickerAssignments[coordinate]?.displayColor ?? TwistyStickerPalette.standard.fallback
+                )
+            }
+            return (
+                slot.rawValue,
+                TwistyFaceModel(
+                    id: slot.rawValue,
+                    title: slot.rawValue,
+                    dimension: 2,
+                    stickers: stickers
+                )
+            )
+        })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
             Text("Cube net")
                 .appTextStyle(.h2)
 
-            VStack(spacing: 2) {
-                ForEach(Array(netRows.enumerated()), id: \.offset) { _, row in
-                    HStack(spacing: 2) {
-                        ForEach(Array(row.enumerated()), id: \.offset) { _, facePosition in
-                            if let facePosition {
-                                stickerTile(facePosition.coordinate)
-                            } else {
-                                Color.clear
-                                    .frame(width: 30, height: 30)
-                            }
-                        }
-                    }
+            CubeNetView(layoutRows: netRows, facesByID: faceModels, stickerSize: 30) { faceID, sticker in
+                guard let slot = CubeFaceSlot(rawValue: faceID),
+                      let stickerIndex = Int(sticker.id.split(separator: "-").last ?? ""),
+                      slot.coordinates.indices.contains(stickerIndex) else {
+                    return
                 }
+                stickerAssignments[slot.coordinates[stickerIndex]] = selectedColor
             }
             .padding(AppTheme.Spacing.small)
             .background(AppTheme.Colors.background.opacity(0.35))
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
         }
-    }
-
-    private func stickerTile(_ coordinate: StickerCoordinate) -> some View {
-        let color = stickerAssignments[coordinate]?.displayColor ?? AppTheme.Colors.surface
-        return Button {
-            stickerAssignments[coordinate] = selectedColor
-        } label: {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(color)
-                .frame(width: 30, height: 30)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(Color.white.opacity(0.5), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -325,50 +320,32 @@ private enum CubeStickerColor: String, CaseIterable {
 
     var displayColor: Color {
         switch self {
-        case .white: return Color.white
-        case .yellow: return Color.yellow
-        case .red: return Color.red
-        case .orange: return Color.orange
-        case .blue: return Color.blue
-        case .green: return Color.green
+        case .white: return TwistyStickerPalette.standard.white
+        case .yellow: return TwistyStickerPalette.standard.yellow
+        case .red: return TwistyStickerPalette.standard.red
+        case .orange: return TwistyStickerPalette.standard.orange
+        case .blue: return TwistyStickerPalette.standard.blue
+        case .green: return TwistyStickerPalette.standard.green
         }
     }
 }
 
-private enum FacePosition {
-    case u00, u01, u10, u11
-    case l00, l01, l10, l11
-    case f00, f01, f10, f11
-    case r00, r01, r10, r11
-    case b00, b01, b10, b11
-    case d00, d01, d10, d11
+private enum CubeFaceSlot: String, CaseIterable {
+    case u = "U"
+    case l = "L"
+    case f = "F"
+    case r = "R"
+    case b = "B"
+    case d = "D"
 
-    var coordinate: StickerCoordinate {
+    var coordinates: [StickerCoordinate] {
         switch self {
-        case .u00: return .u00
-        case .u01: return .u01
-        case .u10: return .u10
-        case .u11: return .u11
-        case .l00: return .l00
-        case .l01: return .l01
-        case .l10: return .l10
-        case .l11: return .l11
-        case .f00: return .f00
-        case .f01: return .f01
-        case .f10: return .f10
-        case .f11: return .f11
-        case .r00: return .r00
-        case .r01: return .r01
-        case .r10: return .r10
-        case .r11: return .r11
-        case .b00: return .b00
-        case .b01: return .b01
-        case .b10: return .b10
-        case .b11: return .b11
-        case .d00: return .d00
-        case .d01: return .d01
-        case .d10: return .d10
-        case .d11: return .d11
+        case .u: return [.u00, .u01, .u10, .u11]
+        case .l: return [.l00, .l01, .l10, .l11]
+        case .f: return [.f00, .f01, .f10, .f11]
+        case .r: return [.r00, .r01, .r10, .r11]
+        case .b: return [.b00, .b01, .b10, .b11]
+        case .d: return [.d00, .d01, .d10, .d11]
         }
     }
 }
