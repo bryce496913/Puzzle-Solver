@@ -53,7 +53,7 @@ struct TwistyPuzzlePickerView: View {
         case .cube2x2:
             Cube2x2EntryView()
         case .cube3x3, .pyraminx, .skewb:
-            ComingSoonPuzzleView(puzzleName: puzzleType.metadata.title)
+            FutureTwistyPuzzlePlaceholderView(puzzleType: puzzleType)
         }
     }
 }

@@ -29,6 +29,8 @@
 		EEB200082C02040400D00D01 /* Cube2x2SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200072C02040400D00D01 /* Cube2x2SolvingView.swift */; };
 		EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */; };
 		EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */; };
+		EED400012E10000100D00D01 /* FutureTwistyPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED400022E10000100D00D01 /* FutureTwistyPuzzleDomain.swift */; };
+		EED400032E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +76,8 @@
 		EEB200072C02040400D00D01 /* Cube2x2SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube2x2SolvingView.swift; sourceTree = "<group>"; };
 		EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleDomain.swift; sourceTree = "<group>"; };
 		EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleComponents.swift; sourceTree = "<group>"; };
+		EED400022E10000100D00D01 /* FutureTwistyPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FutureTwistyPuzzleDomain.swift; sourceTree = "<group>"; };
+		EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FutureTwistyPuzzlePlaceholderView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +143,8 @@
 				EEB200072C02040400D00D01 /* Cube2x2SolvingView.swift */,
 				EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */,
 				EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */,
+				EED400022E10000100D00D01 /* FutureTwistyPuzzleDomain.swift */,
+				EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */,
 				EEA100002C01000000D00D01 /* AppDesignSystem.swift */,
 				EE82B66A2B69931600B2BC49 /* Assets.xcassets */,
 				EE82B66C2B69931600B2BC49 /* Preview Content */,
@@ -318,6 +324,8 @@
 				EEB200082C02040400D00D01 /* Cube2x2SolvingView.swift in Sources */,
 				EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */,
 				EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */,
+				EED400012E10000100D00D01 /* FutureTwistyPuzzleDomain.swift in Sources */,
+				EED400032E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift in Sources */,
 				EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
