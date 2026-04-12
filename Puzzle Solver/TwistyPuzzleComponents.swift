@@ -462,6 +462,7 @@ struct TwistyNumberedMoveListView: View {
 struct TwistyStepPlaybackControlsView: View {
     let currentStepNumber: Int
     let totalSteps: Int
+    var currentMoveText: String? = nil
     let isAutoPlaying: Bool
     let onPrevious: () -> Void
     let onNext: () -> Void
@@ -480,6 +481,10 @@ struct TwistyStepPlaybackControlsView: View {
             Text("Step \(currentStepNumber) of \(totalSteps)")
                 .appTextStyle(.h3)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+
+            Text("Current move: \(currentMoveText ?? "—")")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.highlight)
 
             HStack(spacing: AppTheme.Spacing.small) {
                 Button(action: onPrevious) {
