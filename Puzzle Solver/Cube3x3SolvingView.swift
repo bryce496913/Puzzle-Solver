@@ -6,6 +6,7 @@ struct Cube3x3SolvingView: View {
     @State private var isSolving = true
     @State private var solveResult: TwistySolveResult?
     @State private var currentStepIndex = 0
+    @State private var showsStepCards = false
 
     private let notationRenderer = StandardTwistyNotationRenderer()
 
@@ -26,22 +27,13 @@ struct Cube3x3SolvingView: View {
                 solveSummaryCard(for: solveResult)
 
                 if solveResult.isSolvable {
-                    TwistyMoveListView(title: "Ordered move list", moves: solveResult.moves)
+                    TwistyNumberedMoveListView(title: "Ordered move list", moves: solveResult.moves)
 
                     if !stepViewData.isEmpty {
-                        TwistyStepPlaybackControlsView(
-                            currentStepNumber: currentStepIndex + 1,
-                            totalSteps: stepViewData.count,
-                            isAutoPlaying: false,
-                            onPrevious: moveToPreviousStep,
-                            onNext: moveToNextStep,
-                            onToggleAutoPlay: {}
-                        )
-
-                        TwistyStepCardView(step: stepViewData[currentStepIndex])
+                        stepPreviewsSection
                     }
                 } else {
-                    unsolvableCard
+                    unsolvableCard(message: stepViewData.first?.secondaryText)
                 }
             }
         }
@@ -63,6 +55,10 @@ struct Cube3x3SolvingView: View {
             Text("Finding a valid move sequence and preparing an ordered step-by-step result.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
+
+            Text("Only the final successful sequence is shown.")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .appSurfaceCard()
@@ -76,10 +72,15 @@ struct Cube3x3SolvingView: View {
                 .appTextStyle(.h2)
                 .foregroundStyle(result.isSolvable ? AppTheme.Colors.text : AppTheme.Colors.highlight)
 
-            Text(summary.moveCountText)
-                .appTextStyle(.paragraph)
+            HStack(spacing: AppTheme.Spacing.small) {
+                summaryChip(label: "Moves", value: "\(result.moveCount)")
+                summaryChip(label: "Steps", value: "\(result.steps.count)")
+                if let elapsedTime = result.elapsedTime {
+                    summaryChip(label: "Time", value: elapsedText(for: elapsedTime))
+                }
+            }
 
-            Text(summary.stepCountText)
+            Text(result.isSolvable ? "Use the ordered sequence below exactly as listed." : summary.stepCountText)
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
         }
@@ -87,11 +88,18 @@ struct Cube3x3SolvingView: View {
         .appSurfaceCard()
     }
 
-    private var unsolvableCard: some View {
+    @ViewBuilder
+    private func unsolvableCard(message: String?) -> some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
             Text("We couldn't find a solution for this sticker input.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.highlight)
+
+            if let message, !message.isEmpty {
+                Text(message)
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.9))
+            }
 
             Text("This usually means one or more stickers were entered incorrectly. Go back, verify each face, and try again.")
                 .appTextStyle(.paragraph)
@@ -99,6 +107,61 @@ struct Cube3x3SolvingView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .appSurfaceCard()
+    }
+
+    private var stepPreviewsSection: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Toggle(isOn: $showsStepCards.animation(.easeInOut(duration: 0.2))) {
+                Text("Step previews")
+                    .appTextStyle(.h2)
+            }
+            .tint(AppTheme.Colors.highlight)
+
+            if showsStepCards {
+                TwistyStepPlaybackControlsView(
+                    currentStepNumber: currentStepIndex + 1,
+                    totalSteps: stepViewData.count,
+                    isAutoPlaying: false,
+                    onPrevious: moveToPreviousStep,
+                    onNext: moveToNextStep,
+                    onToggleAutoPlay: {}
+                )
+
+                TwistyStepCardView(step: stepViewData[currentStepIndex])
+            } else {
+                Text("Turn on previews to step through the sequence one move at a time.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
+                    .padding(AppTheme.Spacing.small)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppTheme.Colors.background.opacity(0.3))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+
+    private func summaryChip(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text(label)
+                .appTextStyle(.h3)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+            Text(value)
+                .appTextStyle(.h2)
+                .foregroundStyle(AppTheme.Colors.highlight)
+        }
+        .padding(.horizontal, AppTheme.Spacing.small)
+        .padding(.vertical, AppTheme.Spacing.xSmall)
+        .background(AppTheme.Colors.background.opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+    }
+
+    private func elapsedText(for elapsedTime: TimeInterval) -> String {
+        if elapsedTime < 0.1 {
+            return "<0.1s"
+        }
+        return String(format: "%.1fs", elapsedTime)
     }
 
     private func moveToPreviousStep() {
@@ -121,6 +184,7 @@ struct Cube3x3SolvingView: View {
 
         solveResult = result
         currentStepIndex = 0
+        showsStepCards = !result.steps.isEmpty
         isSolving = false
     }
 }
