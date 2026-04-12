@@ -46,10 +46,21 @@ struct SlidingPuzzleBoardView: View {
         let isBlank = value == nil
         let isSelected = selectedTileIndex == index
 
-        Text(value.map(String.init) ?? "")
-            .appTextStyle(boardSize == 3 ? .h2 : .h3)
-            .foregroundStyle(isBlank ? AppTheme.Colors.text.opacity(0.7) : AppTheme.Colors.text)
-            .minimumScaleFactor(0.7)
+        VStack(spacing: 0) {
+            if let value {
+                Text("\(value)")
+                    .appTextStyle(boardSize == 3 ? .h2 : .h3)
+                    .foregroundStyle(AppTheme.Colors.text)
+                    .minimumScaleFactor(0.7)
+            } else if mode == .input {
+                Text("Empty")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.8))
+            } else {
+                Text("")
+                    .appTextStyle(boardSize == 3 ? .h2 : .h3)
+            }
+        }
             .frame(width: tileLength, height: tileLength)
             .background(tileBackgroundColor(isBlank: isBlank, isSelected: isSelected))
             .overlay(

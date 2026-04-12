@@ -12,7 +12,6 @@ struct SolvingView: View {
 
     @State private var isSolving = true
     @State private var solveResult: SlidingPuzzleSolveResult?
-    @State private var errorMessage: String?
 
     private var puzzleTitle: String {
         "\(initialState.size)×\(initialState.size) Sliding Puzzle"
@@ -31,11 +30,6 @@ struct SolvingView: View {
 
                     if isSolving {
                         solvingStateCard
-                    } else if let errorMessage {
-                        Text(errorMessage)
-                            .appTextStyle(.paragraph)
-                            .foregroundStyle(AppTheme.Colors.highlight)
-                            .appSurfaceCard()
                     } else if let solveResult {
                         resultSummaryCard(for: solveResult)
 
@@ -59,13 +53,19 @@ struct SolvingView: View {
             ProgressView()
                 .tint(AppTheme.Colors.highlight)
 
-            Text("Solving puzzle…")
+            Text(initialState.size == 4 ? "Solving 4×4 puzzle…" : "Solving puzzle…")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text)
 
-            Text("Finding the successful solution path for this \(initialState.size)×\(initialState.size) board.")
+            Text(solvingDescriptionText)
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+
+            if initialState.size == 4 {
+                Text("Thanks for your patience — this can take a little longer.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .appSurfaceCard()
@@ -86,9 +86,13 @@ struct SolvingView: View {
                     .appTextStyle(.paragraph)
                     .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
             } else {
-                Text("This board cannot be solved. Return to edit your tiles and try again.")
+                Text("This arrangement can’t be solved from the current layout.")
                     .appTextStyle(.paragraph)
                     .foregroundStyle(AppTheme.Colors.highlight)
+
+                Text("Go back, adjust a few tiles, and try again.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.9))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -98,7 +102,6 @@ struct SolvingView: View {
     @MainActor
     private func solvePuzzle() async {
         isSolving = true
-        errorMessage = nil
 
         let result = await Task.detached(priority: .userInitiated) {
             SlidingPuzzleSolver().solve(from: initialState)
@@ -106,6 +109,13 @@ struct SolvingView: View {
 
         solveResult = result
         isSolving = false
+    }
+
+    private var solvingDescriptionText: String {
+        if initialState.size == 4 {
+            return "We’re carefully searching for the best path for your 4×4 board."
+        }
+        return "Finding a successful solution path for this \(initialState.size)×\(initialState.size) board."
     }
 }
 
