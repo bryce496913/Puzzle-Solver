@@ -11,7 +11,7 @@ struct FutureTwistyPuzzlePlaceholderView: View {
         TwistyScreenContainer {
             TwistyScreenHeader(
                 title: puzzleType.metadata.title,
-                subtitle: "Phase 2 architecture placeholder"
+                subtitle: "Shared twisty architecture ready for next puzzle"
             )
 
             Text("This puzzle is scaffolded so future implementation can plug into the shared twisty foundation without restructuring navigation.")
@@ -59,6 +59,6 @@ struct FutureTwistyPuzzlePlaceholderView: View {
 
 #Preview {
     NavigationStack {
-        FutureTwistyPuzzlePlaceholderView(puzzleType: .cube3x3)
+        FutureTwistyPuzzlePlaceholderView(puzzleType: .pyraminx)
     }
 }

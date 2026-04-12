@@ -293,6 +293,18 @@ struct CubeMoveStepCardView: View {
     }
 }
 
+
+extension TwistyEntryValidationStatus {
+    var messageColor: Color {
+        switch self {
+        case .ready:
+            return AppTheme.Colors.text
+        case .incomplete, .invalid:
+            return AppTheme.Colors.highlight
+        }
+    }
+}
+
 extension Cube3x3StickerColor {
     var label: String {
         switch self {
@@ -393,9 +405,15 @@ struct CubeNetView: View {
     }
 }
 
-struct TwistyMoveListView: View {
+enum TwistyMoveSequenceStyle {
+    case inline
+    case numbered
+}
+
+struct TwistyMoveSequenceView: View {
     let title: String
     let moves: [TwistyMove]
+    let style: TwistyMoveSequenceStyle
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
@@ -407,14 +425,47 @@ struct TwistyMoveListView: View {
                     .appTextStyle(.paragraph)
                     .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
             } else {
-                Text(moves.map(\.token).joined(separator: " "))
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.highlight)
-                    .textSelection(.enabled)
+                switch style {
+                case .inline:
+                    Text(moves.map(\.token).joined(separator: " "))
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.highlight)
+                        .textSelection(.enabled)
+                case .numbered:
+                    VStack(spacing: AppTheme.Spacing.xSmall) {
+                        ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
+                            HStack(spacing: AppTheme.Spacing.small) {
+                                Text("\(index + 1).")
+                                    .appTextStyle(.h3)
+                                    .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+                                    .frame(width: 28, alignment: .leading)
+
+                                Text(move.token)
+                                    .appTextStyle(.h2)
+                                    .foregroundStyle(AppTheme.Colors.highlight)
+
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, AppTheme.Spacing.small)
+                            .padding(.vertical, AppTheme.Spacing.xSmall)
+                            .background(AppTheme.Colors.background.opacity(0.3))
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                        }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .appSurfaceCard()
+    }
+}
+
+struct TwistyMoveListView: View {
+    let title: String
+    let moves: [TwistyMove]
+
+    var body: some View {
+        TwistyMoveSequenceView(title: title, moves: moves, style: .inline)
     }
 }
 
@@ -423,39 +474,56 @@ struct TwistyNumberedMoveListView: View {
     let moves: [TwistyMove]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text(title)
+        TwistyMoveSequenceView(title: title, moves: moves, style: .numbered)
+    }
+}
+
+struct TwistySolveSummaryCard: View {
+    let result: TwistySolveResult
+    var showChipMetrics: Bool = false
+    var elapsedFormatter: ((TimeInterval) -> String)? = nil
+
+    var body: some View {
+        let summary = result.makeSummaryViewData()
+
+        return VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Text(summary.statusText)
                 .appTextStyle(.h2)
+                .foregroundStyle(result.isSolvable ? AppTheme.Colors.text : AppTheme.Colors.highlight)
 
-            if moves.isEmpty {
-                Text("No moves needed — this puzzle is already solved.")
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
-            } else {
-                VStack(spacing: AppTheme.Spacing.xSmall) {
-                    ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
-                        HStack(spacing: AppTheme.Spacing.small) {
-                            Text("\(index + 1).")
-                                .appTextStyle(.h3)
-                                .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
-                                .frame(width: 28, alignment: .leading)
-
-                            Text(move.token)
-                                .appTextStyle(.h2)
-                                .foregroundStyle(AppTheme.Colors.highlight)
-
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, AppTheme.Spacing.small)
-                        .padding(.vertical, AppTheme.Spacing.xSmall)
-                        .background(AppTheme.Colors.background.opacity(0.3))
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+            if showChipMetrics {
+                HStack(spacing: AppTheme.Spacing.small) {
+                    summaryChip(label: "Moves", value: "\(result.moveCount)")
+                    summaryChip(label: "Steps", value: "\(result.steps.count)")
+                    if let elapsedTime = result.elapsedTime {
+                        summaryChip(label: "Time", value: elapsedFormatter?(elapsedTime) ?? String(format: "%.1fs", elapsedTime))
                     }
                 }
+            } else {
+                Text(summary.moveCountText)
+                    .appTextStyle(.paragraph)
+                Text(summary.stepCountText)
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .appSurfaceCard()
+    }
+
+    private func summaryChip(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text(label)
+                .appTextStyle(.h3)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+            Text(value)
+                .appTextStyle(.h2)
+                .foregroundStyle(AppTheme.Colors.highlight)
+        }
+        .padding(.horizontal, AppTheme.Spacing.small)
+        .padding(.vertical, AppTheme.Spacing.xSmall)
+        .background(AppTheme.Colors.background.opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
     }
 }
 

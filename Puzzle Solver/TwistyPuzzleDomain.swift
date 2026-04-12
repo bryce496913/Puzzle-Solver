@@ -142,6 +142,27 @@ struct TwistySolveSummaryViewData: Sendable {
     let stepCountText: String
 }
 
+
+enum TwistyEntryValidationStatus {
+    case incomplete(String)
+    case invalid(String)
+    case ready(String)
+
+    var message: String {
+        switch self {
+        case .incomplete(let message), .invalid(let message), .ready(let message):
+            return message
+        }
+    }
+
+    var isReady: Bool {
+        if case .ready = self {
+            return true
+        }
+        return false
+    }
+}
+
 protocol TwistyPuzzleState {
     var puzzleType: TwistyPuzzleType { get }
 }

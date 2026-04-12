@@ -13,7 +13,7 @@ struct Cube2x2EntryView: View {
         Dictionary(grouping: stickerAssignments.values, by: { $0 }).mapValues(\.count)
     }
 
-    private var validationStatus: CubeEntryValidationStatus {
+    private var validationStatus: TwistyEntryValidationStatus {
         let requiredStickerCount = Cube2x2StickerCoordinate.allCases.count
         let assigned = stickerAssignments.count
         if assigned < requiredStickerCount {
@@ -189,34 +189,7 @@ struct Cube2x2EntryView: View {
     }
 }
 
-private enum CubeEntryValidationStatus {
-    case incomplete(String)
-    case invalid(String)
-    case ready(String)
 
-    var message: String {
-        switch self {
-        case .incomplete(let message), .invalid(let message), .ready(let message):
-            return message
-        }
-    }
-
-    var isReady: Bool {
-        if case .ready = self {
-            return true
-        }
-        return false
-    }
-
-    var messageColor: Color {
-        switch self {
-        case .ready:
-            return AppTheme.Colors.text
-        case .incomplete, .invalid:
-            return AppTheme.Colors.highlight
-        }
-    }
-}
 
 private struct CubeNetInputView: View {
     @Binding var stickerAssignments: [Cube2x2StickerCoordinate: Cube2x2StickerColor]
