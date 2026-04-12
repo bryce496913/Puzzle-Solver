@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SolvingView: View {
-    let initialState: [[Int?]]
+    let initialState: SlidingPuzzleState
 
     @State private var isSolving = true
     @State private var solveResult: SlidingPuzzleSolveResult?
@@ -37,7 +37,7 @@ struct SolvingView: View {
                             .foregroundStyle(AppTheme.Colors.highlight)
                     } else if let solveResult {
                         if !solveResult.isSolvable {
-                            Text("This puzzle is unsolvable. Please return and enter a solvable \(initialState.count)×\(initialState.count) board.")
+                            Text("This puzzle is unsolvable. Please return and enter a solvable \(initialState.size)×\(initialState.size) board.")
                                 .appTextStyle(.paragraph)
                                 .foregroundStyle(AppTheme.Colors.highlight)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -78,14 +78,8 @@ struct SolvingView: View {
         isSolving = true
         errorMessage = nil
 
-        guard let startState = SlidingPuzzleState(board: initialState) else {
-            isSolving = false
-            errorMessage = "Invalid puzzle input. Please go back and re-enter all tiles."
-            return
-        }
-
         let result = await Task.detached(priority: .userInitiated) {
-            SlidingPuzzleSolver().solve(from: startState)
+            SlidingPuzzleSolver().solve(from: initialState)
         }.value
 
         solveResult = result
@@ -95,6 +89,8 @@ struct SolvingView: View {
 
 struct SolvingView_Previews: PreviewProvider {
     static var previews: some View {
-        SolvingView(initialState: [[1, 2, 3], [4, 5, 6], [7, nil, 8]])
+        if let state = SlidingPuzzleState(board: [[1, 2, 3], [4, 5, 6], [7, nil, 8]]) {
+            SolvingView(initialState: state)
+        }
     }
 }

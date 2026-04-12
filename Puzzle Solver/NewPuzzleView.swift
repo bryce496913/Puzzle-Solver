@@ -1,27 +1,45 @@
-//
-//  NewPuzzleView.swift
-//  Puzzle Solver
-//
-//  Created by Bryce on 30/1/24.
-//
-
 import SwiftUI
 
+/// Backward-compatible name used by navigation.
 struct NewPuzzleView: View {
     let puzzleSize: Int
 
-    @State private var selectedTile: Int?
-    @State private var gridNumbers: [[Int?]]
-    @State private var numbersInGrid: Set<Int>
-    @State private var isSolveButtonVisible: Bool = false
-    @State private var initialState: [[Int?]]
+    var body: some View {
+        SlidingPuzzleEntryView(boardSize: puzzleSize)
+    }
+}
 
-    init(puzzleSize: Int = 3) {
-        self.puzzleSize = puzzleSize
-        let emptyGrid = Array(repeating: Array(repeating: Optional<Int>.none, count: puzzleSize), count: puzzleSize)
-        _gridNumbers = State(initialValue: emptyGrid)
-        _initialState = State(initialValue: emptyGrid)
-        _numbersInGrid = State(initialValue: Set(1..<(puzzleSize * puzzleSize)))
+struct SlidingPuzzleEntryView: View {
+    let boardSize: Int
+
+    @State private var selectedTileIndex: Int?
+    @State private var tileAssignments: [Int?]
+
+    init(boardSize: Int) {
+        self.boardSize = boardSize
+        _tileAssignments = State(initialValue: Array(repeating: nil, count: boardSize * boardSize))
+    }
+
+    private var allowedValues: [Int] {
+        Array(1..<(boardSize * boardSize))
+    }
+
+    private var usedValues: Set<Int> {
+        Set(tileAssignments.compactMap { $0 })
+    }
+
+    private var isConfigurationValid: Bool {
+        tileAssignments.filter { $0 == nil }.count == 1 && usedValues.count == allowedValues.count
+    }
+
+    private var entryState: SlidingPuzzleState? {
+        guard isConfigurationValid else { return nil }
+        let tiles = tileAssignments.map { $0 ?? 0 }
+        return SlidingPuzzleState(size: boardSize, tiles: tiles)
+    }
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: boardSize)
     }
 
     var body: some View {
@@ -30,65 +48,62 @@ struct NewPuzzleView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: AppTheme.Spacing.large) {
-                Text("Set Up \(puzzleSize)×\(puzzleSize) Puzzle")
+                Text("Set Up \(boardSize)×\(boardSize) Puzzle")
                     .appTextStyle(.h1)
                     .foregroundStyle(AppTheme.Colors.highlight)
 
-                VStack(spacing: AppTheme.Spacing.small) {
-                    ForEach(0..<puzzleSize, id: \.self) { row in
-                        HStack(spacing: AppTheme.Spacing.small) {
-                            ForEach(0..<puzzleSize, id: \.self) { column in
-                                PuzzleTileSolvedView(
-                                    number: gridNumbers[row][column],
-                                    backgroundColor: tileBackgroundColor(number: gridNumbers[row][column]),
-                                    isSelected: selectedTile == row * puzzleSize + column,
-                                    onTap: {
-                                        handleTileSelection(row: row, column: column)
-                                    }
-                                )
+                LazyVGrid(columns: gridColumns, spacing: AppTheme.Spacing.small) {
+                    ForEach(tileAssignments.indices, id: \.self) { index in
+                        PuzzleTileSolvedView(
+                            number: tileAssignments[index],
+                            backgroundColor: tileBackgroundColor(number: tileAssignments[index]),
+                            isSelected: selectedTileIndex == index,
+                            onTap: {
+                                selectedTileIndex = index
                             }
-                        }
+                        )
                     }
                 }
                 .appSurfaceCard()
 
-                Group {
-                    if isSolveButtonVisible {
-                        NavigationLink(
-                            destination: {
-                                SolvingView(initialState: initialState)
-                            },
-                            label: {
-                                Text("Solve")
-                            }
-                        )
-                        .buttonStyle(AppPrimaryButtonStyle())
-                    } else {
-                        KeypadView(
-                            puzzleSize: puzzleSize,
-                            onTap: { number in
-                                handleKeypadButtonTap(number: number)
-                            }
-                        )
+                VStack(spacing: AppTheme.Spacing.medium) {
+                    SlidingPuzzleKeypadView(
+                        boardSize: boardSize,
+                        selectedValue: nil,
+                        usedValues: usedValues,
+                        onTap: { value in
+                            assign(value: value)
+                        },
+                        onClear: {
+                            clearSelectedTile()
+                        }
+                    )
+
+                    NavigationLink {
+                        if let entryState {
+                            SolvingView(initialState: entryState)
+                        }
+                    } label: {
+                        Text("Solve")
                     }
+                    .buttonStyle(AppPrimaryButtonStyle())
+                    .disabled(entryState == nil)
                 }
                 .appSurfaceCard()
 
                 HStack(spacing: AppTheme.Spacing.medium) {
-                    NavigationLink(
-                        destination: MainMenuView(),
-                        label: {
-                            Text("Back")
-                        }
-                    )
+                    NavigationLink {
+                        MainMenuView()
+                    } label: {
+                        Text("Back")
+                    }
                     .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.surface))
 
-                    NavigationLink(
-                        destination: NewPuzzleView(puzzleSize: puzzleSize),
-                        label: {
-                            Text("Reset")
-                        }
-                    )
+                    NavigationLink {
+                        SlidingPuzzleEntryView(boardSize: boardSize)
+                    } label: {
+                        Text("Reset")
+                    }
                     .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.accent))
                 }
             }
@@ -97,46 +112,24 @@ struct NewPuzzleView: View {
         .navigationBarHidden(true)
     }
 
-    private func handleTileSelection(row: Int, column: Int) {
-        if isSolveButtonVisible {
-            isSolveButtonVisible = false
+    private func assign(value: Int) {
+        guard let selectedTileIndex else { return }
+
+        if let existing = tileAssignments[selectedTileIndex], existing != value {
+            tileAssignments[selectedTileIndex] = nil
         }
-        selectedTile = row * puzzleSize + column
+
+        guard !usedValues.contains(value) || tileAssignments[selectedTileIndex] == value else { return }
+        tileAssignments[selectedTileIndex] = value
     }
 
-    private func handleKeypadButtonTap(number: Int) {
-        let clearToken = puzzleSize * puzzleSize
-
-        if number == clearToken {
-            if let selectedTile {
-                if let removedNumber = gridNumbers[selectedTile / puzzleSize][selectedTile % puzzleSize] {
-                    numbersInGrid.insert(removedNumber)
-                }
-                gridNumbers[selectedTile / puzzleSize][selectedTile % puzzleSize] = nil
-            }
-        } else if numbersInGrid.contains(number) {
-            if let selectedTile {
-                gridNumbers[selectedTile / puzzleSize][selectedTile % puzzleSize] = number
-                numbersInGrid.remove(number)
-            }
-        }
-
-        selectedTile = nil
-
-        if numbersInGrid.isEmpty {
-            initialState = gridNumbers
-            isSolveButtonVisible = true
-        }
+    private func clearSelectedTile() {
+        guard let selectedTileIndex else { return }
+        tileAssignments[selectedTileIndex] = nil
     }
 
     private func tileBackgroundColor(number: Int?) -> Color {
         number == nil ? AppTheme.Colors.surface : AppTheme.Colors.accent.opacity(0.35)
-    }
-}
-
-struct NewPuzzleView_Previews: PreviewProvider {
-    static var previews: some View {
-        NewPuzzleView(puzzleSize: 3)
     }
 }
 
@@ -149,7 +142,8 @@ struct PuzzleTileSolvedView: View {
     var body: some View {
         Text(number.map(String.init) ?? "")
             .appTextStyle(.h2)
-            .frame(width: 64, height: 64)
+            .frame(maxWidth: .infinity)
+            .frame(height: 64)
             .background(backgroundColor)
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
@@ -162,42 +156,84 @@ struct PuzzleTileSolvedView: View {
     }
 }
 
-struct KeypadView: View {
-    let puzzleSize: Int
+struct SlidingPuzzleKeypadView: View {
+    let boardSize: Int
+    let selectedValue: Int?
+    let usedValues: Set<Int>
     let onTap: (Int) -> Void
+    let onClear: () -> Void
+
+    private var values: [Int] {
+        Array(1..<(boardSize * boardSize))
+    }
+
+    private var keypadColumns: [GridItem] {
+        let maxColumns = boardSize == 3 ? 3 : 4
+        return Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.small), count: maxColumns)
+    }
 
     var body: some View {
-        let totalTiles = puzzleSize * puzzleSize
-
         VStack(spacing: AppTheme.Spacing.small) {
-            ForEach(0..<puzzleSize, id: \.self) { row in
-                HStack(spacing: AppTheme.Spacing.medium) {
-                    ForEach(1...puzzleSize, id: \.self) { column in
-                        let number = row * puzzleSize + column
-                        KeypadButton(number: number, clearToken: totalTiles, onTap: onTap)
+            ScrollView {
+                LazyVGrid(columns: keypadColumns, spacing: AppTheme.Spacing.small) {
+                    ForEach(values, id: \.self) { value in
+                        KeypadButton(
+                            title: "\(value)",
+                            isDisabled: usedValues.contains(value) && selectedValue != value,
+                            isSelected: selectedValue == value,
+                            onTap: { onTap(value) }
+                        )
                     }
                 }
+                .padding(.vertical, AppTheme.Spacing.xSmall)
             }
+            .frame(maxHeight: boardSize == 3 ? 130 : 190)
+
+            KeypadButton(
+                title: "Blank",
+                isDisabled: false,
+                isSelected: false,
+                onTap: onClear
+            )
         }
-        .padding(.vertical, AppTheme.Spacing.small)
     }
 }
 
 struct KeypadButton: View {
-    let number: Int
-    let clearToken: Int
-    let onTap: (Int) -> Void
+    let title: String
+    let isDisabled: Bool
+    let isSelected: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        Button(action: {
-            onTap(number)
-        }) {
-            Text(number == clearToken ? "x" : "\(number)")
-                .appTextStyle(.h2)
-                .frame(width: 48, height: 48)
-                .background(number == clearToken ? AppTheme.Colors.highlight : AppTheme.Colors.accent)
+        Button(action: onTap) {
+            Text(title)
+                .appTextStyle(.h3)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(backgroundColor)
                 .foregroundStyle(AppTheme.Colors.text)
-                .clipShape(Circle())
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous)
+                        .stroke(borderColor, lineWidth: 1.5)
+                )
         }
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.4 : 1)
+    }
+
+    private var backgroundColor: Color {
+        isSelected ? AppTheme.Colors.highlight.opacity(0.8) : AppTheme.Colors.accent
+    }
+
+    private var borderColor: Color {
+        isSelected ? AppTheme.Colors.highlight : AppTheme.Colors.text.opacity(0.7)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SlidingPuzzleEntryView(boardSize: 4)
     }
 }
