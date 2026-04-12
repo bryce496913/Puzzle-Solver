@@ -8,11 +8,21 @@
 import SwiftUI
 
 struct NewPuzzleView: View {
+    let puzzleSize: Int
+
     @State private var selectedTile: Int?
-    @State private var gridNumbers: [[Int?]] = Array(repeating: Array(repeating: nil, count: 3), count: 3)
-    @State private var numbersInGrid: Set<Int> = Set(1...8)
+    @State private var gridNumbers: [[Int?]]
+    @State private var numbersInGrid: Set<Int>
     @State private var isSolveButtonVisible: Bool = false
-    @State private var initialState: [[Int?]] = Array(repeating: Array(repeating: nil, count: 3), count: 3)
+    @State private var initialState: [[Int?]]
+
+    init(puzzleSize: Int = 3) {
+        self.puzzleSize = puzzleSize
+        let emptyGrid = Array(repeating: Array(repeating: Optional<Int>.none, count: puzzleSize), count: puzzleSize)
+        _gridNumbers = State(initialValue: emptyGrid)
+        _initialState = State(initialValue: emptyGrid)
+        _numbersInGrid = State(initialValue: Set(1..<(puzzleSize * puzzleSize)))
+    }
 
     var body: some View {
         ZStack {
@@ -20,18 +30,18 @@ struct NewPuzzleView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: AppTheme.Spacing.large) {
-                Text("Set Up Puzzle")
+                Text("Set Up \(puzzleSize)×\(puzzleSize) Puzzle")
                     .appTextStyle(.h1)
                     .foregroundStyle(AppTheme.Colors.highlight)
 
                 VStack(spacing: AppTheme.Spacing.small) {
-                    ForEach(0..<3, id: \.self) { row in
+                    ForEach(0..<puzzleSize, id: \.self) { row in
                         HStack(spacing: AppTheme.Spacing.small) {
-                            ForEach(0..<3, id: \.self) { column in
+                            ForEach(0..<puzzleSize, id: \.self) { column in
                                 PuzzleTileSolvedView(
                                     number: gridNumbers[row][column],
                                     backgroundColor: tileBackgroundColor(number: gridNumbers[row][column]),
-                                    isSelected: selectedTile == row * 3 + column,
+                                    isSelected: selectedTile == row * puzzleSize + column,
                                     onTap: {
                                         handleTileSelection(row: row, column: column)
                                     }
@@ -55,6 +65,7 @@ struct NewPuzzleView: View {
                         .buttonStyle(AppPrimaryButtonStyle())
                     } else {
                         KeypadView(
+                            puzzleSize: puzzleSize,
                             onTap: { number in
                                 handleKeypadButtonTap(number: number)
                             }
@@ -73,7 +84,7 @@ struct NewPuzzleView: View {
                     .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.surface))
 
                     NavigationLink(
-                        destination: NewPuzzleView(),
+                        destination: NewPuzzleView(puzzleSize: puzzleSize),
                         label: {
                             Text("Reset")
                         }
@@ -90,24 +101,27 @@ struct NewPuzzleView: View {
         if isSolveButtonVisible {
             isSolveButtonVisible = false
         }
-        self.selectedTile = row * 3 + column
+        selectedTile = row * puzzleSize + column
     }
 
     private func handleKeypadButtonTap(number: Int) {
-        if number == 9 {
-            if let selectedTile = selectedTile {
-                if let removedNumber = gridNumbers[selectedTile / 3][selectedTile % 3] {
+        let clearToken = puzzleSize * puzzleSize
+
+        if number == clearToken {
+            if let selectedTile {
+                if let removedNumber = gridNumbers[selectedTile / puzzleSize][selectedTile % puzzleSize] {
                     numbersInGrid.insert(removedNumber)
                 }
-                gridNumbers[selectedTile / 3][selectedTile % 3] = nil
+                gridNumbers[selectedTile / puzzleSize][selectedTile % puzzleSize] = nil
             }
         } else if numbersInGrid.contains(number) {
-            if let selectedTile = selectedTile {
-                gridNumbers[selectedTile / 3][selectedTile % 3] = number
+            if let selectedTile {
+                gridNumbers[selectedTile / puzzleSize][selectedTile % puzzleSize] = number
                 numbersInGrid.remove(number)
             }
         }
-        self.selectedTile = nil
+
+        selectedTile = nil
 
         if numbersInGrid.isEmpty {
             initialState = gridNumbers
@@ -122,7 +136,7 @@ struct NewPuzzleView: View {
 
 struct NewPuzzleView_Previews: PreviewProvider {
     static var previews: some View {
-        NewPuzzleView()
+        NewPuzzleView(puzzleSize: 3)
     }
 }
 
@@ -149,14 +163,18 @@ struct PuzzleTileSolvedView: View {
 }
 
 struct KeypadView: View {
+    let puzzleSize: Int
     let onTap: (Int) -> Void
 
     var body: some View {
+        let totalTiles = puzzleSize * puzzleSize
+
         VStack(spacing: AppTheme.Spacing.small) {
-            ForEach(0..<3, id: \.self) { row in
+            ForEach(0..<puzzleSize, id: \.self) { row in
                 HStack(spacing: AppTheme.Spacing.medium) {
-                    ForEach(1...3, id: \.self) { column in
-                        KeypadButton(number: row * 3 + column, onTap: onTap)
+                    ForEach(1...puzzleSize, id: \.self) { column in
+                        let number = row * puzzleSize + column
+                        KeypadButton(number: number, clearToken: totalTiles, onTap: onTap)
                     }
                 }
             }
@@ -167,16 +185,17 @@ struct KeypadView: View {
 
 struct KeypadButton: View {
     let number: Int
+    let clearToken: Int
     let onTap: (Int) -> Void
 
     var body: some View {
         Button(action: {
             onTap(number)
         }) {
-            Text(number == 9 ? "x" : "\(number)")
+            Text(number == clearToken ? "x" : "\(number)")
                 .appTextStyle(.h2)
                 .frame(width: 48, height: 48)
-                .background(number == 9 ? AppTheme.Colors.highlight : AppTheme.Colors.accent)
+                .background(number == clearToken ? AppTheme.Colors.highlight : AppTheme.Colors.accent)
                 .foregroundStyle(AppTheme.Colors.text)
                 .clipShape(Circle())
         }
