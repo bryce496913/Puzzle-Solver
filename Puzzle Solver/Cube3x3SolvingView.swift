@@ -50,7 +50,7 @@ struct Cube3x3SolvingView: View {
             } else if let solveFailureMessage {
                 unsolvableCard(message: solveFailureMessage)
             } else if let solveResult {
-                solveSummaryCard(for: solveResult)
+                TwistySolveSummaryCard(result: solveResult, showChipMetrics: true, elapsedFormatter: elapsedText)
 
                 if solveResult.isSolvable {
                     TwistyNumberedMoveListView(title: "Ordered move list", moves: solveResult.moves)
@@ -93,29 +93,6 @@ struct Cube3x3SolvingView: View {
         .appSurfaceCard()
     }
 
-    private func solveSummaryCard(for result: TwistySolveResult) -> some View {
-        let summary = result.makeSummaryViewData()
-
-        return VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text(summary.statusText)
-                .appTextStyle(.h2)
-                .foregroundStyle(result.isSolvable ? AppTheme.Colors.text : AppTheme.Colors.highlight)
-
-            HStack(spacing: AppTheme.Spacing.small) {
-                summaryChip(label: "Moves", value: "\(result.moveCount)")
-                summaryChip(label: "Steps", value: "\(result.steps.count)")
-                if let elapsedTime = result.elapsedTime {
-                    summaryChip(label: "Time", value: elapsedText(for: elapsedTime))
-                }
-            }
-
-            Text(result.isSolvable ? "Use the ordered sequence below exactly as listed." : summary.stepCountText)
-                .appTextStyle(.paragraph)
-                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appSurfaceCard()
-    }
 
     @ViewBuilder
     private func unsolvableCard(message: String?) -> some View {
@@ -181,20 +158,6 @@ struct Cube3x3SolvingView: View {
         .appSurfaceCard()
     }
 
-    private func summaryChip(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-            Text(label)
-                .appTextStyle(.h3)
-                .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
-            Text(value)
-                .appTextStyle(.h2)
-                .foregroundStyle(AppTheme.Colors.highlight)
-        }
-        .padding(.horizontal, AppTheme.Spacing.small)
-        .padding(.vertical, AppTheme.Spacing.xSmall)
-        .background(AppTheme.Colors.background.opacity(0.35))
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
-    }
 
     private func elapsedText(for elapsedTime: TimeInterval) -> String {
         if elapsedTime < 0.1 {

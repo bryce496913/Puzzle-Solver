@@ -130,8 +130,6 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
         edgeOrientation: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     )
 
-    static let empty = solved
-
     let cornerPermutation: [UInt8]
     let cornerOrientation: [UInt8]
     let edgePermutation: [UInt8]

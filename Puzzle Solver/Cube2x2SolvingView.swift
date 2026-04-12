@@ -25,7 +25,7 @@ struct Cube2x2SolvingView: View {
             if isSolving {
                 solvingStateCard
             } else if let solveResult {
-                solveSummaryCard(for: solveResult)
+                TwistySolveSummaryCard(result: solveResult)
 
                 if solveResult.isSolvable {
                     TwistyMoveListView(title: "Ordered move list", moves: solveResult.moves)
@@ -68,25 +68,6 @@ struct Cube2x2SolvingView: View {
             Text("Finding a valid move sequence and preparing an ordered step-by-step result.")
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appSurfaceCard()
-    }
-
-    private func solveSummaryCard(for result: TwistySolveResult) -> some View {
-        let summary = result.makeSummaryViewData()
-
-        return VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text(summary.statusText)
-                .appTextStyle(.h2)
-                .foregroundStyle(result.isSolvable ? AppTheme.Colors.text : AppTheme.Colors.highlight)
-
-            Text(summary.moveCountText)
-                .appTextStyle(.paragraph)
-
-            Text(summary.stepCountText)
-                .appTextStyle(.paragraph)
-                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .appSurfaceCard()
