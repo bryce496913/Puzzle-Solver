@@ -82,6 +82,252 @@ struct TwistyFaceModel: Identifiable, Hashable {
     let stickers: [TwistyFaceSticker]
 }
 
+struct CubeStickerView: View {
+    let color: Color
+    var size: CGFloat = 24
+    var isSelected: Bool = false
+    var isLocked: Bool = false
+    var isReadOnly: Bool = false
+    var onTap: (() -> Void)? = nil
+
+    private var borderColor: Color {
+        if isSelected { return AppTheme.Colors.highlight }
+        return Color.white.opacity(0.72)
+    }
+
+    private var borderWidth: CGFloat {
+        isSelected ? 2.6 : 1
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(color)
+            .frame(width: size, height: size)
+            .overlay(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .stroke(borderColor, lineWidth: borderWidth)
+            )
+            .overlay(alignment: .topTrailing) {
+                if isLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+                        .padding(3)
+                        .background(AppTheme.Colors.background.opacity(0.45))
+                        .clipShape(Circle())
+                        .offset(x: 4, y: -4)
+                }
+            }
+            .overlay {
+                if !isReadOnly {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .onTapGesture {
+                onTap?()
+            }
+    }
+}
+
+struct Cube3x3FaceView: View {
+    let slot: Cube3x3FaceSlot
+    let stickers: [Cube3x3StickerColor]
+    var selectedStickerIndex: Int? = nil
+    var stickerSize: CGFloat = 22
+    var isReadOnly: Bool = true
+    var onStickerTap: ((Cube3x3StickerCoordinate) -> Void)? = nil
+
+    private var safeStickers: [Cube3x3StickerColor] {
+        if stickers.count == 9 { return stickers }
+        return Array((stickers + Array(repeating: .up, count: 9)).prefix(9))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text(slot.rawValue)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.fixed(stickerSize), spacing: AppTheme.Spacing.xSmall), count: 3),
+                spacing: AppTheme.Spacing.xSmall
+            ) {
+                ForEach(Array(safeStickers.enumerated()), id: \.offset) { index, sticker in
+                    let coordinate = Cube3x3StickerCoordinate(face: slot, index: index)
+                    CubeStickerView(
+                        color: sticker.displayColor,
+                        size: stickerSize,
+                        isSelected: selectedStickerIndex == index,
+                        isLocked: coordinate.isCenter,
+                        isReadOnly: isReadOnly,
+                        onTap: {
+                            guard !isReadOnly, !coordinate.isCenter else { return }
+                            onStickerTap?(coordinate)
+                        }
+                    )
+                }
+            }
+        }
+        .padding(AppTheme.Spacing.xSmall)
+        .background(AppTheme.Colors.background.opacity(0.4))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+    }
+}
+
+struct Cube3x3NetView: View {
+    let stickersByFace: [Cube3x3FaceSlot: [Cube3x3StickerColor]]
+    var selectedSticker: Cube3x3StickerCoordinate? = nil
+    var stickerSize: CGFloat = 22
+    var isReadOnly: Bool = true
+    var onStickerTap: ((Cube3x3StickerCoordinate) -> Void)? = nil
+
+    private let netRows: [[Cube3x3FaceSlot?]] = [
+        [nil, .u, nil, nil],
+        [.l, .f, .r, .b],
+        [nil, .d, nil, nil]
+    ]
+
+    private var blankFaceWidth: CGFloat {
+        (stickerSize * 3) + (AppTheme.Spacing.xSmall * 4)
+    }
+
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.small) {
+            ForEach(Array(netRows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: AppTheme.Spacing.small) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
+                        if let face = cell {
+                            Cube3x3FaceView(
+                                slot: face,
+                                stickers: stickersByFace[face] ?? Array(repeating: .up, count: 9),
+                                selectedStickerIndex: selectedSticker?.face == face ? selectedSticker?.index : nil,
+                                stickerSize: stickerSize,
+                                isReadOnly: isReadOnly,
+                                onStickerTap: onStickerTap
+                            )
+                        } else {
+                            Color.clear
+                                .frame(width: blankFaceWidth, height: blankFaceWidth)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(AppTheme.Spacing.small)
+        .background(AppTheme.Colors.background.opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
+    }
+}
+
+struct CubeMoveStepCardView: View {
+    let step: TwistySolutionStepViewData
+    var previewNet: Cube3x3StickerNet?
+    var stickerSize: CGFloat = 14
+    var previewCaption: String = "Cube state preview"
+
+    private var netFaces: [Cube3x3FaceSlot: [Cube3x3StickerColor]] {
+        guard let previewNet else { return [:] }
+        return [
+            .u: previewNet.up,
+            .r: previewNet.right,
+            .f: previewNet.front,
+            .d: previewNet.down,
+            .l: previewNet.left,
+            .b: previewNet.back
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
+                Text("Step \(step.stepNumber)")
+                    .appTextStyle(.h2)
+
+                Spacer(minLength: AppTheme.Spacing.small)
+
+                Text(step.primaryText)
+                    .appTextStyle(.h2)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+                    .padding(.horizontal, AppTheme.Spacing.small)
+                    .padding(.vertical, AppTheme.Spacing.xSmall)
+                    .background(AppTheme.Colors.background.opacity(0.35))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+            }
+
+            if let secondaryText = step.secondaryText {
+                Text(secondaryText)
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.84))
+            }
+
+            if let _ = previewNet {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+                    Text(previewCaption)
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+
+                    Cube3x3NetView(
+                        stickersByFace: netFaces,
+                        stickerSize: stickerSize,
+                        isReadOnly: true
+                    )
+                }
+            } else {
+                HStack(spacing: AppTheme.Spacing.xSmall) {
+                    Image(systemName: "cube.transparent")
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.78))
+                    Text("Step playback preview not available.")
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+                }
+                .padding(AppTheme.Spacing.small)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppTheme.Colors.background.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
+extension Cube3x3StickerColor {
+    var label: String {
+        switch self {
+        case .up: return "White"
+        case .right: return "Red"
+        case .front: return "Green"
+        case .down: return "Yellow"
+        case .left: return "Orange"
+        case .back: return "Blue"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .up: return "W"
+        case .right: return "R"
+        case .front: return "G"
+        case .down: return "Y"
+        case .left: return "O"
+        case .back: return "B"
+        }
+    }
+
+    var displayColor: Color {
+        switch self {
+        case .up: return TwistyStickerPalette.standard.white
+        case .down: return TwistyStickerPalette.standard.yellow
+        case .right: return TwistyStickerPalette.standard.red
+        case .left: return TwistyStickerPalette.standard.orange
+        case .back: return TwistyStickerPalette.standard.blue
+        case .front: return TwistyStickerPalette.standard.green
+        }
+    }
+}
+
 struct CubeFaceView: View {
     let face: TwistyFaceModel
     var stickerSize: CGFloat = 26

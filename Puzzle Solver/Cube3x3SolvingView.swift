@@ -14,6 +14,22 @@ struct Cube3x3SolvingView: View {
         solveResult?.makeStepViewData(renderer: notationRenderer) ?? []
     }
 
+    private var stepPreviewNets: [Cube3x3StickerNet] {
+        guard let solveResult else { return [] }
+
+        var state = initialState
+        var previews: [Cube3x3StickerNet] = []
+
+        for step in solveResult.steps {
+            if let token = step.move?.token, let move = Cube3x3Move(rawValue: token) {
+                state = state.applying(move)
+            }
+            previews.append(state.makeStickerNet())
+        }
+
+        return previews
+    }
+
     var body: some View {
         TwistyScreenContainer {
             TwistyScreenHeader(
@@ -127,7 +143,11 @@ struct Cube3x3SolvingView: View {
                     onToggleAutoPlay: {}
                 )
 
-                TwistyStepCardView(step: stepViewData[currentStepIndex])
+                CubeMoveStepCardView(
+                    step: stepViewData[currentStepIndex],
+                    previewNet: stepPreviewNets[safe: currentStepIndex],
+                    previewCaption: "Cube state after this move"
+                )
             } else {
                 Text("Turn on previews to step through the sequence one move at a time.")
                     .appTextStyle(.paragraph)
@@ -186,6 +206,13 @@ struct Cube3x3SolvingView: View {
         currentStepIndex = 0
         showsStepCards = !result.steps.isEmpty
         isSolving = false
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else { return nil }
+        return self[index]
     }
 }
 

@@ -5,6 +5,7 @@ struct Cube3x3EntryView: View {
 
     @State private var selectedColor: Cube3x3StickerColor = .up
     @State private var stickerAssignments: [Cube3x3StickerCoordinate: Cube3x3StickerColor] = Self.makeInitialAssignments()
+    @State private var selectedSticker: Cube3x3StickerCoordinate?
     @State private var inputError: String?
     @State private var solveState: Cube3x3State?
     @State private var shouldNavigateToSolve = false
@@ -60,7 +61,11 @@ struct Cube3x3EntryView: View {
             colorPickerRow
                 .appSurfaceCard()
 
-            Cube3x3NetInputView(stickerAssignments: $stickerAssignments, selectedColor: selectedColor)
+            Cube3x3NetInputView(
+                stickerAssignments: $stickerAssignments,
+                selectedSticker: $selectedSticker,
+                selectedColor: selectedColor
+            )
                 .appSurfaceCard()
 
             if let inputError {
@@ -192,6 +197,7 @@ struct Cube3x3EntryView: View {
         stickerAssignments = Self.makeInitialAssignments()
         inputError = nil
         selectedColor = .up
+        selectedSticker = nil
         solveState = nil
         shouldNavigateToSolve = false
     }
@@ -229,39 +235,19 @@ private enum CubeEntryValidationStatus {
 
 private struct Cube3x3NetInputView: View {
     @Binding var stickerAssignments: [Cube3x3StickerCoordinate: Cube3x3StickerColor]
+    @Binding var selectedSticker: Cube3x3StickerCoordinate?
     let selectedColor: Cube3x3StickerColor
-
-    private let netRows: [[Cube3x3FaceSlot?]] = [
-        [nil, .u, nil, nil],
-        [.l, .f, .r, .b],
-        [nil, .d, nil, nil]
-    ]
 
     private let stickerSize: CGFloat = 22
 
-    private var faceModels: [Cube3x3FaceSlot: TwistyFaceModel] {
+    private var stickersByFace: [Cube3x3FaceSlot: [Cube3x3StickerColor]] {
         Dictionary(uniqueKeysWithValues: Cube3x3FaceSlot.allCases.map { slot in
             let stickers = (0..<9).map { index in
                 let coordinate = Cube3x3StickerCoordinate(face: slot, index: index)
-                return TwistyFaceSticker(
-                    id: "\(slot.rawValue)-\(index)",
-                    color: stickerAssignments[coordinate]?.displayColor ?? TwistyStickerPalette.standard.fallback
-                )
+                return stickerAssignments[coordinate] ?? slot.lockedCenterColor
             }
-            return (
-                slot,
-                TwistyFaceModel(
-                    id: slot.rawValue,
-                    title: slot.rawValue,
-                    dimension: 3,
-                    stickers: stickers
-                )
-            )
+            return (slot, stickers)
         })
-    }
-
-    private var blankFaceWidth: CGFloat {
-        (stickerSize * 3) + (AppTheme.Spacing.xSmall * 4)
     }
 
     var body: some View {
@@ -269,74 +255,24 @@ private struct Cube3x3NetInputView: View {
             Text("Cube net")
                 .appTextStyle(.h2)
 
-            VStack(spacing: AppTheme.Spacing.small) {
-                ForEach(Array(netRows.enumerated()), id: \.offset) { _, row in
-                    HStack(spacing: AppTheme.Spacing.small) {
-                        ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
-                            if let face = cell, let model = faceModels[face] {
-                                CubeFaceView(face: model, stickerSize: stickerSize) { sticker in
-                                    handleTap(on: face, stickerID: sticker.id)
-                                }
-                            } else {
-                                Color.clear
-                                    .frame(width: blankFaceWidth, height: blankFaceWidth)
-                            }
-                        }
-                    }
-                }
+            Cube3x3NetView(
+                stickersByFace: stickersByFace,
+                selectedSticker: selectedSticker,
+                stickerSize: stickerSize,
+                isReadOnly: false
+            ) { coordinate in
+                handleTap(on: coordinate)
             }
-            .padding(AppTheme.Spacing.small)
-            .background(AppTheme.Colors.background.opacity(0.35))
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
         }
     }
 
-    private func handleTap(on face: Cube3x3FaceSlot, stickerID: String) {
-        guard let stickerIndex = Int(stickerID.split(separator: "-").last ?? "") else {
-            return
-        }
-
-        let coordinate = Cube3x3StickerCoordinate(face: face, index: stickerIndex)
+    private func handleTap(on coordinate: Cube3x3StickerCoordinate) {
         guard !coordinate.isCenter else {
             return
         }
 
         stickerAssignments[coordinate] = selectedColor
-    }
-}
-
-private extension Cube3x3StickerColor {
-    var label: String {
-        switch self {
-        case .up: return "White"
-        case .right: return "Red"
-        case .front: return "Green"
-        case .down: return "Yellow"
-        case .left: return "Orange"
-        case .back: return "Blue"
-        }
-    }
-
-    var shortLabel: String {
-        switch self {
-        case .up: return "W"
-        case .right: return "R"
-        case .front: return "G"
-        case .down: return "Y"
-        case .left: return "O"
-        case .back: return "B"
-        }
-    }
-
-    var displayColor: Color {
-        switch self {
-        case .up: return TwistyStickerPalette.standard.white
-        case .down: return TwistyStickerPalette.standard.yellow
-        case .right: return TwistyStickerPalette.standard.red
-        case .left: return TwistyStickerPalette.standard.orange
-        case .back: return TwistyStickerPalette.standard.blue
-        case .front: return TwistyStickerPalette.standard.green
-        }
+        selectedSticker = coordinate
     }
 }
 
