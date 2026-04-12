@@ -151,27 +151,11 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
         self.edgePermutation = edgePermutation
         self.edgeOrientation = edgeOrientation
     }
+}
 
-    func applying(_ move: Cube3x3Move) -> Cube3x3State {
-        var next = self
-        for _ in 0..<move.quarterTurnCount {
-            next = next.applyingBaseMove(move.baseTurn)
-        }
-        return next
-    }
+// MARK: - Cube3x3 state rules
 
-    func applying(sequence: [Cube3x3Move]) -> Cube3x3State {
-        sequence.reduce(self) { partial, move in
-            partial.applying(move)
-        }
-    }
-
-    func neighbors() -> [(move: Cube3x3Move, state: Cube3x3State)] {
-        Cube3x3Move.allCases.map { move in
-            (move, applying(move))
-        }
-    }
-
+extension Cube3x3State {
     func validate() -> Cube3x3StateValidation {
         var issues: [String] = []
 
@@ -208,7 +192,7 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
                 issues.append("Edge orientation parity is invalid (sum mod 2 must be 0).")
             }
 
-            if Self.parity(of: cornerPermutation) != Self.parity(of: edgePermutation) {
+            if Cube3x3LookupTables.parity(of: cornerPermutation) != Cube3x3LookupTables.parity(of: edgePermutation) {
                 issues.append("Permutation parity mismatch between corners and edges.")
             }
         }
@@ -237,8 +221,8 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
             let orientation = Int(cornerOrientation[position])
 
             for stickerIndex in 0..<3 {
-                let faceletIndex = Self.cornerFaceletIndices[position][(stickerIndex + orientation) % 3]
-                stickers[faceletIndex] = Self.cornerColors[cubie][stickerIndex]
+                let faceletIndex = Cube3x3LookupTables.cornerFaceletIndices[position][(stickerIndex + orientation) % 3]
+                stickers[faceletIndex] = Cube3x3LookupTables.cornerColors[cubie][stickerIndex]
             }
         }
 
@@ -247,16 +231,40 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
             let orientation = Int(edgeOrientation[position])
 
             for stickerIndex in 0..<2 {
-                let faceletIndex = Self.edgeFaceletIndices[position][(stickerIndex + orientation) % 2]
-                stickers[faceletIndex] = Self.edgeColors[cubie][stickerIndex]
+                let faceletIndex = Cube3x3LookupTables.edgeFaceletIndices[position][(stickerIndex + orientation) % 2]
+                stickers[faceletIndex] = Cube3x3LookupTables.edgeColors[cubie][stickerIndex]
             }
         }
 
         return stickers
     }
+}
 
-    private func applyingBaseMove(_ move: Cube3x3FaceTurn) -> Cube3x3State {
-        let transform = Cube3x3Transform.base(for: move)
+// MARK: - Cube3x3 move application
+
+extension Cube3x3State {
+    func applying(_ move: Cube3x3Move) -> Cube3x3State {
+        var next = self
+        for _ in 0..<move.quarterTurnCount {
+            next = next.applyingBaseTurn(move.baseTurn)
+        }
+        return next
+    }
+
+    func applying(sequence: [Cube3x3Move]) -> Cube3x3State {
+        sequence.reduce(self) { partial, move in
+            partial.applying(move)
+        }
+    }
+
+    func neighbors() -> [(move: Cube3x3Move, state: Cube3x3State)] {
+        Cube3x3Move.allCases.map { move in
+            (move, applying(move))
+        }
+    }
+
+    private func applyingBaseTurn(_ turn: Cube3x3FaceTurn) -> Cube3x3State {
+        let transform = Cube3x3LookupTables.baseTransform(for: turn)
 
         var nextCornerPermutation = Array(repeating: UInt8(0), count: 8)
         var nextCornerOrientation = Array(repeating: UInt8(0), count: 8)
@@ -282,8 +290,19 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
             edgeOrientation: nextEdgeOrientation
         )
     }
+}
 
-    private static let cornerFaceletIndices: [[Int]] = [
+private struct Cube3x3Transform {
+    let cornerPermutation: [UInt8]
+    let cornerOrientationDelta: [UInt8]
+    let edgePermutation: [UInt8]
+    let edgeOrientationDelta: [UInt8]
+}
+
+/// Centralized tables for sticker mapping, base turns, and parity helpers.
+/// Keeping these together makes it easier to swap in faster table-based solvers later.
+private enum Cube3x3LookupTables {
+    static let cornerFaceletIndices: [[Int]] = [
         [8, 9, 20],
         [6, 18, 38],
         [0, 36, 47],
@@ -294,7 +313,7 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
         [35, 17, 51]
     ]
 
-    private static let edgeFaceletIndices: [[Int]] = [
+    static let edgeFaceletIndices: [[Int]] = [
         [5, 10],
         [7, 19],
         [3, 37],
@@ -309,7 +328,7 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
         [48, 14]
     ]
 
-    private static let cornerColors: [[Cube3x3StickerColor]] = [
+    static let cornerColors: [[Cube3x3StickerColor]] = [
         [.up, .right, .front],
         [.up, .front, .left],
         [.up, .left, .back],
@@ -320,7 +339,7 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
         [.down, .right, .back]
     ]
 
-    private static let edgeColors: [[Cube3x3StickerColor]] = [
+    static let edgeColors: [[Cube3x3StickerColor]] = [
         [.up, .right],
         [.up, .front],
         [.up, .left],
@@ -335,34 +354,7 @@ struct Cube3x3State: TwistyPuzzleState, Hashable, Sendable {
         [.back, .right]
     ]
 
-    private static func parity(of permutation: [UInt8]) -> Int {
-        var seen = Array(repeating: false, count: permutation.count)
-        var parity = 0
-
-        for start in permutation.indices where !seen[start] {
-            var length = 0
-            var cursor = start
-            while !seen[cursor] {
-                seen[cursor] = true
-                cursor = Int(permutation[cursor])
-                length += 1
-            }
-            if length > 0 {
-                parity ^= (length - 1) & 1
-            }
-        }
-
-        return parity
-    }
-}
-
-private struct Cube3x3Transform {
-    let cornerPermutation: [UInt8]
-    let cornerOrientationDelta: [UInt8]
-    let edgePermutation: [UInt8]
-    let edgeOrientationDelta: [UInt8]
-
-    static func base(for move: Cube3x3FaceTurn) -> Cube3x3Transform {
+    static func baseTransform(for move: Cube3x3FaceTurn) -> Cube3x3Transform {
         switch move {
         case .u:
             return Cube3x3Transform(
@@ -408,6 +400,26 @@ private struct Cube3x3Transform {
             )
         }
     }
+
+    static func parity(of permutation: [UInt8]) -> Int {
+        var seen = Array(repeating: false, count: permutation.count)
+        var parity = 0
+
+        for start in permutation.indices where !seen[start] {
+            var length = 0
+            var cursor = start
+            while !seen[cursor] {
+                seen[cursor] = true
+                cursor = Int(permutation[cursor])
+                length += 1
+            }
+            if length > 0 {
+                parity ^= (length - 1) & 1
+            }
+        }
+
+        return parity
+    }
 }
 
 struct PyraminxState: TwistyPuzzleState, Hashable, Sendable {
@@ -438,51 +450,72 @@ struct Cube3x3Solver: TwistyPuzzleSolver {
             } else {
                 "Invalid cube state."
             }
-
-            return TwistySolveResult(
-                puzzleType: .cube3x3,
-                isSolvable: false,
-                moves: [],
-                steps: [TwistySolutionStep(move: nil, explanation: issues)],
-                elapsedTime: Date().timeIntervalSince(start),
-                finalStateDescription: nil
-            )
+            return Cube3x3ResultFormatter.invalidResult(message: issues, startedAt: start)
         }
 
         if initialState.isSolved {
-            return TwistySolveResult(
-                puzzleType: .cube3x3,
-                isSolvable: true,
-                moves: [],
-                steps: [TwistySolutionStep(move: nil, explanation: "Cube is already solved.")],
-                elapsedTime: Date().timeIntervalSince(start),
-                finalStateDescription: "Solved"
-            )
+            return Cube3x3ResultFormatter.alreadySolvedResult(startedAt: start)
         }
 
         let planner = Cube3x3StagePlanner()
         guard let solution = planner.solve(initialState) else {
-            return TwistySolveResult(
-                puzzleType: .cube3x3,
-                isSolvable: false,
-                moves: [],
-                steps: [TwistySolutionStep(move: nil, explanation: "No solution found within search limits.")],
-                elapsedTime: Date().timeIntervalSince(start),
-                finalStateDescription: nil
-            )
+            return Cube3x3ResultFormatter.searchLimitResult(startedAt: start)
         }
 
-        let simplified = Cube3x3MoveOptimizer.simplify(solution)
-        let steps = simplified.enumerated().map { index, move in
+        return Cube3x3ResultFormatter.solvedResult(
+            from: Cube3x3MoveOptimizer.simplify(solution),
+            startedAt: start
+        )
+    }
+}
+
+/// Solver output is intentionally centralized so UI copy/formatting can evolve
+/// independently from search and state transitions.
+private enum Cube3x3ResultFormatter {
+    static func invalidResult(message: String, startedAt: Date) -> TwistySolveResult {
+        TwistySolveResult(
+            puzzleType: .cube3x3,
+            isSolvable: false,
+            moves: [],
+            steps: [TwistySolutionStep(move: nil, explanation: message)],
+            elapsedTime: Date().timeIntervalSince(startedAt),
+            finalStateDescription: nil
+        )
+    }
+
+    static func alreadySolvedResult(startedAt: Date) -> TwistySolveResult {
+        TwistySolveResult(
+            puzzleType: .cube3x3,
+            isSolvable: true,
+            moves: [],
+            steps: [TwistySolutionStep(move: nil, explanation: "Cube is already solved.")],
+            elapsedTime: Date().timeIntervalSince(startedAt),
+            finalStateDescription: "Solved"
+        )
+    }
+
+    static func searchLimitResult(startedAt: Date) -> TwistySolveResult {
+        TwistySolveResult(
+            puzzleType: .cube3x3,
+            isSolvable: false,
+            moves: [],
+            steps: [TwistySolutionStep(move: nil, explanation: "No solution found within search limits.")],
+            elapsedTime: Date().timeIntervalSince(startedAt),
+            finalStateDescription: nil
+        )
+    }
+
+    static func solvedResult(from moves: [Cube3x3Move], startedAt: Date) -> TwistySolveResult {
+        let steps = moves.enumerated().map { index, move in
             TwistySolutionStep(move: move.twistyMove, explanation: "Step \(index + 1): apply \(move.rawValue).")
         }
 
         return TwistySolveResult(
             puzzleType: .cube3x3,
             isSolvable: true,
-            moves: simplified.map(\.twistyMove),
+            moves: moves.map(\.twistyMove),
             steps: steps,
-            elapsedTime: Date().timeIntervalSince(start),
+            elapsedTime: Date().timeIntervalSince(startedAt),
             finalStateDescription: "Solved"
         )
     }
@@ -491,8 +524,6 @@ struct Cube3x3Solver: TwistyPuzzleSolver {
 /// Solver pipeline that incrementally constrains more cubies until the whole cube is solved.
 /// This is intentionally stage-based to keep memory usage bounded for mobile devices.
 private struct Cube3x3StagePlanner {
-    private let allMoves = Cube3x3Move.allCases
-
     func solve(_ initialState: Cube3x3State) -> [Cube3x3Move]? {
         var state = initialState
         var allSteps: [Cube3x3Move] = []
