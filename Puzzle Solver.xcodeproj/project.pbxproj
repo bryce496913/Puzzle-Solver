@@ -25,6 +25,7 @@
 		EEA100032C01012300D00D01 /* PuzzleTypeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */; };
 		EEB200012C02000100D00D01 /* SlidingPuzzleBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */; };
 		EEB200042C02010100D00D01 /* TwistyPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */; };
+		EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +67,7 @@
 		EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleSizeSelectionView.swift; sourceTree = "<group>"; };
 		EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleBoardView.swift; sourceTree = "<group>"; };
 		EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzlePickerView.swift; sourceTree = "<group>"; };
+		EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleDomain.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +129,7 @@
 				EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */,
 				EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */,
 				EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */,
+				EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */,
 				EEA100002C01000000D00D01 /* AppDesignSystem.swift */,
 				EE82B66A2B69931600B2BC49 /* Assets.xcassets */,
 				EE82B66C2B69931600B2BC49 /* Preview Content */,
@@ -302,6 +305,7 @@
 				EEA100042C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift in Sources */,
 				EEB200012C02000100D00D01 /* SlidingPuzzleBoardView.swift in Sources */,
 				EEB200042C02010100D00D01 /* TwistyPuzzlePickerView.swift in Sources */,
+				EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */,
 				EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

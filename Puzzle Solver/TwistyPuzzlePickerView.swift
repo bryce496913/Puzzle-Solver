@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct TwistyPuzzlePickerView: View {
-    private let twistyPuzzleTypes = TwistyPuzzleType.all
+    private let twistyPuzzleTypes = TwistyPuzzleType.catalog
 
     var body: some View {
         ZStack {
@@ -23,16 +23,16 @@ struct TwistyPuzzlePickerView: View {
 
                 ScrollView {
                     VStack(spacing: AppTheme.Spacing.medium) {
-                        ForEach(twistyPuzzleTypes) { puzzleType in
+                        ForEach(twistyPuzzleTypes) { catalogItem in
                             NavigationLink {
-                                destinationView(for: puzzleType)
+                                destinationView(for: catalogItem.puzzleType)
                             } label: {
                                 PuzzleTypeCard(
-                                    title: puzzleType.title,
-                                    subtitle: puzzleType.subtitle,
-                                    icon: puzzleType.icon,
-                                    isEnabled: puzzleType.availability == .available,
-                                    accentVariant: puzzleType.accentVariant
+                                    title: catalogItem.title,
+                                    subtitle: catalogItem.subtitle,
+                                    icon: catalogItem.icon,
+                                    isEnabled: catalogItem.isEnabled,
+                                    accentVariant: catalogItem.isEnabled ? .accent : .highlight
                                 )
                             }
                             .buttonStyle(.plain)
@@ -49,79 +49,13 @@ struct TwistyPuzzlePickerView: View {
 
     @ViewBuilder
     private func destinationView(for puzzleType: TwistyPuzzleType) -> some View {
-        switch puzzleType.destination {
+        switch puzzleType {
         case .cube2x2:
             Cube2x2EntryView()
-        case .comingSoon:
-            ComingSoonPuzzleView(puzzleName: puzzleType.title)
+        case .cube3x3, .pyraminx, .skewb:
+            ComingSoonPuzzleView(puzzleName: puzzleType.metadata.title)
         }
     }
-}
-
-private struct TwistyPuzzleType: Identifiable {
-    enum Availability {
-        case available
-        case comingSoon
-
-        var subtitle: String {
-            switch self {
-            case .available:
-                return "Phase 2 target"
-            case .comingSoon:
-                return "Coming soon"
-            }
-        }
-    }
-
-    enum Destination {
-        case cube2x2
-        case comingSoon
-    }
-
-    let id: String
-    let title: String
-    let icon: String
-    let availability: Availability
-    let destination: Destination
-
-    var subtitle: String {
-        availability.subtitle
-    }
-
-    var accentVariant: PuzzleTypeCard.AccentVariant {
-        availability == .available ? .accent : .highlight
-    }
-
-    static let all: [TwistyPuzzleType] = [
-        TwistyPuzzleType(
-            id: "cube-2x2",
-            title: "2×2 Cube",
-            icon: "square.grid.2x2.fill",
-            availability: .available,
-            destination: .cube2x2
-        ),
-        TwistyPuzzleType(
-            id: "rubiks-cube",
-            title: "3×3 Rubik’s Cube",
-            icon: "cube.fill",
-            availability: .comingSoon,
-            destination: .comingSoon
-        ),
-        TwistyPuzzleType(
-            id: "pyraminx",
-            title: "Pyraminx",
-            icon: "triangle.fill",
-            availability: .comingSoon,
-            destination: .comingSoon
-        ),
-        TwistyPuzzleType(
-            id: "skewb",
-            title: "Skewb",
-            icon: "diamond.fill",
-            availability: .comingSoon,
-            destination: .comingSoon
-        )
-    ]
 }
 
 private struct Cube2x2EntryView: View {
