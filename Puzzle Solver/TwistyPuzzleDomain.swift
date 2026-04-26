@@ -33,8 +33,8 @@ enum TwistyPuzzleType: String, CaseIterable, Identifiable, Sendable {
                 title: "Pyraminx",
                 shortTitle: "Pyraminx",
                 icon: "triangle.fill",
-                availability: .comingSoon,
-                subtitle: "Coming soon",
+                availability: .available,
+                subtitle: "Ready now",
                 supportedNotation: [.wca]
             )
         case .skewb:
@@ -42,8 +42,8 @@ enum TwistyPuzzleType: String, CaseIterable, Identifiable, Sendable {
                 title: "Skewb",
                 shortTitle: "Skewb",
                 icon: "diamond.fill",
-                availability: .comingSoon,
-                subtitle: "Coming soon",
+                availability: .available,
+                subtitle: "Ready now",
                 supportedNotation: [.wca]
             )
         }
