@@ -38,6 +38,7 @@
 		EEF600032E30000100D00D01 /* Cube3x3InputDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */; };
 		EEF600052E30000100D00D01 /* Cube3x3SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */; };
 		EEF900012E50000100D00D01 /* PyraminxEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF900022E50000100D00D01 /* PyraminxEntryView.swift */; };
+		EEAA10012F70000100D00D01 /* LogicPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +93,7 @@
 		EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3InputDomain.swift; sourceTree = "<group>"; };
 		EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3SolvingView.swift; sourceTree = "<group>"; };
 		EEF900022E50000100D00D01 /* PyraminxEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyraminxEntryView.swift; sourceTree = "<group>"; };
+		EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleDomain.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +148,7 @@
 				EE82B6682B69931500B2BC49 /* ContentView.swift */,
 				EE82B6902B69973D00B2BC49 /* MainMenuView.swift */,
 				EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */,
+				EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */,
 				EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */,
 				EE82B69A2B69B41400B2BC49 /* SolvingView.swift */,
 				EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */,
@@ -332,6 +335,7 @@
 				EE18DB782B939DD000B3843E /* SlidingPuzzleSolver.swift in Sources */,
 				EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */,
 				EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */,
+				EEAA10012F70000100D00D01 /* LogicPuzzleDomain.swift in Sources */,
 				EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */,
 				EE82B6932B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift in Sources */,
 				EE38313D2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift in Sources */,
