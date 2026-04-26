@@ -116,6 +116,10 @@ struct SudokuEntryView: View {
         SudokuValidation.conflictingIndices(in: grid)
     }
 
+    private var boardConflictKinds: Set<SudokuValidation.ConflictKind> {
+        SudokuValidation.conflictKinds(in: grid)
+    }
+
     private var isObviousInvalid: Bool {
         !conflictingCellIndices.isEmpty
     }
@@ -139,9 +143,21 @@ struct SudokuEntryView: View {
                     .appSurfaceCard()
 
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                    Text(isObviousInvalid ? "There are duplicate values in a row, column, or 3×3 box." : "No obvious conflicts detected.")
+                    Text("Tip: Tap a square, then enter digits 1–9. Use Delete to clear a square.")
+                        .appTextStyle(.small)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+
+                    Text(isObviousInvalid ? "Please fix duplicates before solving." : "No obvious conflicts detected.")
                         .appTextStyle(.paragraph)
                         .foregroundStyle(isObviousInvalid ? AppTheme.Colors.highlight : AppTheme.Colors.text.opacity(0.85))
+
+                    if isObviousInvalid {
+                        ForEach(boardConflictKinds.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.self) { kind in
+                            Text(kind.duplicateMessage)
+                                .appTextStyle(.small)
+                                .foregroundStyle(AppTheme.Colors.highlight.opacity(0.95))
+                        }
+                    }
 
                     if !validationMessage.isEmpty {
                         Text(validationMessage)
@@ -283,8 +299,13 @@ struct SudokuEntryView: View {
         let row = selectedCellIndex / SudokuGrid.columnCount
         let column = selectedCellIndex % SudokuGrid.columnCount
 
-        if !grid.canPlace(value, row: row, column: column) {
-            validationMessage = "\(value) conflicts with this cell’s row, column, or box."
+        let conflictKinds = SudokuValidation.conflictKinds(for: value, row: row, column: column, in: grid)
+        if !conflictKinds.isEmpty {
+            let friendlyMessage = conflictKinds
+                .sorted(by: { $0.sortOrder < $1.sortOrder })
+                .map(\.duplicateMessage)
+                .joined(separator: " ")
+            validationMessage = friendlyMessage
             return
         }
 
@@ -325,7 +346,17 @@ struct SudokuEntryView: View {
 
         switch (result.validity, result.completion, result.output) {
         case (.invalid(let errors), _, _):
-            let message = errors.first?.localizedDescription ?? "This Sudoku input is invalid."
+            let _ = errors
+            let conflictKinds = SudokuValidation.conflictKinds(in: grid)
+            let message: String
+            if conflictKinds.isEmpty {
+                message = "This puzzle has a conflict. Please check for duplicate numbers."
+            } else {
+                message = conflictKinds
+                    .sorted(by: { $0.sortOrder < $1.sortOrder })
+                    .map(\.duplicateMessage)
+                    .joined(separator: " ")
+            }
             feedbackMessage = message
             resultState = .invalid(message)
         case (.valid, .solved, let solved?):
@@ -342,7 +373,7 @@ struct SudokuEntryView: View {
                 solveTimeSeconds: solveDuration
             )
         case (.valid, .unsolved, _):
-            feedbackMessage = "No solution exists for this puzzle."
+            feedbackMessage = "This puzzle has no solution. Please revise one or more entries."
             resultState = .noSolution
         default:
             feedbackMessage = "Sudoku could not be solved."
@@ -459,6 +490,31 @@ private struct SudokuSolvedCellView: View {
 }
 
 private enum SudokuValidation {
+    enum ConflictKind: Hashable {
+        case row
+        case column
+        case box
+
+        var duplicateMessage: String {
+            switch self {
+            case .row:
+                return "Duplicate in row."
+            case .column:
+                return "Duplicate in column."
+            case .box:
+                return "Duplicate in 3×3 box."
+            }
+        }
+
+        var sortOrder: Int {
+            switch self {
+            case .row: return 0
+            case .column: return 1
+            case .box: return 2
+            }
+        }
+    }
+
     static func conflictingIndices(in grid: SudokuGrid) -> Set<Int> {
         var conflicts = Set<Int>()
 
@@ -484,6 +540,81 @@ private enum SudokuValidation {
         return conflicts
     }
 
+    static func conflictKinds(in grid: SudokuGrid) -> Set<ConflictKind> {
+        var kinds = Set<ConflictKind>()
+
+        for row in 0..<SudokuGrid.rowCount {
+            let indices = (0..<SudokuGrid.columnCount).map { row * SudokuGrid.columnCount + $0 }
+            if hasDuplicate(in: indices, grid: grid) {
+                kinds.insert(.row)
+            }
+        }
+
+        for column in 0..<SudokuGrid.columnCount {
+            let indices = (0..<SudokuGrid.rowCount).map { $0 * SudokuGrid.columnCount + column }
+            if hasDuplicate(in: indices, grid: grid) {
+                kinds.insert(.column)
+            }
+        }
+
+        for boxRow in stride(from: 0, to: SudokuGrid.rowCount, by: SudokuGrid.boxSize) {
+            for boxColumn in stride(from: 0, to: SudokuGrid.columnCount, by: SudokuGrid.boxSize) {
+                let indices = (0..<SudokuGrid.boxSize).flatMap { rowOffset in
+                    (0..<SudokuGrid.boxSize).map { columnOffset in
+                        (boxRow + rowOffset) * SudokuGrid.columnCount + (boxColumn + columnOffset)
+                    }
+                }
+                if hasDuplicate(in: indices, grid: grid) {
+                    kinds.insert(.box)
+                }
+            }
+        }
+
+        return kinds
+    }
+
+    static func conflictKinds(for value: Int, row: Int, column: Int, in grid: SudokuGrid) -> Set<ConflictKind> {
+        guard value != SudokuGrid.emptyValue else { return [] }
+
+        var kinds = Set<ConflictKind>()
+        var board = grid.cells
+        let targetIndex = row * SudokuGrid.columnCount + column
+        board[targetIndex] = SudokuGrid.emptyValue
+
+        let rowHasDuplicate = (0..<SudokuGrid.columnCount)
+            .map { board[(row * SudokuGrid.columnCount) + $0] }
+            .contains(value)
+        if rowHasDuplicate {
+            kinds.insert(.row)
+        }
+
+        let columnHasDuplicate = (0..<SudokuGrid.rowCount)
+            .map { board[($0 * SudokuGrid.columnCount) + column] }
+            .contains(value)
+        if columnHasDuplicate {
+            kinds.insert(.column)
+        }
+
+        let boxStartRow = (row / SudokuGrid.boxSize) * SudokuGrid.boxSize
+        let boxStartColumn = (column / SudokuGrid.boxSize) * SudokuGrid.boxSize
+        var boxHasDuplicate = false
+        for rowOffset in 0..<SudokuGrid.boxSize {
+            for columnOffset in 0..<SudokuGrid.boxSize {
+                let candidate = board[((boxStartRow + rowOffset) * SudokuGrid.columnCount) + (boxStartColumn + columnOffset)]
+                if candidate == value {
+                    boxHasDuplicate = true
+                    break
+                }
+            }
+            if boxHasDuplicate { break }
+        }
+        if boxHasDuplicate {
+            kinds.insert(.box)
+        }
+
+        return kinds
+    }
+
     private static func collectConflicts(indices: [Int], in grid: SudokuGrid, conflicts: inout Set<Int>) {
         var buckets: [Int: [Int]] = [:]
 
@@ -496,6 +627,19 @@ private enum SudokuValidation {
         for matches in buckets.values where matches.count > 1 {
             matches.forEach { conflicts.insert($0) }
         }
+    }
+
+    private static func hasDuplicate(in indices: [Int], grid: SudokuGrid) -> Bool {
+        var seen = Set<Int>()
+        for index in indices {
+            let value = grid.cells[index]
+            guard value != SudokuGrid.emptyValue else { continue }
+            if seen.contains(value) {
+                return true
+            }
+            seen.insert(value)
+        }
+        return false
     }
 }
 
