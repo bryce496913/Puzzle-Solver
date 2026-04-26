@@ -12,13 +12,13 @@ enum NonogramCellState: String, Codable, CaseIterable {
     case empty
 }
 
-/// Placeholder puzzle model for a future Nonogram workflow.
+/// Placeholder grid model for a future Nonogram workflow.
 ///
 /// Future behavior:
 /// - stores grid dimensions and clue metadata.
 /// - stores editable cell states while users solve.
 /// - supports row/column consistency checks against clues.
-struct NonogramPuzzle: Equatable {
+struct NonogramGrid: Equatable {
     let rowCount: Int
     let columnCount: Int
     var clues: NonogramClues

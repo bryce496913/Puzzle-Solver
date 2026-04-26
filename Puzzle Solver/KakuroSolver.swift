@@ -9,6 +9,7 @@ import Foundation
 /// - Return step-by-step solving explanations for UI presentation.
 struct KakuroSolver {
     func solve(_ initialGrid: KakuroGrid) -> LogicSolveResult<KakuroGrid> {
+        _ = initialGrid
         LogicSolveResult(
             puzzleType: .kakuro,
             validity: .valid,

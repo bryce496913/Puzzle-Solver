@@ -9,6 +9,7 @@ import Foundation
 /// - Return solving metadata and step-by-step explanations.
 struct KillerSudokuSolver {
     func solve(_ initialGrid: KillerSudokuGrid) -> LogicSolveResult<KillerSudokuGrid> {
+        _ = initialGrid
         LogicSolveResult(
             puzzleType: .killerSudoku,
             validity: .valid,

@@ -18,6 +18,8 @@
 		EE82B6842B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */; };
 		EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6902B69973D00B2BC49 /* MainMenuView.swift */; };
 		EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */; };
+		EEB2C0012F90000100D00D01 /* SudokuEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB2C0002F90000100D00D01 /* SudokuEntryView.swift */; };
+		EEB2C0032F90000100D00D01 /* LogicPuzzleComingSoonViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB2C0022F90000100D00D01 /* LogicPuzzleComingSoonViews.swift */; };
 		EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */; };
 		EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */; };
 		EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */; };
@@ -42,7 +44,7 @@
 		EEF600052E30000100D00D01 /* Cube3x3SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */; };
 		EEF900012E50000100D00D01 /* PyraminxEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF900022E50000100D00D01 /* PyraminxEntryView.swift */; };
 		EEAA10012F70000100D00D01 /* LogicPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */; };
-		EEB1A0012F80000100D00D01 /* NonogramPuzzle.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0022F80000100D00D01 /* NonogramPuzzle.swift */; };
+		EEB1A0012F80000100D00D01 /* NonogramGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0022F80000100D00D01 /* NonogramGrid.swift */; };
 		EEB1A0032F80000100D00D01 /* NonogramClues.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0042F80000100D00D01 /* NonogramClues.swift */; };
 		EEB1A0052F80000100D00D01 /* NonogramSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0062F80000100D00D01 /* NonogramSolver.swift */; };
 		EEAC10012F81000100D00D01 /* KakuroGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10002F81000100D00D01 /* KakuroGrid.swift */; };
@@ -82,6 +84,8 @@
 		EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		EE82B6902B69973D00B2BC49 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
 		EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzlePickerView.swift; sourceTree = "<group>"; };
+		EEB2C0002F90000100D00D01 /* SudokuEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SudokuEntryView.swift; sourceTree = "<group>"; };
+		EEB2C0022F90000100D00D01 /* LogicPuzzleComingSoonViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleComingSoonViews.swift; sourceTree = "<group>"; };
 		EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuGrid.swift; sourceTree = "<group>"; };
 		EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuCage.swift; sourceTree = "<group>"; };
 		EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuSolver.swift; sourceTree = "<group>"; };
@@ -106,7 +110,7 @@
 		EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3SolvingView.swift; sourceTree = "<group>"; };
 		EEF900022E50000100D00D01 /* PyraminxEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyraminxEntryView.swift; sourceTree = "<group>"; };
 		EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleDomain.swift; sourceTree = "<group>"; };
-		EEB1A0022F80000100D00D01 /* NonogramPuzzle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramPuzzle.swift; sourceTree = "<group>"; };
+		EEB1A0022F80000100D00D01 /* NonogramGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramGrid.swift; sourceTree = "<group>"; };
 		EEB1A0042F80000100D00D01 /* NonogramClues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramClues.swift; sourceTree = "<group>"; };
 		EEB1A0062F80000100D00D01 /* NonogramSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramSolver.swift; sourceTree = "<group>"; };
 		EEAC10002F81000100D00D01 /* KakuroGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroGrid.swift; sourceTree = "<group>"; };
@@ -166,8 +170,10 @@
 				EE82B6682B69931500B2BC49 /* ContentView.swift */,
 				EE82B6902B69973D00B2BC49 /* MainMenuView.swift */,
 				EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */,
+				EEB2C0002F90000100D00D01 /* SudokuEntryView.swift */,
+				EEB2C0022F90000100D00D01 /* LogicPuzzleComingSoonViews.swift */,
 				EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */,
-				EEB1A0022F80000100D00D01 /* NonogramPuzzle.swift */,
+				EEB1A0022F80000100D00D01 /* NonogramGrid.swift */,
 				EEB1A0042F80000100D00D01 /* NonogramClues.swift */,
 				EEB1A0062F80000100D00D01 /* NonogramSolver.swift */,
 				EEAC10002F81000100D00D01 /* KakuroGrid.swift */,
@@ -362,8 +368,10 @@
 				EE18DB782B939DD000B3843E /* SlidingPuzzleSolver.swift in Sources */,
 				EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */,
 				EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */,
+				EEB2C0012F90000100D00D01 /* SudokuEntryView.swift in Sources */,
+				EEB2C0032F90000100D00D01 /* LogicPuzzleComingSoonViews.swift in Sources */,
 				EEAA10012F70000100D00D01 /* LogicPuzzleDomain.swift in Sources */,
-				EEB1A0012F80000100D00D01 /* NonogramPuzzle.swift in Sources */,
+				EEB1A0012F80000100D00D01 /* NonogramGrid.swift in Sources */,
 				EEB1A0032F80000100D00D01 /* NonogramClues.swift in Sources */,
 				EEB1A0052F80000100D00D01 /* NonogramSolver.swift in Sources */,
 				EEAC10012F81000100D00D01 /* KakuroGrid.swift in Sources */,
