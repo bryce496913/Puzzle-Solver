@@ -19,12 +19,200 @@ enum PyraminxMove: String, CaseIterable, Hashable, Sendable {
     case tipB = "b"
     case tipBPrime = "b'"
 
+    static let outerMoves: [PyraminxMove] = [.u, .uPrime, .l, .lPrime, .r, .rPrime, .b, .bPrime]
+
     var twistyMove: TwistyMove {
         TwistyMove(
             token: rawValue,
             family: rawValue.first?.isLowercase == true ? .tip : .outerFace,
             turnAmount: rawValue.hasSuffix("'") ? .counterClockwiseQuarter : .clockwiseQuarter
         )
+    }
+
+    var quarterTurnCount: Int {
+        rawValue.hasSuffix("'") ? 2 : 1
+    }
+
+    var baseTurn: PyraminxBaseTurn {
+        switch self {
+        case .u, .uPrime, .tipU, .tipUPrime: return .u
+        case .l, .lPrime, .tipL, .tipLPrime: return .l
+        case .r, .rPrime, .tipR, .tipRPrime: return .r
+        case .b, .bPrime, .tipB, .tipBPrime: return .b
+        }
+    }
+
+    var isTipMove: Bool {
+        rawValue.first?.isLowercase == true
+    }
+}
+
+enum PyraminxBaseTurn: CaseIterable, Hashable, Sendable {
+    case u
+    case l
+    case r
+    case b
+}
+
+enum PyraminxStickerColor: String, CaseIterable, Hashable, Sendable {
+    case up = "U"
+    case left = "L"
+    case right = "R"
+    case back = "B"
+}
+
+struct PyraminxDisplayModel: Hashable, Sendable {
+    let faces: [PyraminxDisplayFace]
+}
+
+struct PyraminxDisplayFace: Hashable, Sendable, Identifiable {
+    let id: String
+    let title: String
+    let stickers: [PyraminxStickerColor]
+}
+
+struct PyraminxState: TwistyPuzzleState, Hashable, Sendable {
+    static let solved = PyraminxState(
+        stickers: Array(repeating: .up, count: 9)
+            + Array(repeating: .left, count: 9)
+            + Array(repeating: .right, count: 9)
+            + Array(repeating: .back, count: 9)
+    )
+
+    static let empty = PyraminxState.solved
+
+    let stickers: [PyraminxStickerColor]
+
+    var puzzleType: TwistyPuzzleType { .pyraminx }
+
+    init(stickers: [PyraminxStickerColor]) {
+        self.stickers = stickers.count == 36 ? stickers : PyraminxState.solved.stickers
+    }
+
+    init(stickerTokens: [String]) {
+        let moves = stickerTokens.compactMap(PyraminxMove.init(rawValue:))
+        self = PyraminxState.solved.applying(sequence: moves)
+    }
+
+    func applying(_ move: PyraminxMove) -> PyraminxState {
+        var next = self
+        for _ in 0..<move.quarterTurnCount {
+            next = move.isTipMove
+                ? next.applyingTipTurn(move.baseTurn)
+                : next.applyingOuterTurn(move.baseTurn)
+        }
+        return next
+    }
+
+    func applying(sequence: [PyraminxMove]) -> PyraminxState {
+        sequence.reduce(self) { state, move in
+            state.applying(move)
+        }
+    }
+
+    func neighbors() -> [(move: PyraminxMove, state: PyraminxState)] {
+        PyraminxMove.outerMoves.map { move in
+            (move, applying(move))
+        }
+    }
+
+    func makeDisplayModel() -> PyraminxDisplayModel {
+        PyraminxDisplayModel(
+            faces: [
+                PyraminxDisplayFace(id: "U", title: "Up", stickers: Array(stickers[0..<9])),
+                PyraminxDisplayFace(id: "L", title: "Left", stickers: Array(stickers[9..<18])),
+                PyraminxDisplayFace(id: "R", title: "Right", stickers: Array(stickers[18..<27])),
+                PyraminxDisplayFace(id: "B", title: "Back", stickers: Array(stickers[27..<36]))
+            ]
+        )
+    }
+
+    private func applyingOuterTurn(_ turn: PyraminxBaseTurn) -> PyraminxState {
+        var next = stickers
+
+        switch turn {
+        case .u:
+            rotateCycle(in: &next, indices: [0, 6, 8])
+            rotateCycle(in: &next, indices: [1, 3, 7])
+            rotateCycle(in: &next, indices: [2, 4, 5])
+            rotateTripletStrips(
+                in: &next,
+                a: [9, 10, 11],
+                b: [18, 19, 20],
+                c: [27, 28, 29]
+            )
+        case .l:
+            rotateCycle(in: &next, indices: [9, 15, 17])
+            rotateCycle(in: &next, indices: [10, 12, 16])
+            rotateCycle(in: &next, indices: [11, 13, 14])
+            rotateTripletStrips(
+                in: &next,
+                a: [0, 3, 6],
+                b: [27, 30, 33],
+                c: [20, 23, 26]
+            )
+        case .r:
+            rotateCycle(in: &next, indices: [18, 24, 26])
+            rotateCycle(in: &next, indices: [19, 21, 25])
+            rotateCycle(in: &next, indices: [20, 22, 23])
+            rotateTripletStrips(
+                in: &next,
+                a: [2, 5, 8],
+                b: [11, 14, 17],
+                c: [27, 31, 34]
+            )
+        case .b:
+            rotateCycle(in: &next, indices: [27, 33, 35])
+            rotateCycle(in: &next, indices: [28, 30, 34])
+            rotateCycle(in: &next, indices: [29, 31, 32])
+            rotateTripletStrips(
+                in: &next,
+                a: [6, 7, 8],
+                b: [15, 16, 17],
+                c: [24, 25, 26]
+            )
+        }
+
+        return PyraminxState(stickers: next)
+    }
+
+    private func applyingTipTurn(_ turn: PyraminxBaseTurn) -> PyraminxState {
+        var next = stickers
+
+        switch turn {
+        case .u:
+            rotateCycle(in: &next, indices: [0, 6, 8])
+        case .l:
+            rotateCycle(in: &next, indices: [9, 15, 17])
+        case .r:
+            rotateCycle(in: &next, indices: [18, 24, 26])
+        case .b:
+            rotateCycle(in: &next, indices: [27, 33, 35])
+        }
+
+        return PyraminxState(stickers: next)
+    }
+
+    private func rotateCycle(in stickers: inout [PyraminxStickerColor], indices: [Int]) {
+        guard indices.count == 3 else { return }
+        let temp = stickers[indices[0]]
+        stickers[indices[0]] = stickers[indices[1]]
+        stickers[indices[1]] = stickers[indices[2]]
+        stickers[indices[2]] = temp
+    }
+
+    private func rotateTripletStrips(
+        in stickers: inout [PyraminxStickerColor],
+        a: [Int],
+        b: [Int],
+        c: [Int]
+    ) {
+        for idx in 0..<3 {
+            let temp = stickers[a[idx]]
+            stickers[a[idx]] = stickers[b[idx]]
+            stickers[b[idx]] = stickers[c[idx]]
+            stickers[c[idx]] = temp
+        }
     }
 }
 
@@ -45,14 +233,6 @@ enum SkewbMove: String, CaseIterable, Hashable, Sendable {
             turnAmount: rawValue.hasSuffix("'") ? .counterClockwiseQuarter : .clockwiseQuarter
         )
     }
-}
-
-struct PyraminxState: TwistyPuzzleState, Hashable, Sendable {
-    static let empty = PyraminxState(stickerTokens: [])
-
-    let stickerTokens: [String]
-
-    var puzzleType: TwistyPuzzleType { .pyraminx }
 }
 
 struct SkewbState: TwistyPuzzleState, Hashable, Sendable {
