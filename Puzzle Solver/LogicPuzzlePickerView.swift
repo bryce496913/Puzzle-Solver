@@ -97,6 +97,23 @@ private struct LogicPuzzleCatalogItem: Identifiable {
 }
 
 struct SudokuEntryView: View {
+    @State private var isSolving = false
+    @State private var resultMessage = "Tap solve to run a demo Sudoku puzzle."
+    @State private var solvedGrid: SudokuGrid?
+
+    private let solver = SudokuSolver()
+    private let demoGrid = SudokuGrid(rows: [
+        [5, 3, 0, 0, 7, 0, 0, 0, 0],
+        [6, 0, 0, 1, 9, 5, 0, 0, 0],
+        [0, 9, 8, 0, 0, 0, 0, 6, 0],
+        [8, 0, 0, 0, 6, 0, 0, 0, 3],
+        [4, 0, 0, 8, 0, 3, 0, 0, 1],
+        [7, 0, 0, 0, 2, 0, 0, 0, 6],
+        [0, 6, 0, 0, 0, 0, 2, 8, 0],
+        [0, 0, 0, 4, 1, 9, 0, 0, 5],
+        [0, 0, 0, 0, 8, 0, 0, 7, 9]
+    ]) ?? SudokuGrid()
+
     var body: some View {
         ZStack {
             AppTheme.Colors.background
@@ -106,16 +123,39 @@ struct SudokuEntryView: View {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
                     TwistyScreenHeader(
                         title: "Sudoku",
-                        subtitle: "Phase 5 logic puzzle support is active."
+                        subtitle: "Backtracking solver with candidate-based optimization."
                     )
 
                     VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                        Text("Sudoku route is live")
+                        Text("Sudoku solver ready")
                             .appTextStyle(.h2)
 
-                        Text("This is the initial Sudoku entry point. Solver and advanced gameplay flows can now be layered on this route in upcoming phases.")
+                        Text(resultMessage)
                             .appTextStyle(.paragraph)
                             .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
+
+                        if let solvedGrid {
+                            Text(solvedGrid.rows().map { $0.map(String.init).joined(separator: " ") }.joined(separator: "\n"))
+                                .font(.system(.footnote, design: .monospaced))
+                                .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        Button {
+                            Task {
+                                await solveDemoPuzzle()
+                            }
+                        } label: {
+                            if isSolving {
+                                ProgressView()
+                            } else {
+                                Text("Solve Demo Puzzle")
+                                    .appTextStyle(.button)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.Colors.accent)
+                        .disabled(isSolving)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .appSurfaceCard()
@@ -125,6 +165,28 @@ struct SudokuEntryView: View {
         }
         .navigationTitle("Sudoku")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @MainActor
+    private func solveDemoPuzzle() async {
+        isSolving = true
+        solvedGrid = nil
+
+        let result = await solver.solveOffMainThread(demoGrid)
+
+        switch (result.validity, result.completion, result.output) {
+        case (.invalid(let errors), _, _):
+            resultMessage = errors.first?.localizedDescription ?? "The Sudoku input is invalid."
+        case (.valid, .solved, let solved?):
+            solvedGrid = solved
+            resultMessage = "Solved successfully."
+        case (.valid, .unsolved, _):
+            resultMessage = "No solution exists for this puzzle."
+        default:
+            resultMessage = "Sudoku could not be solved."
+        }
+
+        isSolving = false
     }
 }
 

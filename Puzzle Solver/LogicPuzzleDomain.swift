@@ -319,3 +319,98 @@ struct SudokuGrid: Equatable, Hashable {
         cells.count == SudokuGrid.cellCount && cells.allSatisfy { $0 == SudokuGrid.emptyValue || SudokuGrid.validValues.contains($0) }
     }
 }
+
+
+struct SudokuSolver {
+    func solve(_ initialGrid: SudokuGrid) -> LogicSolveResult<SudokuGrid> {
+        guard initialGrid.isValidBoard() else {
+            return LogicSolveResult(
+                puzzleType: .sudoku,
+                validity: .invalid([.conflictingValues(message: "The starting Sudoku grid has conflicting values.")]),
+                completion: .unsolved,
+                output: nil,
+                messages: ["Fix duplicate values in a row, column, or 3×3 box and try again."],
+                steps: nil
+            )
+        }
+
+        var working = initialGrid
+        if backtrackSolve(&working) {
+            return LogicSolveResult(
+                puzzleType: .sudoku,
+                validity: .valid,
+                completion: .solved,
+                output: working,
+                messages: ["Sudoku solved."],
+                steps: nil
+            )
+        }
+
+        return LogicSolveResult(
+            puzzleType: .sudoku,
+            validity: .valid,
+            completion: .unsolved,
+            output: nil,
+            messages: ["No solution exists for this Sudoku configuration."],
+            steps: nil
+        )
+    }
+
+    func solveOffMainThread(_ initialGrid: SudokuGrid) async -> LogicSolveResult<SudokuGrid> {
+        await Task.detached(priority: .userInitiated) {
+            solve(initialGrid)
+        }.value
+    }
+
+    private func backtrackSolve(_ grid: inout SudokuGrid) -> Bool {
+        guard let nextCell = selectMostConstrainedEmptyCell(in: grid) else {
+            return true
+        }
+
+        let row = nextCell.row
+        let column = nextCell.column
+        let candidates = validCandidates(in: grid, row: row, column: column)
+
+        if candidates.isEmpty {
+            return false
+        }
+
+        for candidate in candidates {
+            grid.setValue(candidate, row: row, column: column)
+
+            if backtrackSolve(&grid) {
+                return true
+            }
+
+            grid.setValue(SudokuGrid.emptyValue, row: row, column: column)
+        }
+
+        return false
+    }
+
+    private func selectMostConstrainedEmptyCell(in grid: SudokuGrid) -> (row: Int, column: Int)? {
+        var bestCell: (row: Int, column: Int)?
+        var bestCandidateCount = Int.max
+
+        for (row, column) in grid.emptyCells() {
+            let candidateCount = validCandidates(in: grid, row: row, column: column).count
+
+            if candidateCount < bestCandidateCount {
+                bestCandidateCount = candidateCount
+                bestCell = (row, column)
+
+                if candidateCount == 1 {
+                    break
+                }
+            }
+        }
+
+        return bestCell
+    }
+
+    private func validCandidates(in grid: SudokuGrid, row: Int, column: Int) -> [Int] {
+        SudokuGrid.validValues.filter { value in
+            grid.canPlace(value, row: row, column: column)
+        }
+    }
+}
