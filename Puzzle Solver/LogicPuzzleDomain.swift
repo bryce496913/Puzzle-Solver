@@ -102,19 +102,30 @@ struct LogicSolveResult<Output> {
 /// - Empty cells are represented by `0`.
 /// - Suitable for SwiftUI editing via `setValue(_:row:column:)` and `subscript(row:column:)`.
 struct SudokuGrid: Equatable, Hashable {
+    struct Cell: Identifiable, Hashable {
+        let index: Int
+        let row: Int
+        let column: Int
+        var value: Int
+
+        var id: Int { index }
+        var isEmpty: Bool { value == SudokuGrid.emptyValue }
+    }
+
     static let rowCount = 9
     static let columnCount = 9
     static let boxSize = 3
     static let cellCount = 81
+    static let emptyValue = 0
     static let validValues = 1...9
 
     private(set) var cells: [Int]
 
-    init(cells: [Int] = Array(repeating: 0, count: SudokuGrid.cellCount)) {
+    init(cells: [Int] = Array(repeating: SudokuGrid.emptyValue, count: SudokuGrid.cellCount)) {
         if SudokuGrid.isValidCellPayload(cells) {
             self.cells = cells
         } else {
-            self.cells = Array(repeating: 0, count: SudokuGrid.cellCount)
+            self.cells = Array(repeating: SudokuGrid.emptyValue, count: SudokuGrid.cellCount)
         }
     }
 
@@ -140,9 +151,20 @@ struct SudokuGrid: Equatable, Hashable {
         }
     }
 
+    func displayCells() -> [Cell] {
+        cells.enumerated().map { index, value in
+            Cell(
+                index: index,
+                row: index / SudokuGrid.columnCount,
+                column: index % SudokuGrid.columnCount,
+                value: value
+            )
+        }
+    }
+
     mutating func setValue(_ value: Int, row: Int, column: Int) -> Bool {
         guard let index = indexFor(row: row, column: column),
-              value == 0 || SudokuGrid.validValues.contains(value) else {
+              value == SudokuGrid.emptyValue || SudokuGrid.validValues.contains(value) else {
             return false
         }
 
@@ -163,6 +185,13 @@ struct SudokuGrid: Equatable, Hashable {
         }
     }
 
+    func box(_ boxIndex: Int) -> [Int] {
+        guard boxIndex >= 0, boxIndex < SudokuGrid.columnCount else { return [] }
+        let row = (boxIndex / SudokuGrid.boxSize) * SudokuGrid.boxSize
+        let column = (boxIndex % SudokuGrid.boxSize) * SudokuGrid.boxSize
+        return box(containingRow: row, column: column)
+    }
+
     func box(containingRow row: Int, column: Int) -> [Int] {
         guard row >= 0, row < SudokuGrid.rowCount,
               column >= 0, column < SudokuGrid.columnCount else {
@@ -173,7 +202,7 @@ struct SudokuGrid: Equatable, Hashable {
         let boxStartColumn = (column / SudokuGrid.boxSize) * SudokuGrid.boxSize
 
         var values: [Int] = []
-        values.reserveCapacity(SudokuGrid.cellCount)
+        values.reserveCapacity(SudokuGrid.boxSize * SudokuGrid.boxSize)
 
         for rowOffset in 0..<SudokuGrid.boxSize {
             for colOffset in 0..<SudokuGrid.boxSize {
@@ -193,7 +222,7 @@ struct SudokuGrid: Equatable, Hashable {
         }
 
         var board = cells
-        board[index] = 0
+        board[index] = SudokuGrid.emptyValue
 
         let rowValues = (0..<SudokuGrid.columnCount).map { board[(row * SudokuGrid.columnCount) + $0] }
         if rowValues.contains(value) {
@@ -222,7 +251,7 @@ struct SudokuGrid: Equatable, Hashable {
 
     func emptyCellIndices() -> [Int] {
         cells.enumerated().compactMap { index, value in
-            value == 0 ? index : nil
+            value == SudokuGrid.emptyValue ? index : nil
         }
     }
 
@@ -232,12 +261,20 @@ struct SudokuGrid: Equatable, Hashable {
         }
     }
 
+    func firstEmptyCell() -> (row: Int, column: Int)? {
+        emptyCells().first
+    }
+
     func isValidBoard() -> Bool {
         rowsAreValid && columnsAreValid && boxesAreValid
     }
 
+    func isPlacementValid(value: Int, row: Int, column: Int) -> Bool {
+        canPlace(value, row: row, column: column)
+    }
+
     var isSolved: Bool {
-        !cells.contains(0) && isValidBoard()
+        !cells.contains(SudokuGrid.emptyValue) && isValidBoard()
     }
 
     func rows() -> [[Int]] {
@@ -265,7 +302,7 @@ struct SudokuGrid: Equatable, Hashable {
     }
 
     private func isUnitValid(_ values: [Int]) -> Bool {
-        let nonEmpty = values.filter { $0 != 0 }
+        let nonEmpty = values.filter { $0 != SudokuGrid.emptyValue }
         return Set(nonEmpty).count == nonEmpty.count
     }
 
@@ -279,6 +316,6 @@ struct SudokuGrid: Equatable, Hashable {
     }
 
     private static func isValidCellPayload(_ cells: [Int]) -> Bool {
-        cells.count == SudokuGrid.cellCount && cells.allSatisfy { $0 == 0 || SudokuGrid.validValues.contains($0) }
+        cells.count == SudokuGrid.cellCount && cells.allSatisfy { $0 == SudokuGrid.emptyValue || SudokuGrid.validValues.contains($0) }
     }
 }
