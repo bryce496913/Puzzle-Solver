@@ -420,22 +420,6 @@ private enum Cube3x3LookupTables {
     }
 }
 
-struct PyraminxState: TwistyPuzzleState, Hashable, Sendable {
-    static let empty = PyraminxState(stickerTokens: [])
-
-    let stickerTokens: [String]
-
-    var puzzleType: TwistyPuzzleType { .pyraminx }
-}
-
-struct SkewbState: TwistyPuzzleState, Hashable, Sendable {
-    static let empty = SkewbState(stickerTokens: [])
-
-    let stickerTokens: [String]
-
-    var puzzleType: TwistyPuzzleType { .skewb }
-}
-
 struct Cube3x3Solver: TwistyPuzzleSolver {
     typealias State = Cube3x3State
 
@@ -748,22 +732,6 @@ private enum Cube3x3MoveOptimizer {
     }
 }
 
-struct PyraminxSolver: TwistyPuzzleSolver {
-    typealias State = PyraminxState
-
-    func solve(from initialState: PyraminxState) async -> TwistySolveResult {
-        .placeholderResult(for: initialState.puzzleType)
-    }
-}
-
-struct SkewbSolver: TwistyPuzzleSolver {
-    typealias State = SkewbState
-
-    func solve(from initialState: SkewbState) async -> TwistySolveResult {
-        .placeholderResult(for: initialState.puzzleType)
-    }
-}
-
 struct TwistyPuzzleImplementationPlan: Sendable {
     let plannedStateType: String
     let plannedSolverType: String
@@ -807,23 +775,5 @@ extension TwistyPuzzleType {
                 solvingExpectation: "Center orientation and corner permutation stages"
             )
         }
-    }
-}
-
-private extension TwistySolveResult {
-    static func placeholderResult(for puzzleType: TwistyPuzzleType) -> TwistySolveResult {
-        TwistySolveResult(
-            puzzleType: puzzleType,
-            isSolvable: false,
-            moves: [],
-            steps: [
-                TwistySolutionStep(
-                    move: nil,
-                    explanation: "\(puzzleType.metadata.title) solver is not implemented yet."
-                )
-            ],
-            elapsedTime: nil,
-            finalStateDescription: nil
-        )
     }
 }

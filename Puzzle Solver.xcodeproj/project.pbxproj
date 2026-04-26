@@ -31,6 +31,7 @@
 		EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */; };
 		EED400012E10000100D00D01 /* Cube3x3Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED400022E10000100D00D01 /* Cube3x3Domain.swift */; };
 		EED400032E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */; };
+		EEF700012E40000100D00D01 /* NonCubeTwistyDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */; };
 		EEF500012E20000100D00D01 /* Cube2x2InputDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF500022E20000100D00D01 /* Cube2x2InputDomain.swift */; };
 		EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */; };
 		EEF600032E30000100D00D01 /* Cube3x3InputDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */; };
@@ -82,6 +83,7 @@
 		EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleComponents.swift; sourceTree = "<group>"; };
 		EED400022E10000100D00D01 /* Cube3x3Domain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3Domain.swift; sourceTree = "<group>"; };
 		EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FutureTwistyPuzzlePlaceholderView.swift; sourceTree = "<group>"; };
+		EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonCubeTwistyDomain.swift; sourceTree = "<group>"; };
 		EEF500022E20000100D00D01 /* Cube2x2InputDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube2x2InputDomain.swift; sourceTree = "<group>"; };
 		EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3EntryView.swift; sourceTree = "<group>"; };
 		EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3InputDomain.swift; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 				EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */,
 				EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */,
 				EED400022E10000100D00D01 /* Cube3x3Domain.swift */,
+				EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */,
 				EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */,
 				EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */,
 				EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */,
@@ -338,6 +341,7 @@
 				EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */,
 				EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */,
 				EED400012E10000100D00D01 /* Cube3x3Domain.swift in Sources */,
+				EEF700012E40000100D00D01 /* NonCubeTwistyDomain.swift in Sources */,
 				EED400032E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift in Sources */,
 				EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */,
 				EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */,

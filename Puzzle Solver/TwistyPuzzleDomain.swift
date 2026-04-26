@@ -119,6 +119,45 @@ struct TwistySolveResult: Sendable {
     }
 }
 
+struct TwistySolutionOutput: Sendable {
+    let moveList: [TwistyMove]
+    let orderedSteps: [TwistySolutionStep]
+
+    var stepCount: Int {
+        orderedSteps.count
+    }
+
+    init(moveList: [TwistyMove], orderedSteps: [TwistySolutionStep]) {
+        self.moveList = moveList
+        self.orderedSteps = orderedSteps
+    }
+
+    init(result: TwistySolveResult) {
+        self.init(moveList: result.moves, orderedSteps: result.steps)
+    }
+}
+
+enum TwistySolveLoadState: Sendable {
+    case idle
+    case loading
+    case success(TwistySolveResult)
+    case failure(String)
+
+    var isLoading: Bool {
+        if case .loading = self {
+            return true
+        }
+        return false
+    }
+
+    var errorMessage: String? {
+        if case .failure(let message) = self {
+            return message
+        }
+        return nil
+    }
+}
+
 struct TwistyPuzzleCatalogItem: Identifiable, Sendable {
     let puzzleType: TwistyPuzzleType
 
