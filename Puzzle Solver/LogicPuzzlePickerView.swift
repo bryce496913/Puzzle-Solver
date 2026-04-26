@@ -104,6 +104,7 @@ struct SudokuEntryView: View {
     @State private var isSolving = false
     @State private var feedbackMessage = "Select a cell, then use the keypad to enter values 1–9."
     @State private var validationMessage = ""
+    @State private var resultState: SudokuResultView.ResultState = .idle
 
     private let solver = SudokuSolver()
 
@@ -153,6 +154,11 @@ struct SudokuEntryView: View {
                         .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .appSurfaceCard()
+
+                SudokuResultView(
+                    state: resultState
+                )
                 .appSurfaceCard()
 
                 sudokuKeypad
@@ -303,26 +309,152 @@ struct SudokuEntryView: View {
         selectedCellIndex = nil
         validationMessage = ""
         feedbackMessage = "Board reset. Enter a new puzzle."
+        resultState = .idle
     }
 
     @MainActor
     private func solveCurrentPuzzle() async {
         isSolving = true
+        resultState = .loading
         defer { isSolving = false }
 
+        let initialGrid = grid
+        let startedAt = Date()
         let result = await solver.solveOffMainThread(grid)
+        let solveDuration = Date().timeIntervalSince(startedAt)
 
         switch (result.validity, result.completion, result.output) {
         case (.invalid(let errors), _, _):
-            feedbackMessage = errors.first?.localizedDescription ?? "This Sudoku input is invalid."
+            let message = errors.first?.localizedDescription ?? "This Sudoku input is invalid."
+            feedbackMessage = message
+            resultState = .invalid(message)
         case (.valid, .solved, let solved?):
             grid = solved
             feedbackMessage = "Solved successfully."
+            let filledBySolver = zip(initialGrid.cells, solved.cells).filter { initial, solvedValue in
+                initial == SudokuGrid.emptyValue && solvedValue != SudokuGrid.emptyValue
+            }.count
+
+            resultState = .solved(
+                solvedGrid: solved,
+                originalGrid: initialGrid,
+                filledCells: filledBySolver,
+                solveTimeSeconds: solveDuration
+            )
         case (.valid, .unsolved, _):
             feedbackMessage = "No solution exists for this puzzle."
+            resultState = .noSolution
         default:
             feedbackMessage = "Sudoku could not be solved."
+            resultState = .noSolution
         }
+    }
+}
+
+struct SudokuResultView: View {
+    enum ResultState: Equatable {
+        case idle
+        case loading
+        case invalid(String)
+        case noSolution
+        case solved(solvedGrid: SudokuGrid, originalGrid: SudokuGrid, filledCells: Int, solveTimeSeconds: TimeInterval)
+    }
+
+    let state: ResultState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+            switch state {
+            case .idle:
+                Text("Result will appear here after solving.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.8))
+            case .loading:
+                HStack(spacing: AppTheme.Spacing.small) {
+                    ProgressView()
+                    Text("Solving puzzle…")
+                        .appTextStyle(.h2)
+                }
+            case .invalid(let message):
+                Text("Invalid puzzle")
+                    .appTextStyle(.h2)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+                Text(message)
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+            case .noSolution:
+                Text("No solution")
+                    .appTextStyle(.h2)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+                Text("No valid completed Sudoku exists for the entered values.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+            case .solved(let solvedGrid, let original, let filledCells, let solveTimeSeconds):
+                solvedSummary(filledCells: filledCells, solveTimeSeconds: solveTimeSeconds)
+                solvedGridView(solvedGrid: solvedGrid, originalGrid: original)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func solvedSummary(filledCells: Int, solveTimeSeconds: TimeInterval) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text("Solved")
+                .appTextStyle(.h2)
+                .foregroundStyle(AppTheme.Colors.accent)
+
+            Text("Filled cells: \(filledCells)")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.9))
+
+            Text("Solve time: \(solveTimeSeconds.formatted(.number.precision(.fractionLength(2))))s")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.9))
+        }
+    }
+
+    private func solvedGridView(solvedGrid: SudokuGrid, originalGrid: SudokuGrid) -> some View {
+        GeometryReader { geometry in
+            let boardSize = min(geometry.size.width, geometry.size.height)
+            let cellSize = boardSize / CGFloat(SudokuGrid.columnCount)
+
+            ZStack(alignment: .topLeading) {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(cellSize), spacing: 0), count: SudokuGrid.columnCount), spacing: 0) {
+                    ForEach(Array(solvedGrid.cells.enumerated()), id: \.offset) { index, value in
+                        SudokuSolvedCellView(
+                            value: value,
+                            isOriginalValue: originalGrid.cells[index] != SudokuGrid.emptyValue
+                        )
+                        .frame(width: cellSize, height: cellSize)
+                    }
+                }
+
+                SudokuGridLinesOverlay(cellSize: cellSize)
+                    .allowsHitTesting(false)
+            }
+            .frame(width: boardSize, height: boardSize)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+        .frame(height: 260)
+    }
+}
+
+private struct SudokuSolvedCellView: View {
+    let value: Int
+    let isOriginalValue: Bool
+
+    var body: some View {
+        ZStack {
+            (isOriginalValue ? AppTheme.Colors.surface.opacity(0.95) : AppTheme.Colors.accent.opacity(0.28))
+
+            Text("\(value)")
+                .font(.system(size: 16, weight: isOriginalValue ? .bold : .medium, design: .rounded))
+                .foregroundStyle(isOriginalValue ? AppTheme.Colors.text : AppTheme.Colors.highlight)
+        }
+        .overlay(
+            Rectangle()
+                .stroke(AppTheme.Colors.text.opacity(0.15), lineWidth: 0.5)
+        )
     }
 }
 
