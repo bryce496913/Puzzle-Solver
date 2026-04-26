@@ -108,6 +108,7 @@ struct TwistySolutionStep: Hashable, Sendable, Identifiable {
 
 struct TwistySolveResult: Sendable {
     let puzzleType: TwistyPuzzleType
+    let stateValidation: TwistyStateValidation
     let isSolvable: Bool
     let moves: [TwistyMove]
     let steps: [TwistySolutionStep]
@@ -176,9 +177,31 @@ struct TwistySolutionStepViewData: Identifiable, Hashable, Sendable {
 }
 
 struct TwistySolveSummaryViewData: Sendable {
+    let validationText: String
     let statusText: String
     let moveCountText: String
     let stepCountText: String
+}
+
+enum TwistyStateValidation: Sendable {
+    case valid
+    case invalid(reason: String)
+
+    var isValid: Bool {
+        if case .valid = self {
+            return true
+        }
+        return false
+    }
+
+    var summaryText: String {
+        switch self {
+        case .valid:
+            return "State: Valid"
+        case .invalid(let reason):
+            return "State: Invalid (\(reason))"
+        }
+    }
 }
 
 
@@ -242,6 +265,7 @@ struct StandardTwistyNotationRenderer: TwistyNotationRenderer {
 extension TwistySolveResult {
     func makeSummaryViewData() -> TwistySolveSummaryViewData {
         TwistySolveSummaryViewData(
+            validationText: stateValidation.summaryText,
             statusText: isSolvable ? "Status: Solvable" : "Status: Unsolvable",
             moveCountText: "Move count: \(moveCount)",
             stepCountText: "Ordered solution steps: \(steps.count)"
@@ -393,6 +417,7 @@ struct Cube2x2Solver: TwistyPuzzleSolver {
         if initialState == solved {
             return TwistySolveResult(
                 puzzleType: .cube2x2,
+                stateValidation: .valid,
                 isSolvable: true,
                 moves: [],
                 steps: [TwistySolutionStep(move: nil, explanation: "Cube is already solved.")],
@@ -407,6 +432,7 @@ struct Cube2x2Solver: TwistyPuzzleSolver {
         guard let path else {
             return TwistySolveResult(
                 puzzleType: .cube2x2,
+                stateValidation: .valid,
                 isSolvable: false,
                 moves: [],
                 steps: [TwistySolutionStep(move: nil, explanation: "No solution found within the search bounds.")],
@@ -424,6 +450,7 @@ struct Cube2x2Solver: TwistyPuzzleSolver {
 
         return TwistySolveResult(
             puzzleType: .cube2x2,
+            stateValidation: .valid,
             isSolvable: true,
             moves: path.map(\.twistyMove),
             steps: steps,
