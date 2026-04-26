@@ -293,6 +293,34 @@ enum SkewbMove: String, CaseIterable, Hashable, Sendable {
     case u = "U"
     case uPrime = "U'"
 
+    static let allSolvingMoves: [SkewbMove] = Self.allCases
+
+    var inverse: SkewbMove {
+        switch self {
+        case .r: return .rPrime
+        case .rPrime: return .r
+        case .l: return .lPrime
+        case .lPrime: return .l
+        case .b: return .bPrime
+        case .bPrime: return .b
+        case .u: return .uPrime
+        case .uPrime: return .u
+        }
+    }
+
+    var baseTurn: SkewbBaseTurn {
+        switch self {
+        case .r, .rPrime: return .r
+        case .l, .lPrime: return .l
+        case .b, .bPrime: return .b
+        case .u, .uPrime: return .u
+        }
+    }
+
+    var turnCount: Int {
+        rawValue.hasSuffix("'") ? 2 : 1
+    }
+
     var twistyMove: TwistyMove {
         TwistyMove(
             token: rawValue,
@@ -302,12 +330,179 @@ enum SkewbMove: String, CaseIterable, Hashable, Sendable {
     }
 }
 
+enum SkewbBaseTurn: CaseIterable, Hashable, Sendable {
+    case r
+    case l
+    case u
+    case b
+}
+
+enum SkewbStickerColor: String, CaseIterable, Hashable, Sendable {
+    case up = "U"
+    case left = "L"
+    case front = "F"
+    case right = "R"
+    case back = "B"
+    case down = "D"
+}
+
+struct SkewbDisplayModel: Hashable, Sendable {
+    let faces: [SkewbDisplayFace]
+}
+
+struct SkewbDisplayFace: Hashable, Sendable, Identifiable {
+    let id: String
+    let title: String
+    let stickers: [SkewbStickerColor]
+}
+
 struct SkewbState: TwistyPuzzleState, Hashable, Sendable {
+    static let solved = SkewbState(
+        stickers: Array(repeating: .up, count: 5)
+            + Array(repeating: .left, count: 5)
+            + Array(repeating: .front, count: 5)
+            + Array(repeating: .right, count: 5)
+            + Array(repeating: .back, count: 5)
+            + Array(repeating: .down, count: 5)
+    )
+
     static let empty = SkewbState(stickerTokens: [])
 
-    let stickerTokens: [String]
+    let stickers: [SkewbStickerColor]
+    let inputTokens: [String]
+    let invalidTokens: [String]
 
     var puzzleType: TwistyPuzzleType { .skewb }
+
+    init(stickers: [SkewbStickerColor], inputTokens: [String] = [], invalidTokens: [String] = []) {
+        self.stickers = stickers.count == 30 ? stickers : SkewbState.solved.stickers
+        self.inputTokens = inputTokens
+        self.invalidTokens = invalidTokens
+    }
+
+    init(stickerTokens: [String]) {
+        let parseResult = SkewbTokenParser.parse(stickerTokens)
+        let stateFromTokens = SkewbState.solved.applying(sequence: parseResult.validMoves)
+        self = SkewbState(
+            stickers: stateFromTokens.stickers,
+            inputTokens: stickerTokens,
+            invalidTokens: parseResult.invalidTokens
+        )
+    }
+
+    func applying(_ move: SkewbMove) -> SkewbState {
+        var next = self
+        for _ in 0..<move.turnCount {
+            next = next.applying(move.baseTurn)
+        }
+        return next
+    }
+
+    func applying(sequence: [SkewbMove]) -> SkewbState {
+        sequence.reduce(self) { state, move in
+            state.applying(move)
+        }
+    }
+
+    func neighbors() -> [(move: SkewbMove, state: SkewbState)] {
+        SkewbMove.allSolvingMoves.map { move in
+            (move, applying(move))
+        }
+    }
+
+    var isInputValid: Bool {
+        invalidTokens.isEmpty
+    }
+
+    func makeDisplayModel() -> SkewbDisplayModel {
+        SkewbDisplayModel(
+            faces: [
+                SkewbDisplayFace(id: "U", title: "Up", stickers: Array(stickers[0..<5])),
+                SkewbDisplayFace(id: "L", title: "Left", stickers: Array(stickers[5..<10])),
+                SkewbDisplayFace(id: "F", title: "Front", stickers: Array(stickers[10..<15])),
+                SkewbDisplayFace(id: "R", title: "Right", stickers: Array(stickers[15..<20])),
+                SkewbDisplayFace(id: "B", title: "Back", stickers: Array(stickers[20..<25])),
+                SkewbDisplayFace(id: "D", title: "Down", stickers: Array(stickers[25..<30]))
+            ]
+        )
+    }
+
+    private func applying(_ move: SkewbBaseTurn) -> SkewbState {
+        var next = stickers
+
+        switch move {
+        case .r:
+            rotateCycle(in: &next, indices: [17, 18, 19])
+            rotateCycle(in: &next, indices: [0, 10, 25])
+            rotateCycle(in: &next, indices: [2, 13, 27])
+            rotateCycle(in: &next, indices: [3, 14, 26])
+            rotateCycle(in: &next, indices: [12, 28, 22])
+            rotateCycle(in: &next, indices: [15, 23, 11])
+        case .l:
+            rotateCycle(in: &next, indices: [7, 8, 9])
+            rotateCycle(in: &next, indices: [0, 25, 20])
+            rotateCycle(in: &next, indices: [1, 29, 21])
+            rotateCycle(in: &next, indices: [4, 26, 24])
+            rotateCycle(in: &next, indices: [10, 22, 6])
+            rotateCycle(in: &next, indices: [14, 5, 23])
+        case .u:
+            rotateCycle(in: &next, indices: [1, 2, 3])
+            rotateCycle(in: &next, indices: [10, 15, 20])
+            rotateCycle(in: &next, indices: [11, 16, 21])
+            rotateCycle(in: &next, indices: [12, 17, 22])
+            rotateCycle(in: &next, indices: [6, 13, 18])
+            rotateCycle(in: &next, indices: [9, 24, 19])
+        case .b:
+            rotateCycle(in: &next, indices: [21, 22, 23])
+            rotateCycle(in: &next, indices: [0, 20, 25])
+            rotateCycle(in: &next, indices: [1, 24, 29])
+            rotateCycle(in: &next, indices: [2, 21, 28])
+            rotateCycle(in: &next, indices: [15, 7, 27])
+            rotateCycle(in: &next, indices: [16, 8, 26])
+        }
+
+        return SkewbState(stickers: next)
+    }
+
+    private func rotateCycle(in stickers: inout [SkewbStickerColor], indices: [Int]) {
+        guard indices.count == 3 else { return }
+        let temp = stickers[indices[0]]
+        stickers[indices[0]] = stickers[indices[1]]
+        stickers[indices[1]] = stickers[indices[2]]
+        stickers[indices[2]] = temp
+    }
+}
+
+extension SkewbState {
+    static func == (lhs: SkewbState, rhs: SkewbState) -> Bool {
+        lhs.stickers == rhs.stickers
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(stickers)
+    }
+}
+
+private struct SkewbTokenParseResult {
+    let validMoves: [SkewbMove]
+    let invalidTokens: [String]
+}
+
+private enum SkewbTokenParser {
+    static func parse(_ tokens: [String]) -> SkewbTokenParseResult {
+        var validMoves: [SkewbMove] = []
+        var invalidTokens: [String] = []
+
+        for token in tokens {
+            if let move = SkewbMove(rawValue: token) {
+                validMoves.append(move)
+            } else {
+                invalidTokens.append(token)
+            }
+        }
+
+        return SkewbTokenParseResult(validMoves: validMoves, invalidTokens: invalidTokens)
+    }
 }
 
 struct PyraminxSolver: TwistyPuzzleSolver {
