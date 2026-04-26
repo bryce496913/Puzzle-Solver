@@ -31,16 +31,14 @@ struct Cube2x2SolvingView: View {
                     TwistyMoveListView(title: "Ordered move list", moves: solveResult.moves)
 
                     if !stepViewData.isEmpty {
-                        TwistyStepPlaybackControlsView(
-                            currentStepNumber: currentStepIndex + 1,
+                        TwistySolutionPlaybackView(
+                            step: stepViewData[currentStepIndex],
                             totalSteps: stepViewData.count,
                             isAutoPlaying: isAutoPlaying,
                             onPrevious: moveToPreviousStep,
                             onNext: moveToNextStep,
                             onToggleAutoPlay: toggleAutoPlay
                         )
-
-                        TwistyStepCardView(step: stepViewData[currentStepIndex])
                     }
                 } else {
                     unsolvableCard
