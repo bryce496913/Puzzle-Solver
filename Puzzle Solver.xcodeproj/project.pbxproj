@@ -36,6 +36,7 @@
 		EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */; };
 		EEF600032E30000100D00D01 /* Cube3x3InputDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */; };
 		EEF600052E30000100D00D01 /* Cube3x3SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */; };
+		EEF900012E50000100D00D01 /* PyraminxEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF900022E50000100D00D01 /* PyraminxEntryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +89,7 @@
 		EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3EntryView.swift; sourceTree = "<group>"; };
 		EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3InputDomain.swift; sourceTree = "<group>"; };
 		EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3SolvingView.swift; sourceTree = "<group>"; };
+		EEF900022E50000100D00D01 /* PyraminxEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyraminxEntryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +159,7 @@
 				EED400022E10000100D00D01 /* Cube3x3Domain.swift */,
 				EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */,
 				EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */,
+				EEF900022E50000100D00D01 /* PyraminxEntryView.swift */,
 				EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */,
 				EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */,
 				EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */,
@@ -347,6 +350,7 @@
 				EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */,
 				EEF600032E30000100D00D01 /* Cube3x3InputDomain.swift in Sources */,
 				EEF600052E30000100D00D01 /* Cube3x3SolvingView.swift in Sources */,
+				EEF900012E50000100D00D01 /* PyraminxEntryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
