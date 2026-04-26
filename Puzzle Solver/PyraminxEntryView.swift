@@ -104,24 +104,16 @@ struct PyraminxEntryView: View {
                     .appTextStyle(.paragraph)
                     .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
 
-                HStack(spacing: AppTheme.Spacing.small) {
-                    ForEach(PyraminxStickerColor.allCases, id: \.self) { color in
-                        let count = colorCounts[color, default: 0]
-
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(color.displayColor)
-                                .frame(width: 12, height: 12)
-                            Text("\(count)/9")
-                                .appTextStyle(.paragraph)
-                                .foregroundStyle(count == 9 ? AppTheme.Colors.text : AppTheme.Colors.highlight)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 8)
-                        .background(AppTheme.Colors.background.opacity(0.35))
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                TwistyColorCountRow(
+                    items: PyraminxStickerColor.allCases.map { color in
+                        TwistyColorCountItem(
+                            id: color.rawValue,
+                            color: color.displayColor,
+                            count: colorCounts[color, default: 0],
+                            target: 9
+                        )
                     }
-                }
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -132,29 +124,17 @@ struct PyraminxEntryView: View {
             Text("Selected color")
                 .appTextStyle(.h2)
 
-            HStack(spacing: AppTheme.Spacing.small) {
-                ForEach(PyraminxStickerColor.allCases, id: \.self) { color in
-                    Button {
+            TwistyColorPickerRow(
+                options: PyraminxStickerColor.allCases.map { color in
+                    TwistyColorOption(id: color.rawValue, label: color.shortLabel, color: color.displayColor)
+                },
+                selectedColorID: selectedColor.rawValue,
+                onSelect: { selectedID in
+                    if let color = PyraminxStickerColor(rawValue: selectedID) {
                         selectedColor = color
-                    } label: {
-                        VStack(spacing: AppTheme.Spacing.xSmall) {
-                            Circle()
-                                .fill(color.displayColor)
-                                .frame(width: 26, height: 26)
-                                .overlay(Circle().stroke(Color.white.opacity(0.65), lineWidth: 1))
-
-                            Text(color.shortLabel)
-                                .appTextStyle(.paragraph)
-                                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppTheme.Spacing.xSmall)
-                        .background(selectedColor == color ? AppTheme.Colors.highlight.opacity(0.22) : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
                     }
-                    .buttonStyle(.plain)
                 }
-            }
+            )
         }
     }
 

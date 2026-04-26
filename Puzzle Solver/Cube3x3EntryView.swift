@@ -127,26 +127,16 @@ struct Cube3x3EntryView: View {
                 .appTextStyle(.paragraph)
                 .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
 
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: AppTheme.Spacing.small)], spacing: AppTheme.Spacing.xSmall) {
-                ForEach(Cube3x3StickerColor.allCases, id: \.self) { color in
-                    let count = colorCounts[color, default: 0]
-                    let isExact = count == 9
-
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(color.displayColor)
-                            .frame(width: 11, height: 11)
-
-                        Text("\(count)/9")
-                            .appTextStyle(.paragraph)
-                            .foregroundStyle(isExact ? AppTheme.Colors.text : AppTheme.Colors.highlight)
-                    }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .background(AppTheme.Colors.background.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+            TwistyColorCountRow(
+                items: Cube3x3StickerColor.allCases.map { color in
+                    TwistyColorCountItem(
+                        id: color.rawValue,
+                        color: color.displayColor,
+                        count: colorCounts[color, default: 0],
+                        target: 9
+                    )
                 }
-            }
+            )
         }
     }
 
@@ -155,28 +145,17 @@ struct Cube3x3EntryView: View {
             Text("Selected color")
                 .appTextStyle(.h2)
 
-            HStack(spacing: AppTheme.Spacing.small) {
-                ForEach(Cube3x3StickerColor.allCases, id: \.self) { color in
-                    Button {
+            TwistyColorPickerRow(
+                options: Cube3x3StickerColor.allCases.map { color in
+                    TwistyColorOption(id: color.rawValue, label: color.shortLabel, color: color.displayColor)
+                },
+                selectedColorID: selectedColor.rawValue,
+                onSelect: { selectedID in
+                    if let color = Cube3x3StickerColor(rawValue: selectedID) {
                         selectedColor = color
-                    } label: {
-                        VStack(spacing: AppTheme.Spacing.xSmall) {
-                            Circle()
-                                .fill(color.displayColor)
-                                .frame(width: 26, height: 26)
-                                .overlay(Circle().stroke(Color.white.opacity(0.65), lineWidth: 1))
-                            Text(color.shortLabel)
-                                .appTextStyle(.paragraph)
-                                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppTheme.Spacing.xSmall)
-                        .background(selectedColor == color ? AppTheme.Colors.highlight.opacity(0.22) : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
                     }
-                    .buttonStyle(.plain)
                 }
-            }
+            )
         }
     }
 
