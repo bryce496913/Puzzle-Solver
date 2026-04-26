@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct LogicPuzzlePickerView: View {
-    private let puzzleTypes = LogicPuzzleType.catalog
+    private let puzzleTypes = LogicPuzzleType.allCases.map {
+        LogicPuzzleCatalogItem(puzzleType: $0, subtitle: $0.availabilitySubtitle)
+    }
 
     private var activePuzzles: [LogicPuzzleCatalogItem] {
         puzzleTypes.filter(\.isEnabled)
@@ -92,54 +94,6 @@ private struct LogicPuzzleCatalogItem: Identifiable {
     var title: String { puzzleType.title }
     var icon: String { puzzleType.icon }
     var isEnabled: Bool { puzzleType.isEnabled }
-}
-
-private enum LogicPuzzleType: String, CaseIterable, Identifiable {
-    case sudoku
-    case killerSudoku
-    case nonogram
-    case kakuro
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .sudoku:
-            return "Sudoku"
-        case .killerSudoku:
-            return "Killer Sudoku"
-        case .nonogram:
-            return "Nonogram"
-        case .kakuro:
-            return "Kakuro"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .sudoku:
-            return "number.square.fill"
-        case .killerSudoku:
-            return "flame.fill"
-        case .nonogram:
-            return "square.grid.4x3.fill"
-        case .kakuro:
-            return "plus.forwardslash.minus"
-        }
-    }
-
-    var isEnabled: Bool {
-        self == .sudoku
-    }
-
-    static var catalog: [LogicPuzzleCatalogItem] {
-        [
-            LogicPuzzleCatalogItem(puzzleType: .sudoku, subtitle: "Ready now"),
-            LogicPuzzleCatalogItem(puzzleType: .killerSudoku, subtitle: "Coming soon"),
-            LogicPuzzleCatalogItem(puzzleType: .nonogram, subtitle: "Coming soon"),
-            LogicPuzzleCatalogItem(puzzleType: .kakuro, subtitle: "Coming soon")
-        ]
-    }
 }
 
 struct SudokuEntryView: View {
