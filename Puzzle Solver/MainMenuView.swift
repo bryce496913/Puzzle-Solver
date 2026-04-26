@@ -61,6 +61,8 @@ struct MainMenuView: View {
             SlidingPuzzleSizeSelectionView()
         case .twistyPuzzlePicker:
             TwistyPuzzlePickerView()
+        case .logicPuzzlePicker:
+            LogicPuzzlePickerView()
         case .comingSoon:
             ComingSoonPuzzleView(puzzleName: puzzleCategory.title)
         }
@@ -85,6 +87,7 @@ private struct PuzzleCategory: Identifiable {
     enum Destination {
         case slidingPuzzleSizeSelection
         case twistyPuzzlePicker
+        case logicPuzzlePicker
         case comingSoon
     }
 
@@ -116,6 +119,13 @@ private struct PuzzleCategory: Identifiable {
             icon: "cube.transparent.fill",
             availability: .available,
             destination: .twistyPuzzlePicker
+        ),
+        PuzzleCategory(
+            id: "logic",
+            title: "Logic Puzzles",
+            icon: "number.square.fill",
+            availability: .available,
+            destination: .logicPuzzlePicker
         )
     ]
 }
