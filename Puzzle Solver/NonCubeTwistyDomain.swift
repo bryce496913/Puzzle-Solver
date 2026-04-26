@@ -680,25 +680,162 @@ struct SkewbSolver: TwistyPuzzleSolver {
     typealias State = SkewbState
 
     func solve(from initialState: SkewbState) async -> TwistySolveResult {
-        .placeholderResult(for: initialState.puzzleType)
-    }
-}
+        let start = Date()
 
-private extension TwistySolveResult {
-    static func placeholderResult(for puzzleType: TwistyPuzzleType) -> TwistySolveResult {
-        TwistySolveResult(
-            puzzleType: puzzleType,
+        if !initialState.isInputValid {
+            let invalidList = initialState.invalidTokens.joined(separator: ", ")
+            return TwistySolveResult(
+                puzzleType: .skewb,
+                stateValidation: .invalid(reason: "Unrecognized tokens: \(invalidList)"),
+                isSolvable: false,
+                moves: [],
+                steps: [
+                    TwistySolutionStep(
+                        move: nil,
+                        explanation: "Input contains invalid tokens. Fix and try again."
+                    )
+                ],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: nil
+            )
+        }
+
+        if initialState == .solved {
+            return TwistySolveResult(
+                puzzleType: .skewb,
+                stateValidation: .valid,
+                isSolvable: true,
+                moves: [],
+                steps: [TwistySolutionStep(move: nil, explanation: "Skewb is already solved.")],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: "Solved"
+            )
+        }
+
+        guard let moveSequence = bidirectionalBFS(from: initialState, to: .solved) else {
+            return TwistySolveResult(
+                puzzleType: .skewb,
+                stateValidation: .valid,
+                isSolvable: false,
+                moves: [],
+                steps: [TwistySolutionStep(move: nil, explanation: "No solution found within search bounds.")],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: nil
+            )
+        }
+
+        let steps = moveSequence.enumerated().map { index, move in
+            TwistySolutionStep(
+                move: move.twistyMove,
+                explanation: "Step \(index + 1): apply \(move.rawValue)."
+            )
+        }
+
+        return TwistySolveResult(
+            puzzleType: .skewb,
             stateValidation: .valid,
-            isSolvable: false,
-            moves: [],
-            steps: [
-                TwistySolutionStep(
-                    move: nil,
-                    explanation: "\(puzzleType.metadata.title) solver is not implemented yet."
-                )
-            ],
-            elapsedTime: nil,
-            finalStateDescription: nil
+            isSolvable: true,
+            moves: moveSequence.map(\.twistyMove),
+            steps: steps,
+            elapsedTime: Date().timeIntervalSince(start),
+            finalStateDescription: "Solved"
         )
+    }
+
+    private func bidirectionalBFS(from start: SkewbState, to goal: SkewbState) -> [SkewbMove]? {
+        var forwardParents: [SkewbState: (parent: SkewbState, move: SkewbMove)] = [:]
+        var backwardParents: [SkewbState: (parent: SkewbState, move: SkewbMove)] = [:]
+        var forwardVisited: Set<SkewbState> = [start]
+        var backwardVisited: Set<SkewbState> = [goal]
+        var forwardFrontier: [SkewbState] = [start]
+        var backwardFrontier: [SkewbState] = [goal]
+
+        while !forwardFrontier.isEmpty, !backwardFrontier.isEmpty {
+            if forwardFrontier.count <= backwardFrontier.count {
+                if let meeting = expandFrontier(
+                    frontier: &forwardFrontier,
+                    visited: &forwardVisited,
+                    ownParents: &forwardParents,
+                    oppositeVisited: backwardVisited,
+                    isForward: true
+                ) {
+                    return stitchPath(
+                        meeting: meeting,
+                        forwardParents: forwardParents,
+                        backwardParents: backwardParents
+                    )
+                }
+            } else {
+                if let meeting = expandFrontier(
+                    frontier: &backwardFrontier,
+                    visited: &backwardVisited,
+                    ownParents: &backwardParents,
+                    oppositeVisited: forwardVisited,
+                    isForward: false
+                ) {
+                    return stitchPath(
+                        meeting: meeting,
+                        forwardParents: forwardParents,
+                        backwardParents: backwardParents
+                    )
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private func expandFrontier(
+        frontier: inout [SkewbState],
+        visited: inout Set<SkewbState>,
+        ownParents: inout [SkewbState: (parent: SkewbState, move: SkewbMove)],
+        oppositeVisited: Set<SkewbState>,
+        isForward: Bool
+    ) -> SkewbState? {
+        var nextLevel: [SkewbState] = []
+
+        for state in frontier {
+            for (move, adjacentState) in state.neighbors() {
+                let nextState = adjacentState
+                let recordedMove = isForward ? move : move.inverse
+
+                guard !visited.contains(nextState) else { continue }
+
+                visited.insert(nextState)
+                ownParents[nextState] = (state, recordedMove)
+
+                if oppositeVisited.contains(nextState) {
+                    return nextState
+                }
+
+                nextLevel.append(nextState)
+            }
+        }
+
+        frontier = nextLevel
+        return nil
+    }
+
+    private func stitchPath(
+        meeting: SkewbState,
+        forwardParents: [SkewbState: (parent: SkewbState, move: SkewbMove)],
+        backwardParents: [SkewbState: (parent: SkewbState, move: SkewbMove)]
+    ) -> [SkewbMove] {
+        var left: [SkewbMove] = []
+        var cursor = meeting
+        while let record = forwardParents[cursor] {
+            left.append(record.move)
+            cursor = record.parent
+        }
+        left.reverse()
+
+        var right: [SkewbMove] = []
+        cursor = meeting
+        while let record = backwardParents[cursor] {
+            right.append(record.move)
+            cursor = record.parent
+        }
+
+        return left + right
     }
 }
