@@ -80,7 +80,9 @@ struct LogicPuzzlePickerView: View {
         switch puzzleType {
         case .sudoku:
             SudokuEntryView()
-        case .killerSudoku, .nonogram, .kakuro:
+        case .killerSudoku:
+            KillerSudokuComingSoonView()
+        case .nonogram, .kakuro:
             LogicPuzzleComingSoonView(puzzleName: puzzleType.title)
         }
     }
@@ -759,6 +761,58 @@ struct LogicPuzzleComingSoonView: View {
         }
         .navigationTitle(puzzleName)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct KillerSudokuComingSoonView: View {
+    var body: some View {
+        ZStack {
+            AppTheme.Colors.background
+                .ignoresSafeArea()
+
+            VStack(spacing: AppTheme.Spacing.large) {
+                VStack(spacing: AppTheme.Spacing.small) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(AppTheme.Colors.highlight)
+
+                    Text("Killer Sudoku")
+                        .appTextStyle(.h1)
+                        .foregroundStyle(AppTheme.Colors.highlight)
+
+                    Text("Coming Soon")
+                        .appTextStyle(.h2)
+                        .foregroundStyle(AppTheme.Colors.text)
+                }
+
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                    Text("Planned support includes:")
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.9))
+
+                    comingSoonBullet("Cages with target sums")
+                    comingSoonBullet("No duplicate digits in a cage")
+                    comingSoonBullet("Full normal Sudoku row/column/box rules")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(AppTheme.Spacing.xLarge)
+            .appSurfaceCard()
+            .padding(.horizontal, AppTheme.Spacing.large)
+        }
+        .navigationTitle("Killer Sudoku")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func comingSoonBullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
+            Text("•")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.highlight)
+            Text(text)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.84))
+        }
     }
 }
 

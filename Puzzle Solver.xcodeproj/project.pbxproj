@@ -18,6 +18,9 @@
 		EE82B6842B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */; };
 		EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6902B69973D00B2BC49 /* MainMenuView.swift */; };
 		EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */; };
+		EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */; };
+		EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */; };
+		EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */; };
 		EE82B6932B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */; };
 		EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */; };
 		EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69A2B69B41400B2BC49 /* SolvingView.swift */; };
@@ -73,6 +76,9 @@
 		EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		EE82B6902B69973D00B2BC49 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
 		EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzlePickerView.swift; sourceTree = "<group>"; };
+		EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuGrid.swift; sourceTree = "<group>"; };
+		EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuCage.swift; sourceTree = "<group>"; };
+		EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuSolver.swift; sourceTree = "<group>"; };
 		EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleEntryView.swift; sourceTree = "<group>"; };
 		EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		EE82B69A2B69B41400B2BC49 /* SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolvingView.swift; sourceTree = "<group>"; };
@@ -149,6 +155,9 @@
 				EE82B6902B69973D00B2BC49 /* MainMenuView.swift */,
 				EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */,
 				EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */,
+				EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */,
+				EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */,
+				EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */,
 				EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */,
 				EE82B69A2B69B41400B2BC49 /* SolvingView.swift */,
 				EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */,
@@ -336,6 +345,9 @@
 				EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */,
 				EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */,
 				EEAA10012F70000100D00D01 /* LogicPuzzleDomain.swift in Sources */,
+				EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */,
+				EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */,
+				EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */,
 				EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */,
 				EE82B6932B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift in Sources */,
 				EE38313D2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift in Sources */,
