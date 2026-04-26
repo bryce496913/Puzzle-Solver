@@ -17,6 +17,7 @@
 		EE82B6822B69931700B2BC49 /* Puzzle_SolverUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6812B69931700B2BC49 /* Puzzle_SolverUITests.swift */; };
 		EE82B6842B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */; };
 		EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6902B69973D00B2BC49 /* MainMenuView.swift */; };
+		EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */; };
 		EE82B6932B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */; };
 		EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */; };
 		EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69A2B69B41400B2BC49 /* SolvingView.swift */; };
@@ -70,6 +71,7 @@
 		EE82B6812B69931700B2BC49 /* Puzzle_SolverUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverUITests.swift; sourceTree = "<group>"; };
 		EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		EE82B6902B69973D00B2BC49 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
+		EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzlePickerView.swift; sourceTree = "<group>"; };
 		EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleEntryView.swift; sourceTree = "<group>"; };
 		EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		EE82B69A2B69B41400B2BC49 /* SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolvingView.swift; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 				EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */,
 				EE82B6682B69931500B2BC49 /* ContentView.swift */,
 				EE82B6902B69973D00B2BC49 /* MainMenuView.swift */,
+				EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */,
 				EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */,
 				EE82B69A2B69B41400B2BC49 /* SolvingView.swift */,
 				EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */,
@@ -328,6 +331,7 @@
 			files = (
 				EE18DB782B939DD000B3843E /* SlidingPuzzleSolver.swift in Sources */,
 				EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */,
+				EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */,
 				EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */,
 				EE82B6932B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift in Sources */,
 				EE38313D2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift in Sources */,
