@@ -185,23 +185,16 @@ struct SkewbEntryView: View {
                     .appTextStyle(.paragraph)
                     .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
 
-                HStack(spacing: AppTheme.Spacing.small) {
-                    ForEach(SkewbStickerColor.allCases, id: \.self) { color in
-                        let count = colorCounts[color, default: 0]
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(color.displayColor)
-                                .frame(width: 12, height: 12)
-                            Text("\(count)/5")
-                                .appTextStyle(.paragraph)
-                                .foregroundStyle(count == 5 ? AppTheme.Colors.text : AppTheme.Colors.highlight)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 8)
-                        .background(AppTheme.Colors.background.opacity(0.35))
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                TwistyColorCountRow(
+                    items: SkewbStickerColor.allCases.map { color in
+                        TwistyColorCountItem(
+                            id: color.rawValue,
+                            color: color.displayColor,
+                            count: colorCounts[color, default: 0],
+                            target: 5
+                        )
                     }
-                }
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,29 +205,17 @@ struct SkewbEntryView: View {
             Text("Selected color")
                 .appTextStyle(.h2)
 
-            HStack(spacing: AppTheme.Spacing.small) {
-                ForEach(SkewbStickerColor.allCases, id: \.self) { color in
-                    Button {
+            TwistyColorPickerRow(
+                options: SkewbStickerColor.allCases.map { color in
+                    TwistyColorOption(id: color.rawValue, label: color.shortLabel, color: color.displayColor)
+                },
+                selectedColorID: selectedColor.rawValue,
+                onSelect: { selectedID in
+                    if let color = SkewbStickerColor(rawValue: selectedID) {
                         selectedColor = color
-                    } label: {
-                        VStack(spacing: AppTheme.Spacing.xSmall) {
-                            Circle()
-                                .fill(color.displayColor)
-                                .frame(width: 28, height: 28)
-                                .overlay(Circle().stroke(Color.white.opacity(0.65), lineWidth: 1))
-
-                            Text(color.shortLabel)
-                                .appTextStyle(.paragraph)
-                                .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppTheme.Spacing.xSmall)
-                        .background(selectedColor == color ? AppTheme.Colors.highlight.opacity(0.22) : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
                     }
-                    .buttonStyle(.plain)
                 }
-            }
+            )
         }
     }
 
@@ -528,157 +509,6 @@ private extension SkewbStickerColor {
         case .back: return TwistyStickerPalette.standard.blue
         case .down: return TwistyStickerPalette.standard.yellow
         }
-    }
-}
-
-private struct TwistySimpleTokenEntryView<State: TwistyPuzzleState>: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let puzzleType: TwistyPuzzleType
-    let subtitle: String
-    let helperText: String
-    let makeState: ([String]) -> State
-
-    @State private var tokenInput = ""
-    @State private var solveState: State?
-    @State private var shouldNavigateToSolve = false
-
-    private var tokens: [String] {
-        tokenInput
-            .split(whereSeparator: \.isWhitespace)
-            .map(String.init)
-    }
-
-    private var validation: TwistyEntryValidationStatus {
-        if tokens.isEmpty {
-            return .incomplete("Enter at least one move token to continue.")
-        }
-        return .ready("Looks good. \(tokens.count) token\(tokens.count == 1 ? "" : "s") detected.")
-    }
-
-    var body: some View {
-        TwistyScreenContainer {
-            TwistyScreenHeader(
-                title: "\(puzzleType.metadata.shortTitle) Entry",
-                subtitle: subtitle
-            )
-
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                Text("How to enter")
-                    .appTextStyle(.h2)
-                Text(helperText)
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
-                Text(validation.message)
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(validation.messageColor)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .appSurfaceCard()
-
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                Text("Move tokens")
-                    .appTextStyle(.h2)
-
-                TextEditor(text: $tokenInput)
-                    .frame(minHeight: 120)
-                    .padding(AppTheme.Spacing.xSmall)
-                    .background(AppTheme.Colors.background.opacity(0.35))
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
-
-                Text("Detected: \(tokens.joined(separator: " "))")
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.78))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .appSurfaceCard()
-
-            Button("Solve") {
-                solveState = makeState(tokens)
-                shouldNavigateToSolve = true
-            }
-            .buttonStyle(AppPrimaryButtonStyle())
-            .disabled(!validation.isReady)
-            .opacity(validation.isReady ? 1 : 0.5)
-
-            HStack(spacing: AppTheme.Spacing.medium) {
-                Button("Back") { dismiss() }
-                    .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.surface))
-
-                Button("Reset") { tokenInput = "" }
-                    .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.accent))
-            }
-        }
-        .navigationBarBackButtonHidden(true)
-        .navigationTitle(puzzleType.metadata.shortTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $shouldNavigateToSolve) {
-            if let solveState {
-                TwistySimpleSolveView(initialState: solveState)
-            }
-        }
-    }
-}
-
-private struct TwistySimpleSolveView<State: TwistyPuzzleState>: View {
-    let initialState: State
-
-    @State private var isSolving = true
-    @State private var solveResult: TwistySolveResult?
-
-    var body: some View {
-        TwistyScreenContainer {
-            TwistyScreenHeader(
-                title: "\(initialState.puzzleType.metadata.shortTitle) Solution",
-                subtitle: "Review solving output for your entered tokens."
-            )
-
-            if isSolving {
-                VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                    ProgressView()
-                        .tint(AppTheme.Colors.highlight)
-                    Text("Solving \(initialState.puzzleType.metadata.shortTitle)…")
-                        .appTextStyle(.h2)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .appSurfaceCard()
-            } else if let solveResult {
-                TwistySolveSummaryCard(result: solveResult)
-                TwistyNumberedMoveListView(title: "Ordered move list", moves: solveResult.moves)
-
-                ForEach(solveResult.makeStepViewData()) { step in
-                    TwistyStepCardView(step: step)
-                }
-            }
-        }
-        .task {
-            await solve()
-        }
-        .navigationTitle("\(initialState.puzzleType.metadata.shortTitle) Results")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    @MainActor
-    private func solve() async {
-        let result: TwistySolveResult
-
-        switch initialState.puzzleType {
-        case .pyraminx:
-            guard let state = initialState as? PyraminxState else { return }
-            result = await Task.detached(priority: .userInitiated) {
-                await PyraminxSolver().solve(from: state)
-            }.value
-        case .skewb:
-            guard let state = initialState as? SkewbState else { return }
-            result = await Task.detached(priority: .userInitiated) {
-                await SkewbSolver().solve(from: state)
-            }.value
-        case .cube2x2, .cube3x3:
-            return
-        }
-
-        solveResult = result
-        isSolving = false
     }
 }
 

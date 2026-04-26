@@ -70,6 +70,75 @@ struct TwistyStickerPalette {
     )
 }
 
+struct TwistyColorOption: Identifiable {
+    let id: String
+    let label: String
+    let color: Color
+}
+
+struct TwistyColorCountItem: Identifiable {
+    let id: String
+    let color: Color
+    let count: Int
+    let target: Int
+}
+
+struct TwistyColorCountRow: View {
+    let items: [TwistyColorCountItem]
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.small) {
+            ForEach(items) { item in
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(item.color)
+                        .frame(width: 12, height: 12)
+
+                    Text("\(item.count)/\(item.target)")
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(item.count == item.target ? AppTheme.Colors.text : AppTheme.Colors.highlight)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .background(AppTheme.Colors.background.opacity(0.35))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+            }
+        }
+    }
+}
+
+struct TwistyColorPickerRow: View {
+    let options: [TwistyColorOption]
+    let selectedColorID: String
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.small) {
+            ForEach(options) { option in
+                Button {
+                    onSelect(option.id)
+                } label: {
+                    VStack(spacing: AppTheme.Spacing.xSmall) {
+                        Circle()
+                            .fill(option.color)
+                            .frame(width: 28, height: 28)
+                            .overlay(Circle().stroke(Color.white.opacity(0.65), lineWidth: 1))
+
+                        Text(option.label)
+                            .appTextStyle(.paragraph)
+                            .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppTheme.Spacing.xSmall)
+                    .background(selectedColorID == option.id ? AppTheme.Colors.highlight.opacity(0.22) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
 struct TwistyFaceSticker: Identifiable, Hashable {
     let id: String
     let color: Color
