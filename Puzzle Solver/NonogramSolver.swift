@@ -7,7 +7,8 @@ import Foundation
 /// - iteratively narrow cell states (`filled` / `empty` / `unknown`).
 /// - produce explainable solving steps for the UI.
 struct NonogramSolver {
-    func solve(_ puzzle: NonogramPuzzle) -> LogicSolveResult<NonogramPuzzle> {
+    func solve(_ initialGrid: NonogramGrid) -> LogicSolveResult<NonogramGrid> {
+        _ = initialGrid
         LogicSolveResult(
             puzzleType: .nonogram,
             validity: .invalid([
