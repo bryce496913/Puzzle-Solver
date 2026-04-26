@@ -45,6 +45,9 @@
 		EEB1A0012F80000100D00D01 /* NonogramPuzzle.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0022F80000100D00D01 /* NonogramPuzzle.swift */; };
 		EEB1A0032F80000100D00D01 /* NonogramClues.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0042F80000100D00D01 /* NonogramClues.swift */; };
 		EEB1A0052F80000100D00D01 /* NonogramSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0062F80000100D00D01 /* NonogramSolver.swift */; };
+		EEAC10012F81000100D00D01 /* KakuroGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10002F81000100D00D01 /* KakuroGrid.swift */; };
+		EEAC10032F81000100D00D01 /* KakuroClueCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10022F81000100D00D01 /* KakuroClueCell.swift */; };
+		EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10042F81000100D00D01 /* KakuroSolver.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -106,6 +109,9 @@
 		EEB1A0022F80000100D00D01 /* NonogramPuzzle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramPuzzle.swift; sourceTree = "<group>"; };
 		EEB1A0042F80000100D00D01 /* NonogramClues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramClues.swift; sourceTree = "<group>"; };
 		EEB1A0062F80000100D00D01 /* NonogramSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramSolver.swift; sourceTree = "<group>"; };
+		EEAC10002F81000100D00D01 /* KakuroGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroGrid.swift; sourceTree = "<group>"; };
+		EEAC10022F81000100D00D01 /* KakuroClueCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroClueCell.swift; sourceTree = "<group>"; };
+		EEAC10042F81000100D00D01 /* KakuroSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroSolver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -164,6 +170,9 @@
 				EEB1A0022F80000100D00D01 /* NonogramPuzzle.swift */,
 				EEB1A0042F80000100D00D01 /* NonogramClues.swift */,
 				EEB1A0062F80000100D00D01 /* NonogramSolver.swift */,
+				EEAC10002F81000100D00D01 /* KakuroGrid.swift */,
+				EEAC10022F81000100D00D01 /* KakuroClueCell.swift */,
+				EEAC10042F81000100D00D01 /* KakuroSolver.swift */,
 				EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */,
 				EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */,
 				EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */,
@@ -357,6 +366,9 @@
 				EEB1A0012F80000100D00D01 /* NonogramPuzzle.swift in Sources */,
 				EEB1A0032F80000100D00D01 /* NonogramClues.swift in Sources */,
 				EEB1A0052F80000100D00D01 /* NonogramSolver.swift in Sources */,
+				EEAC10012F81000100D00D01 /* KakuroGrid.swift in Sources */,
+				EEAC10032F81000100D00D01 /* KakuroClueCell.swift in Sources */,
+				EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */,
 				EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */,
 				EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */,
 				EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */,
