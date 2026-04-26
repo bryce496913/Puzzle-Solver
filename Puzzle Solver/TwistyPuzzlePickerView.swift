@@ -269,6 +269,9 @@ struct SkewbResultView: View {
 
     @State private var isSolving = true
     @State private var solveResult: TwistySolveResult?
+    @State private var currentStepIndex = 0
+    @State private var isAutoPlaying = false
+    @State private var autoPlayTask: Task<Void, Never>?
 
     private var stepViewData: [TwistySolutionStepViewData] {
         solveResult?.makeStepViewData() ?? []
@@ -291,20 +294,23 @@ struct SkewbResultView: View {
                     TwistyNumberedMoveListView(title: "Ordered move list", moves: result.moves)
 
                     if !stepViewData.isEmpty {
-                        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                            Text("Step cards")
-                                .appTextStyle(.h2)
-
-                            ForEach(stepViewData) { step in
-                                TwistyStepCardView(step: step, previewText: "Skewb visual preview coming soon")
-                            }
-                        }
+                        TwistySolutionPlaybackView(
+                            step: stepViewData[currentStepIndex],
+                            totalSteps: stepViewData.count,
+                            isAutoPlaying: isAutoPlaying,
+                            onPrevious: moveToPreviousStep,
+                            onNext: moveToNextStep,
+                            onToggleAutoPlay: toggleAutoPlay
+                        )
                     }
                 }
             }
         }
         .task {
             await solveSkewb()
+        }
+        .onDisappear {
+            stopAutoPlay()
         }
         .navigationTitle("Skewb Results")
         .navigationBarTitleDisplayMode(.inline)
@@ -340,13 +346,74 @@ struct SkewbResultView: View {
         .appSurfaceCard()
     }
 
+    private func moveToPreviousStep() {
+        stopAutoPlay()
+        guard currentStepIndex > 0 else { return }
+        currentStepIndex -= 1
+    }
+
+    private func moveToNextStep() {
+        guard !stepViewData.isEmpty else { return }
+
+        if currentStepIndex < stepViewData.count - 1 {
+            currentStepIndex += 1
+        } else {
+            stopAutoPlay()
+        }
+    }
+
+    private func toggleAutoPlay() {
+        if isAutoPlaying {
+            stopAutoPlay()
+        } else {
+            startAutoPlay()
+        }
+    }
+
+    private func startAutoPlay() {
+        guard stepViewData.count > 1 else { return }
+
+        if currentStepIndex >= stepViewData.count - 1 {
+            currentStepIndex = 0
+        }
+
+        stopAutoPlay()
+        isAutoPlaying = true
+
+        autoPlayTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1.1))
+
+                if Task.isCancelled {
+                    return
+                }
+
+                await MainActor.run {
+                    if currentStepIndex < stepViewData.count - 1 {
+                        currentStepIndex += 1
+                    } else {
+                        stopAutoPlay()
+                    }
+                }
+            }
+        }
+    }
+
+    private func stopAutoPlay() {
+        isAutoPlaying = false
+        autoPlayTask?.cancel()
+        autoPlayTask = nil
+    }
+
     @MainActor
     private func solveSkewb() async {
         isSolving = true
+        stopAutoPlay()
         let result = await Task.detached(priority: .userInitiated) {
             await SkewbSolver().solve(from: initialState)
         }.value
         solveResult = result
+        currentStepIndex = 0
         isSolving = false
     }
 }

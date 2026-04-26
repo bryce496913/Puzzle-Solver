@@ -124,26 +124,39 @@ struct Cube3x3SolvingView: View {
             .tint(AppTheme.Colors.highlight)
 
             if showsStepCards {
-                TwistyStepPlaybackControlsView(
-                    currentStepNumber: currentStepIndex + 1,
-                    totalSteps: playbackMoves.count,
-                    currentMoveText: playbackMoves[safe: currentStepIndex]?.token,
-                    isAutoPlaying: isAutoPlaying,
-                    onPrevious: moveToPreviousStep,
-                    onNext: moveToNextStep,
-                    onToggleAutoPlay: toggleAutoPlay
-                )
-
-                CubeMoveStepCardView(
-                    step: stepViewData[safe: currentStepIndex] ?? TwistySolutionStepViewData(
+                let currentStep = stepViewData[safe: currentStepIndex] ?? TwistySolutionStepViewData(
                         id: UUID(),
                         stepNumber: currentStepIndex + 1,
                         primaryText: playbackMoves[safe: currentStepIndex]?.token ?? "—",
                         secondaryText: nil
-                    ),
-                    previewNet: stepPreviewNets[safe: currentStepIndex],
+                    )
+
+                TwistySolutionPlaybackView(
+                    step: currentStep,
+                    totalSteps: playbackMoves.count,
+                    isAutoPlaying: isAutoPlaying,
+                    onPrevious: moveToPreviousStep,
+                    onNext: moveToNextStep,
+                    onToggleAutoPlay: toggleAutoPlay,
                     previewCaption: "Cube state after this move"
-                )
+                ) {
+                    if let previewNet = stepPreviewNets[safe: currentStepIndex] {
+                        Cube3x3NetView(
+                            stickersByFace: [
+                                .u: previewNet.up,
+                                .r: previewNet.right,
+                                .f: previewNet.front,
+                                .d: previewNet.down,
+                                .l: previewNet.left,
+                                .b: previewNet.back
+                            ],
+                            stickerSize: 14,
+                            isReadOnly: true
+                        )
+                    } else {
+                        playbackPreviewUnavailable
+                    }
+                }
             } else {
                 Text("Turn on previews to step through the sequence one move at a time.")
                     .appTextStyle(.paragraph)
@@ -156,6 +169,20 @@ struct Cube3x3SolvingView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .appSurfaceCard()
+    }
+
+    private var playbackPreviewUnavailable: some View {
+        HStack(spacing: AppTheme.Spacing.xSmall) {
+            Image(systemName: "cube.transparent")
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.78))
+            Text("Step playback preview not available.")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+        }
+        .padding(AppTheme.Spacing.small)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.Colors.background.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium, style: .continuous))
     }
 
 

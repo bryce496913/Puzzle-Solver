@@ -583,6 +583,106 @@ struct TwistyStepPlaybackControlsView: View {
     }
 }
 
+struct TwistySolutionPlaybackView<PreviewContent: View>: View {
+    let step: TwistySolutionStepViewData
+    let totalSteps: Int
+    let isAutoPlaying: Bool
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+    let onToggleAutoPlay: () -> Void
+    let previewCaption: String?
+    private let previewContent: (() -> PreviewContent)?
+
+    init(
+        step: TwistySolutionStepViewData,
+        totalSteps: Int,
+        isAutoPlaying: Bool,
+        onPrevious: @escaping () -> Void,
+        onNext: @escaping () -> Void,
+        onToggleAutoPlay: @escaping () -> Void,
+        previewCaption: String? = nil,
+        @ViewBuilder previewContent: @escaping () -> PreviewContent
+    ) {
+        self.step = step
+        self.totalSteps = totalSteps
+        self.isAutoPlaying = isAutoPlaying
+        self.onPrevious = onPrevious
+        self.onNext = onNext
+        self.onToggleAutoPlay = onToggleAutoPlay
+        self.previewCaption = previewCaption
+        self.previewContent = previewContent
+    }
+
+    init(
+        step: TwistySolutionStepViewData,
+        totalSteps: Int,
+        isAutoPlaying: Bool,
+        onPrevious: @escaping () -> Void,
+        onNext: @escaping () -> Void,
+        onToggleAutoPlay: @escaping () -> Void
+    ) where PreviewContent == EmptyView {
+        self.step = step
+        self.totalSteps = totalSteps
+        self.isAutoPlaying = isAutoPlaying
+        self.onPrevious = onPrevious
+        self.onNext = onNext
+        self.onToggleAutoPlay = onToggleAutoPlay
+        self.previewCaption = nil
+        self.previewContent = nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            TwistyStepPlaybackControlsView(
+                currentStepNumber: step.stepNumber,
+                totalSteps: totalSteps,
+                currentMoveText: step.primaryText,
+                isAutoPlaying: isAutoPlaying,
+                onPrevious: onPrevious,
+                onNext: onNext,
+                onToggleAutoPlay: onToggleAutoPlay
+            )
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
+                    Text("Step \(step.stepNumber)")
+                        .appTextStyle(.h2)
+
+                    Spacer(minLength: AppTheme.Spacing.small)
+
+                    Text(step.primaryText)
+                        .appTextStyle(.h2)
+                        .foregroundStyle(AppTheme.Colors.highlight)
+                        .padding(.horizontal, AppTheme.Spacing.small)
+                        .padding(.vertical, AppTheme.Spacing.xSmall)
+                        .background(AppTheme.Colors.background.opacity(0.35))
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+                }
+
+                if let secondaryText = step.secondaryText {
+                    Text(secondaryText)
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.84))
+                }
+
+                if let previewContent {
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+                        if let previewCaption {
+                            Text(previewCaption)
+                                .appTextStyle(.paragraph)
+                                .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
+                        }
+                        previewContent()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .appSurfaceCard()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct TwistyStepCardView: View {
     let step: TwistySolutionStepViewData
     let previewText: String
