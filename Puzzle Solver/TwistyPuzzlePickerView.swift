@@ -80,17 +80,6 @@ struct TwistyPuzzlePickerView: View {
     }
 }
 
-private struct PyraminxEntryView: View {
-    var body: some View {
-        TwistySimpleTokenEntryView(
-            puzzleType: .pyraminx,
-            subtitle: "Enter your Pyraminx scramble or state tokens in WCA notation.",
-            helperText: "Example: R U L' B U' R'. We'll parse each token and pass it to the puzzle mode.",
-            makeState: { tokens in PyraminxState(stickerTokens: tokens) }
-        )
-    }
-}
-
 private struct SkewbEntryView: View {
     var body: some View {
         TwistySimpleTokenEntryView(
