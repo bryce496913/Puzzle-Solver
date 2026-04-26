@@ -457,6 +457,7 @@ private enum Cube3x3ResultFormatter {
     static func invalidResult(message: String, startedAt: Date) -> TwistySolveResult {
         TwistySolveResult(
             puzzleType: .cube3x3,
+            stateValidation: .invalid(reason: message),
             isSolvable: false,
             moves: [],
             steps: [TwistySolutionStep(move: nil, explanation: message)],
@@ -468,6 +469,7 @@ private enum Cube3x3ResultFormatter {
     static func alreadySolvedResult(startedAt: Date) -> TwistySolveResult {
         TwistySolveResult(
             puzzleType: .cube3x3,
+            stateValidation: .valid,
             isSolvable: true,
             moves: [],
             steps: [TwistySolutionStep(move: nil, explanation: "Cube is already solved.")],
@@ -479,6 +481,7 @@ private enum Cube3x3ResultFormatter {
     static func searchLimitResult(startedAt: Date) -> TwistySolveResult {
         TwistySolveResult(
             puzzleType: .cube3x3,
+            stateValidation: .valid,
             isSolvable: false,
             moves: [],
             steps: [TwistySolutionStep(move: nil, explanation: "No solution found within search limits.")],
@@ -494,6 +497,7 @@ private enum Cube3x3ResultFormatter {
 
         return TwistySolveResult(
             puzzleType: .cube3x3,
+            stateValidation: .valid,
             isSolvable: true,
             moves: moves.map(\.twistyMove),
             steps: steps,

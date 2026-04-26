@@ -20,6 +20,28 @@ enum PyraminxMove: String, CaseIterable, Hashable, Sendable {
     case tipBPrime = "b'"
 
     static let outerMoves: [PyraminxMove] = [.u, .uPrime, .l, .lPrime, .r, .rPrime, .b, .bPrime]
+    static let allSolvingMoves: [PyraminxMove] = Self.allCases
+
+    var inverse: PyraminxMove {
+        switch self {
+        case .u: return .uPrime
+        case .uPrime: return .u
+        case .l: return .lPrime
+        case .lPrime: return .l
+        case .r: return .rPrime
+        case .rPrime: return .r
+        case .b: return .bPrime
+        case .bPrime: return .b
+        case .tipU: return .tipUPrime
+        case .tipUPrime: return .tipU
+        case .tipL: return .tipLPrime
+        case .tipLPrime: return .tipL
+        case .tipR: return .tipRPrime
+        case .tipRPrime: return .tipR
+        case .tipB: return .tipBPrime
+        case .tipBPrime: return .tipB
+        }
+    }
 
     var twistyMove: TwistyMove {
         TwistyMove(
@@ -82,16 +104,25 @@ struct PyraminxState: TwistyPuzzleState, Hashable, Sendable {
     static let empty = PyraminxState.solved
 
     let stickers: [PyraminxStickerColor]
+    let inputTokens: [String]
+    let invalidTokens: [String]
 
     var puzzleType: TwistyPuzzleType { .pyraminx }
 
-    init(stickers: [PyraminxStickerColor]) {
+    init(stickers: [PyraminxStickerColor], inputTokens: [String] = [], invalidTokens: [String] = []) {
         self.stickers = stickers.count == 36 ? stickers : PyraminxState.solved.stickers
+        self.inputTokens = inputTokens
+        self.invalidTokens = invalidTokens
     }
 
     init(stickerTokens: [String]) {
-        let moves = stickerTokens.compactMap(PyraminxMove.init(rawValue:))
-        self = PyraminxState.solved.applying(sequence: moves)
+        let parseResult = PyraminxTokenParser.parse(stickerTokens)
+        let stateFromTokens = PyraminxState.solved.applying(sequence: parseResult.validMoves)
+        self = PyraminxState(
+            stickers: stateFromTokens.stickers,
+            inputTokens: stickerTokens,
+            invalidTokens: parseResult.invalidTokens
+        )
     }
 
     func applying(_ move: PyraminxMove) -> PyraminxState {
@@ -111,9 +142,13 @@ struct PyraminxState: TwistyPuzzleState, Hashable, Sendable {
     }
 
     func neighbors() -> [(move: PyraminxMove, state: PyraminxState)] {
-        PyraminxMove.outerMoves.map { move in
+        PyraminxMove.allSolvingMoves.map { move in
             (move, applying(move))
         }
+    }
+
+    var isInputValid: Bool {
+        invalidTokens.isEmpty
     }
 
     func makeDisplayModel() -> PyraminxDisplayModel {
@@ -216,6 +251,38 @@ struct PyraminxState: TwistyPuzzleState, Hashable, Sendable {
     }
 }
 
+extension PyraminxState {
+    static func == (lhs: PyraminxState, rhs: PyraminxState) -> Bool {
+        lhs.stickers == rhs.stickers
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(stickers)
+    }
+}
+
+private struct PyraminxTokenParseResult {
+    let validMoves: [PyraminxMove]
+    let invalidTokens: [String]
+}
+
+private enum PyraminxTokenParser {
+    static func parse(_ tokens: [String]) -> PyraminxTokenParseResult {
+        var validMoves: [PyraminxMove] = []
+        var invalidTokens: [String] = []
+
+        for token in tokens {
+            if let move = PyraminxMove(rawValue: token) {
+                validMoves.append(move)
+            } else {
+                invalidTokens.append(token)
+            }
+        }
+
+        return PyraminxTokenParseResult(validMoves: validMoves, invalidTokens: invalidTokens)
+    }
+}
+
 enum SkewbMove: String, CaseIterable, Hashable, Sendable {
     case r = "R"
     case rPrime = "R'"
@@ -247,7 +314,170 @@ struct PyraminxSolver: TwistyPuzzleSolver {
     typealias State = PyraminxState
 
     func solve(from initialState: PyraminxState) async -> TwistySolveResult {
-        .placeholderResult(for: initialState.puzzleType)
+        let start = Date()
+        if !initialState.isInputValid {
+            let invalidList = initialState.invalidTokens.joined(separator: ", ")
+            return TwistySolveResult(
+                puzzleType: .pyraminx,
+                stateValidation: .invalid(reason: "Unrecognized tokens: \(invalidList)"),
+                isSolvable: false,
+                moves: [],
+                steps: [
+                    TwistySolutionStep(
+                        move: nil,
+                        explanation: "Input contains invalid tokens. Fix and try again."
+                    )
+                ],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: nil
+            )
+        }
+
+        if initialState == .solved {
+            return TwistySolveResult(
+                puzzleType: .pyraminx,
+                stateValidation: .valid,
+                isSolvable: true,
+                moves: [],
+                steps: [TwistySolutionStep(move: nil, explanation: "Pyraminx is already solved.")],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: "Solved"
+            )
+        }
+
+        guard let moveSequence = bidirectionalBFS(from: initialState, to: .solved) else {
+            return TwistySolveResult(
+                puzzleType: .pyraminx,
+                stateValidation: .valid,
+                isSolvable: false,
+                moves: [],
+                steps: [TwistySolutionStep(move: nil, explanation: "No solution found within search bounds.")],
+                elapsedTime: Date().timeIntervalSince(start),
+                finalStateDescription: nil
+            )
+        }
+
+        let steps = moveSequence.enumerated().map { index, move in
+            TwistySolutionStep(
+                move: move.twistyMove,
+                explanation: "Step \(index + 1): apply \(move.rawValue)."
+            )
+        }
+
+        return TwistySolveResult(
+            puzzleType: .pyraminx,
+            stateValidation: .valid,
+            isSolvable: true,
+            moves: moveSequence.map(\.twistyMove),
+            steps: steps,
+            elapsedTime: Date().timeIntervalSince(start),
+            finalStateDescription: "Solved"
+        )
+    }
+
+    private func bidirectionalBFS(from start: PyraminxState, to goal: PyraminxState) -> [PyraminxMove]? {
+        var forwardParents: [PyraminxState: (parent: PyraminxState, move: PyraminxMove)] = [:]
+        var backwardParents: [PyraminxState: (parent: PyraminxState, move: PyraminxMove)] = [:]
+        var forwardVisited: Set<PyraminxState> = [start]
+        var backwardVisited: Set<PyraminxState> = [goal]
+        var forwardFrontier: [PyraminxState] = [start]
+        var backwardFrontier: [PyraminxState] = [goal]
+
+        while !forwardFrontier.isEmpty, !backwardFrontier.isEmpty {
+            if forwardFrontier.count <= backwardFrontier.count {
+                if let meeting = expandFrontier(
+                    frontier: &forwardFrontier,
+                    visited: &forwardVisited,
+                    ownParents: &forwardParents,
+                    oppositeVisited: backwardVisited,
+                    isForward: true
+                ) {
+                    return stitchPath(
+                        meeting: meeting,
+                        forwardParents: forwardParents,
+                        backwardParents: backwardParents
+                    )
+                }
+            } else {
+                if let meeting = expandFrontier(
+                    frontier: &backwardFrontier,
+                    visited: &backwardVisited,
+                    ownParents: &backwardParents,
+                    oppositeVisited: forwardVisited,
+                    isForward: false
+                ) {
+                    return stitchPath(
+                        meeting: meeting,
+                        forwardParents: forwardParents,
+                        backwardParents: backwardParents
+                    )
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private func expandFrontier(
+        frontier: inout [PyraminxState],
+        visited: inout Set<PyraminxState>,
+        ownParents: inout [PyraminxState: (parent: PyraminxState, move: PyraminxMove)],
+        oppositeVisited: Set<PyraminxState>,
+        isForward: Bool
+    ) -> PyraminxState? {
+        var nextLevel: [PyraminxState] = []
+
+        for state in frontier {
+            for (move, adjacentState) in state.neighbors() {
+                let nextState: PyraminxState
+                let recordedMove: PyraminxMove
+
+                if isForward {
+                    nextState = adjacentState
+                    recordedMove = move
+                } else {
+                    nextState = adjacentState
+                    recordedMove = move.inverse
+                }
+
+                guard !visited.contains(nextState) else { continue }
+
+                visited.insert(nextState)
+                ownParents[nextState] = (state, recordedMove)
+
+                if oppositeVisited.contains(nextState) {
+                    return nextState
+                }
+
+                nextLevel.append(nextState)
+            }
+        }
+
+        frontier = nextLevel
+        return nil
+    }
+
+    private func stitchPath(
+        meeting: PyraminxState,
+        forwardParents: [PyraminxState: (parent: PyraminxState, move: PyraminxMove)],
+        backwardParents: [PyraminxState: (parent: PyraminxState, move: PyraminxMove)]
+    ) -> [PyraminxMove] {
+        var left: [PyraminxMove] = []
+        var cursor = meeting
+        while let record = forwardParents[cursor] {
+            left.append(record.move)
+            cursor = record.parent
+        }
+        left.reverse()
+
+        var right: [PyraminxMove] = []
+        cursor = meeting
+        while let record = backwardParents[cursor] {
+            right.append(record.move)
+            cursor = record.parent
+        }
+
+        return left + right
     }
 }
 
@@ -263,6 +493,7 @@ private extension TwistySolveResult {
     static func placeholderResult(for puzzleType: TwistyPuzzleType) -> TwistySolveResult {
         TwistySolveResult(
             puzzleType: puzzleType,
+            stateValidation: .valid,
             isSolvable: false,
             moves: [],
             steps: [

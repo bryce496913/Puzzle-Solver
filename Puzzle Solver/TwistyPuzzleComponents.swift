@@ -487,6 +487,10 @@ struct TwistySolveSummaryCard: View {
         let summary = result.makeSummaryViewData()
 
         return VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Text(summary.validationText)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(result.stateValidation.isValid ? AppTheme.Colors.text.opacity(0.9) : AppTheme.Colors.highlight)
+
             Text(summary.statusText)
                 .appTextStyle(.h2)
                 .foregroundStyle(result.isSolvable ? AppTheme.Colors.text : AppTheme.Colors.highlight)
