@@ -1,17 +1,7 @@
 import SwiftUI
 
 struct LogicPuzzlePickerView: View {
-    private let puzzleTypes = LogicPuzzleType.allCases.map {
-        LogicPuzzleCatalogItem(puzzleType: $0, subtitle: $0.availabilitySubtitle)
-    }
-
-    private var activePuzzles: [LogicPuzzleCatalogItem] {
-        puzzleTypes.filter(\.isEnabled)
-    }
-
-    private var comingSoonPuzzles: [LogicPuzzleCatalogItem] {
-        puzzleTypes.filter { !$0.isEnabled }
-    }
+    private let puzzleTypes = LogicPuzzleType.allCases
 
     var body: some View {
         ZStack {
@@ -25,54 +15,20 @@ struct LogicPuzzlePickerView: View {
                         subtitle: "Choose a logic puzzle type"
                     )
 
-                    if !activePuzzles.isEmpty {
-                        sectionTitle("Available now")
-                        ForEach(activePuzzles) { catalogItem in
-                            NavigationLink {
-                                destinationView(for: catalogItem.puzzleType)
-                            } label: {
-                                PuzzleTypeCard(
-                                    title: catalogItem.title,
-                                    subtitle: catalogItem.subtitle,
-                                    icon: catalogItem.icon,
-                                    isEnabled: true,
-                                    accentVariant: .accent
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    if !comingSoonPuzzles.isEmpty {
-                        sectionTitle("Coming soon")
-                        ForEach(comingSoonPuzzles) { catalogItem in
-                            NavigationLink {
-                                destinationView(for: catalogItem.puzzleType)
-                            } label: {
-                                PuzzleTypeCard(
-                                    title: catalogItem.title,
-                                    subtitle: catalogItem.subtitle,
-                                    icon: catalogItem.icon,
-                                    isEnabled: false,
-                                    accentVariant: .highlight
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    PuzzleCategorySectionsView(
+                        items: puzzleTypes,
+                        title: { $0.title },
+                        subtitle: { $0.availabilitySubtitle },
+                        icon: { $0.icon },
+                        isEnabled: { $0.isEnabled },
+                        destination: destinationView(for:)
+                    )
                 }
                 .padding(AppTheme.Spacing.large)
             }
         }
         .navigationTitle("Logic Puzzles")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .appTextStyle(.paragraph)
-            .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
-            .textCase(.uppercase)
     }
 
     @ViewBuilder
@@ -90,15 +46,6 @@ struct LogicPuzzlePickerView: View {
     }
 }
 
-private struct LogicPuzzleCatalogItem: Identifiable {
-    let puzzleType: LogicPuzzleType
-    let subtitle: String
-
-    var id: LogicPuzzleType { puzzleType }
-    var title: String { puzzleType.title }
-    var icon: String { puzzleType.icon }
-    var isEnabled: Bool { puzzleType.isEnabled }
-}
 
 #Preview {
     NavigationStack {

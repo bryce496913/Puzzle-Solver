@@ -29,6 +29,7 @@
 		EEA100042C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */; };
 		EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100002C01000000D00D01 /* AppDesignSystem.swift */; };
 		EEA100032C01012300D00D01 /* PuzzleTypeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */; };
+		EEB310012FA2000100D00D01 /* PuzzleCategorySectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB310002FA2000100D00D01 /* PuzzleCategorySectionsView.swift */; };
 		EEB200012C02000100D00D01 /* SlidingPuzzleBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */; };
 		EEB200042C02010100D00D01 /* TwistyPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */; };
 		EEB200062C02020200D00D01 /* Cube2x2EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200052C02020200D00D01 /* Cube2x2EntryView.swift */; };
@@ -96,6 +97,7 @@
 		EE82B69A2B69B41400B2BC49 /* SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolvingView.swift; sourceTree = "<group>"; };
 		EEA100002C01000000D00D01 /* AppDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDesignSystem.swift; sourceTree = "<group>"; };
 		EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleTypeCard.swift; sourceTree = "<group>"; };
+		EEB310002FA2000100D00D01 /* PuzzleCategorySectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleCategorySectionsView.swift; sourceTree = "<group>"; };
 		EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleSizeSelectionView.swift; sourceTree = "<group>"; };
 		EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleBoardView.swift; sourceTree = "<group>"; };
 		EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzlePickerView.swift; sourceTree = "<group>"; };
@@ -194,6 +196,7 @@
 				EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */,
 				EE38313C2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift */,
 				EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */,
+				EEB310002FA2000100D00D01 /* PuzzleCategorySectionsView.swift */,
 				EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */,
 				EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */,
 				EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */,
@@ -396,6 +399,7 @@
 				EE82B6672B69931500B2BC49 /* Puzzle_SolverApp.swift in Sources */,
 				EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */,
 				EEA100032C01012300D00D01 /* PuzzleTypeCard.swift in Sources */,
+				EEB310012FA2000100D00D01 /* PuzzleCategorySectionsView.swift in Sources */,
 				EEA100042C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift in Sources */,
 				EEB200012C02000100D00D01 /* SlidingPuzzleBoardView.swift in Sources */,
 				EEB200042C02010100D00D01 /* TwistyPuzzlePickerView.swift in Sources */,

@@ -3,14 +3,6 @@ import SwiftUI
 struct MechanicalPuzzlePickerView: View {
     private let puzzleTypes = MechanicalPuzzleType.allCases
 
-    private var activePuzzles: [MechanicalPuzzleType] {
-        puzzleTypes.filter(\.isEnabled)
-    }
-
-    private var comingSoonPuzzles: [MechanicalPuzzleType] {
-        puzzleTypes.filter { !$0.isEnabled }
-    }
-
     var body: some View {
         ZStack {
             AppTheme.Colors.background
@@ -23,54 +15,20 @@ struct MechanicalPuzzlePickerView: View {
                         subtitle: "Choose a mechanical puzzle type"
                     )
 
-                    if !activePuzzles.isEmpty {
-                        sectionTitle("Available now")
-                        ForEach(activePuzzles) { puzzleType in
-                            NavigationLink {
-                                destinationView(for: puzzleType)
-                            } label: {
-                                PuzzleTypeCard(
-                                    title: puzzleType.title,
-                                    subtitle: puzzleType.subtitle,
-                                    icon: puzzleType.icon,
-                                    isEnabled: true,
-                                    accentVariant: .accent
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    if !comingSoonPuzzles.isEmpty {
-                        sectionTitle("Coming soon")
-                        ForEach(comingSoonPuzzles) { puzzleType in
-                            NavigationLink {
-                                destinationView(for: puzzleType)
-                            } label: {
-                                PuzzleTypeCard(
-                                    title: puzzleType.title,
-                                    subtitle: puzzleType.subtitle,
-                                    icon: puzzleType.icon,
-                                    isEnabled: false,
-                                    accentVariant: .highlight
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    PuzzleCategorySectionsView(
+                        items: puzzleTypes,
+                        title: { $0.title },
+                        subtitle: { $0.subtitle },
+                        icon: { $0.icon },
+                        isEnabled: { $0.isEnabled },
+                        destination: destinationView(for:)
+                    )
                 }
                 .padding(AppTheme.Spacing.large)
             }
         }
         .navigationTitle("Mechanical Puzzles")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .appTextStyle(.paragraph)
-            .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
-            .textCase(.uppercase)
     }
 
     @ViewBuilder
