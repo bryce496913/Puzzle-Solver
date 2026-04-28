@@ -48,7 +48,7 @@ struct SudokuEntryView: View {
 
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
                     Text("Tip: Tap a square, then enter digits 1–9. Use Delete to clear a square.")
-                        .appTextStyle(.small)
+                        .appTextStyle(.h3)
                         .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
 
                     Text(isObviousInvalid ? "Please fix duplicates before solving." : "No obvious conflicts detected.")
@@ -58,7 +58,7 @@ struct SudokuEntryView: View {
                     if isObviousInvalid {
                         ForEach(boardConflictKinds.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.self) { kind in
                             Text(kind.duplicateMessage)
-                                .appTextStyle(.small)
+                                .appTextStyle(.h3)
                                 .foregroundStyle(AppTheme.Colors.highlight.opacity(0.95))
                         }
                     }
