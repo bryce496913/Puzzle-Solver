@@ -51,6 +51,7 @@
 		EEAC10032F81000100D00D01 /* KakuroClueCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10022F81000100D00D01 /* KakuroClueCell.swift */; };
 		EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10042F81000100D00D01 /* KakuroSolver.swift */; };
 		EEAD20012F91000100D00D01 /* MechanicalPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */; };
+		EEAD20032F91010100D00D01 /* RushHourEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAD20022F91010100D00D01 /* RushHourEntryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,6 +119,7 @@
 		EEAC10022F81000100D00D01 /* KakuroClueCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroClueCell.swift; sourceTree = "<group>"; };
 		EEAC10042F81000100D00D01 /* KakuroSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroSolver.swift; sourceTree = "<group>"; };
 		EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleDomain.swift; sourceTree = "<group>"; };
+		EEAD20022F91010100D00D01 /* RushHourEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RushHourEntryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -185,6 +187,7 @@
 				EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */,
 				EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */,
 				EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */,
+				EEAD20022F91010100D00D01 /* RushHourEntryView.swift */,
 				EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */,
 				EE82B69A2B69B41400B2BC49 /* SolvingView.swift */,
 				EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */,
@@ -381,6 +384,7 @@
 				EEAC10032F81000100D00D01 /* KakuroClueCell.swift in Sources */,
 				EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */,
 				EEAD20012F91000100D00D01 /* MechanicalPuzzleDomain.swift in Sources */,
+				EEAD20032F91010100D00D01 /* RushHourEntryView.swift in Sources */,
 				EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */,
 				EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */,
 				EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */,

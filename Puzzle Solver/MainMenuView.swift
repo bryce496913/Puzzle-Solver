@@ -217,43 +217,10 @@ private struct MechanicalPuzzlePickerView: View {
     private func destinationView(for puzzleType: MechanicalPuzzleType) -> some View {
         switch puzzleType {
         case .rushHour:
-            RushHourPhaseSixView()
+            RushHourEntryView()
         case .klotski, .pegSolitaire, .towersOfHanoi, .lightsOut:
             MechanicalComingSoonView(puzzleType: puzzleType)
         }
-    }
-}
-
-private struct RushHourPhaseSixView: View {
-    var body: some View {
-        ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
-
-            VStack(spacing: AppTheme.Spacing.medium) {
-                Image(systemName: "car.fill")
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.highlight)
-
-                Text("Rush Hour")
-                    .appTextStyle(.h1)
-                    .foregroundStyle(AppTheme.Colors.highlight)
-
-                Text("Phase 6 active")
-                    .appTextStyle(.h2)
-                    .foregroundStyle(AppTheme.Colors.text)
-
-                Text("Rush Hour is now enabled as the first mechanical puzzle. Solver workflow polish and deeper strategy guidance will continue in upcoming updates.")
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.text.opacity(0.84))
-                    .multilineTextAlignment(.center)
-            }
-            .padding(AppTheme.Spacing.xLarge)
-            .appSurfaceCard()
-            .padding(.horizontal, AppTheme.Spacing.large)
-        }
-        .navigationTitle("Rush Hour")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
