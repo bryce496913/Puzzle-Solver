@@ -9,7 +9,7 @@ import Foundation
 struct NonogramSolver {
     func solve(_ initialGrid: NonogramGrid) -> LogicSolveResult<NonogramGrid> {
         _ = initialGrid
-        LogicSolveResult<NonogramGrid>(
+        return LogicSolveResult<NonogramGrid>(
             puzzleType: .nonogram,
             validity: .invalid([
                 .unsupportedConfiguration(message: "Nonogram solving is not available yet.")

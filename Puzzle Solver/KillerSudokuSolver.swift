@@ -10,7 +10,7 @@ import Foundation
 struct KillerSudokuSolver {
     func solve(_ initialGrid: KillerSudokuGrid) -> LogicSolveResult<KillerSudokuGrid> {
         _ = initialGrid
-        LogicSolveResult(
+        return LogicSolveResult<KillerSudokuGrid>(
             puzzleType: .killerSudoku,
             validity: .valid,
             completion: .unsolved,
