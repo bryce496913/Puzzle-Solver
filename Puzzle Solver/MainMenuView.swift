@@ -224,44 +224,6 @@ private struct MechanicalPuzzlePickerView: View {
     }
 }
 
-private enum MechanicalPuzzleType: String, CaseIterable, Identifiable {
-    case rushHour
-    case klotski
-    case pegSolitaire
-    case towersOfHanoi
-    case lightsOut
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .rushHour: return "Rush Hour"
-        case .klotski: return "Klotski"
-        case .pegSolitaire: return "Peg Solitaire"
-        case .towersOfHanoi: return "Towers of Hanoi"
-        case .lightsOut: return "Lights Out"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .rushHour: return "car.fill"
-        case .klotski: return "rectangle.3.group.fill"
-        case .pegSolitaire: return "circle.grid.3x3.fill"
-        case .towersOfHanoi: return "square.3.layers.3d.down.right"
-        case .lightsOut: return "lightbulb.fill"
-        }
-    }
-
-    var isEnabled: Bool {
-        self == .rushHour
-    }
-
-    var subtitle: String {
-        isEnabled ? "Phase 6 active now" : "Coming soon"
-    }
-}
-
 private struct RushHourPhaseSixView: View {
     var body: some View {
         ZStack {
