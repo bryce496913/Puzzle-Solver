@@ -186,6 +186,7 @@ struct PegSolitaireSolver: Sendable {}
 /// Future behavior:
 /// - A move toggles the tapped light plus its orthogonal neighbors (up/down/left/right) when they exist in bounds.
 /// - Lights will be represented as binary on/off states, with board dimensions determined by `rowCount` and `columnCount`.
+/// - Applying the same move twice cancels itself (mod-2 parity), which keeps board transitions easy to compose.
 /// - Solved-state checks will pass when every light is off.
 struct LightsOutBoard: Hashable, Sendable {
     struct Coordinate: Hashable, Sendable {
@@ -212,7 +213,8 @@ struct LightsOutMove: Hashable, Sendable {
 ///
 /// Future behavior:
 /// - Encode the board as a linear system over GF(2), where each press contributes a toggle vector.
-/// - Solve for a press set that turns all lights off, using Gaussian elimination with optional minimal-move tie-breaking.
+/// - Solve for a press set that turns all lights off via Gaussian elimination, then evaluate free variables for minimal-move tie-breaking.
+/// - Detect unsolvable states when the system is inconsistent (augmented rank exceeds coefficient rank).
 /// - Convert solved press vectors into ordered, user-readable steps for playback.
 struct LightsOutSolver: Sendable {}
 

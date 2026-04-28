@@ -244,7 +244,51 @@ private struct PegSolitaireComingSoonView: View {
 
 private struct LightsOutComingSoonView: View {
     var body: some View {
-        MechanicalComingSoonView(puzzleType: .lightsOut)
+        ZStack {
+            AppTheme.Colors.background
+                .ignoresSafeArea()
+
+            VStack(spacing: AppTheme.Spacing.large) {
+                Image(systemName: MechanicalPuzzleType.lightsOut.icon)
+                    .font(.system(size: 34, weight: .semibold))
+                    .foregroundStyle(AppTheme.Colors.highlight)
+
+                Text(MechanicalPuzzleType.lightsOut.title)
+                    .appTextStyle(.h1)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+
+                Text("Coming Soon")
+                    .appTextStyle(.h2)
+                    .foregroundStyle(AppTheme.Colors.text)
+
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                    Text("Planned support includes:")
+                        .appTextStyle(.paragraph)
+                        .foregroundStyle(AppTheme.Colors.text.opacity(0.9))
+
+                    lightsOutBullet("Tap-to-toggle behavior for each pressed cell plus orthogonal neighbors.")
+                    lightsOutBullet("Board sizes optimized for classic 5×5 layouts and custom practice grids.")
+                    lightsOutBullet("Step-by-step elimination output generated from a binary linear solve.")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(AppTheme.Spacing.xLarge)
+            .appSurfaceCard()
+            .padding(.horizontal, AppTheme.Spacing.large)
+        }
+        .navigationTitle(MechanicalPuzzleType.lightsOut.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func lightsOutBullet(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.small) {
+            Text("•")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.highlight)
+            Text(text)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.84))
+        }
     }
 }
 
