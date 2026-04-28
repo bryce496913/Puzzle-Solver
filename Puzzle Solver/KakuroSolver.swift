@@ -10,7 +10,7 @@ import Foundation
 struct KakuroSolver {
     func solve(_ initialGrid: KakuroGrid) -> LogicSolveResult<KakuroGrid> {
         _ = initialGrid
-        LogicSolveResult(
+        return LogicSolveResult<KakuroGrid>(
             puzzleType: .kakuro,
             validity: .valid,
             completion: .unsolved,
