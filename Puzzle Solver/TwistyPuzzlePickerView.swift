@@ -1,15 +1,7 @@
 import SwiftUI
 
 struct TwistyPuzzlePickerView: View {
-    private let twistyPuzzleTypes = TwistyPuzzleType.catalog
-
-    private var activePuzzles: [TwistyPuzzleCatalogItem] {
-        twistyPuzzleTypes.filter(\.isEnabled)
-    }
-
-    private var comingSoonPuzzles: [TwistyPuzzleCatalogItem] {
-        twistyPuzzleTypes.filter { !$0.isEnabled }
-    }
+    private let puzzleTypes = TwistyPuzzleType.catalog
 
     var body: some View {
         TwistyScreenContainer {
@@ -18,51 +10,19 @@ struct TwistyPuzzlePickerView: View {
                 subtitle: "Choose a twisty puzzle type"
             )
 
-            if !activePuzzles.isEmpty {
-                sectionTitle("Available now")
-                ForEach(activePuzzles) { catalogItem in
-                    NavigationLink {
-                        destinationView(for: catalogItem.puzzleType)
-                    } label: {
-                        PuzzleTypeCard(
-                            title: catalogItem.title,
-                            subtitle: catalogItem.subtitle,
-                            icon: catalogItem.icon,
-                            isEnabled: true,
-                            accentVariant: .accent
-                        )
-                    }
-                    .buttonStyle(.plain)
+            PuzzleCategorySectionsView(
+                items: puzzleTypes,
+                title: { $0.title },
+                subtitle: { $0.subtitle },
+                icon: { $0.icon },
+                isEnabled: { $0.isEnabled },
+                destination: { catalogItem in
+                    destinationView(for: catalogItem.puzzleType)
                 }
-            }
-
-            if !comingSoonPuzzles.isEmpty {
-                sectionTitle("Coming soon")
-                ForEach(comingSoonPuzzles) { catalogItem in
-                    NavigationLink {
-                        destinationView(for: catalogItem.puzzleType)
-                    } label: {
-                        PuzzleTypeCard(
-                            title: catalogItem.title,
-                            subtitle: catalogItem.subtitle,
-                            icon: catalogItem.icon,
-                            isEnabled: false,
-                            accentVariant: .highlight
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+            )
         }
         .navigationTitle("Twisty Puzzles")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .appTextStyle(.paragraph)
-            .foregroundStyle(AppTheme.Colors.text.opacity(0.72))
-            .textCase(.uppercase)
     }
 
     @ViewBuilder
