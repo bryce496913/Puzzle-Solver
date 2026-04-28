@@ -345,6 +345,7 @@ struct RushHourSolvingView: View {
     let initialValidationMessage: String?
 
     @State private var phase: RushHourSolvePhase = .loading
+    @State private var currentStepIndex = 0
 
     var body: some View {
         TwistyScreenContainer {
@@ -366,19 +367,20 @@ struct RushHourSolvingView: View {
             case .solved(let result):
                 summaryCard(result: result)
                 MechanicalOrderedStepsHeader(stepCount: result.orderedSteps.count)
-                ForEach(result.orderedSteps) { step in
-                    MechanicalResultStepCard(
-                        stepNumber: step.stepNumber,
-                        moveLabel: step.move?.notation ?? "Initial",
-                        instruction: step.instruction
-                    ) {
-                        if let boardState = step.boardState {
-                            RushHourBoardStatePreview(board: boardState)
-                        } else {
-                            Text("Board preview unavailable")
-                                .appTextStyle(.paragraph)
-                                .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
-                        }
+                MechanicalSolutionPlaybackView(
+                    steps: result.orderedSteps,
+                    currentStepIndex: $currentStepIndex,
+                    onPrevious: moveToPreviousStep,
+                    onNext: {
+                        moveToNextStep(totalSteps: result.orderedSteps.count)
+                    }
+                ) { step in
+                    if let boardState = step.boardState {
+                        RushHourBoardStatePreview(board: boardState)
+                    } else {
+                        Text("Board preview unavailable")
+                            .appTextStyle(.paragraph)
+                            .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
                     }
                 }
             }
@@ -410,7 +412,18 @@ struct RushHourSolvingView: View {
 
         phase = .loading
         let result = await RushHourSolver().solve(from: initialBoard)
+        currentStepIndex = 0
         phase = result.isSolved ? .solved(result) : .unsolved(result)
+    }
+
+    private func moveToPreviousStep() {
+        guard currentStepIndex > 0 else { return }
+        currentStepIndex -= 1
+    }
+
+    private func moveToNextStep(totalSteps: Int) {
+        guard currentStepIndex < totalSteps - 1 else { return }
+        currentStepIndex += 1
     }
 }
 

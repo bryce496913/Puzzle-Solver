@@ -891,6 +891,81 @@ struct MechanicalOrderedStepsHeader: View {
     }
 }
 
+struct MechanicalSolutionPlaybackView<BoardState: Hashable & Sendable, Preview: View>: View {
+    let steps: [MechanicalSolutionStep<BoardState>]
+    @Binding var currentStepIndex: Int
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+    let preview: (MechanicalSolutionStep<BoardState>) -> Preview
+
+    init(
+        steps: [MechanicalSolutionStep<BoardState>],
+        currentStepIndex: Binding<Int>,
+        onPrevious: @escaping () -> Void,
+        onNext: @escaping () -> Void,
+        @ViewBuilder preview: @escaping (MechanicalSolutionStep<BoardState>) -> Preview
+    ) {
+        self.steps = steps
+        self._currentStepIndex = currentStepIndex
+        self.onPrevious = onPrevious
+        self.onNext = onNext
+        self.preview = preview
+    }
+
+    private var activeStepIndex: Int {
+        guard !steps.isEmpty else { return 0 }
+        return min(max(currentStepIndex, 0), steps.count - 1)
+    }
+
+    private var activeStep: MechanicalSolutionStep<BoardState>? {
+        guard !steps.isEmpty else { return nil }
+        return steps[activeStepIndex]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Text("Solution playback")
+                .appTextStyle(.h2)
+
+            if let activeStep {
+                HStack(alignment: .firstTextBaseline, spacing: AppTheme.Spacing.small) {
+                    Text("Step \(activeStepIndex + 1) / \(steps.count)")
+                        .appTextStyle(.h3)
+                    Spacer(minLength: 0)
+                    Text(activeStep.move?.notation ?? "Initial")
+                        .appTextStyle(.h3)
+                        .foregroundStyle(AppTheme.Colors.highlight)
+                }
+
+                Text(activeStep.instruction)
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
+
+                HStack(spacing: AppTheme.Spacing.small) {
+                    Button("Previous", action: onPrevious)
+                        .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.surface))
+                        .disabled(activeStepIndex == 0)
+
+                    Button("Next", action: onNext)
+                        .buttonStyle(AppSolidButtonStyle(fillColor: AppTheme.Colors.accent))
+                        .disabled(activeStepIndex >= steps.count - 1)
+                }
+
+                preview(activeStep)
+                    .padding(AppTheme.Spacing.xSmall)
+                    .background(AppTheme.Colors.background.opacity(0.32))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+            } else {
+                Text("No playback steps available.")
+                    .appTextStyle(.paragraph)
+                    .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
 struct MechanicalResultStepCard<Preview: View>: View {
     let stepNumber: Int
     let moveLabel: String
