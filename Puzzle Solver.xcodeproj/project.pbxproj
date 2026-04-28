@@ -36,7 +36,6 @@
 		EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */; };
 		EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */; };
 		EED400012E10000100D00D01 /* Cube3x3Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED400022E10000100D00D01 /* Cube3x3Domain.swift */; };
-		EED400032E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */; };
 		EEF700012E40000100D00D01 /* NonCubeTwistyDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */; };
 		EEF500012E20000100D00D01 /* Cube2x2InputDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF500022E20000100D00D01 /* Cube2x2InputDomain.swift */; };
 		EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */; };
@@ -52,6 +51,7 @@
 		EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10042F81000100D00D01 /* KakuroSolver.swift */; };
 		EEAD20012F91000100D00D01 /* MechanicalPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */; };
 		EEAD20032F91010100D00D01 /* RushHourEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAD20022F91010100D00D01 /* RushHourEntryView.swift */; };
+		EEAE30012FA1000100D00D01 /* MechanicalPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAE30002FA1000100D00D01 /* MechanicalPuzzlePickerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,7 +104,6 @@
 		EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleDomain.swift; sourceTree = "<group>"; };
 		EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleComponents.swift; sourceTree = "<group>"; };
 		EED400022E10000100D00D01 /* Cube3x3Domain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3Domain.swift; sourceTree = "<group>"; };
-		EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FutureTwistyPuzzlePlaceholderView.swift; sourceTree = "<group>"; };
 		EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonCubeTwistyDomain.swift; sourceTree = "<group>"; };
 		EEF500022E20000100D00D01 /* Cube2x2InputDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube2x2InputDomain.swift; sourceTree = "<group>"; };
 		EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3EntryView.swift; sourceTree = "<group>"; };
@@ -120,6 +119,7 @@
 		EEAC10042F81000100D00D01 /* KakuroSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroSolver.swift; sourceTree = "<group>"; };
 		EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleDomain.swift; sourceTree = "<group>"; };
 		EEAD20022F91010100D00D01 /* RushHourEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RushHourEntryView.swift; sourceTree = "<group>"; };
+		EEAE30002FA1000100D00D01 /* MechanicalPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzlePickerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -188,6 +188,7 @@
 				EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */,
 				EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */,
 				EEAD20022F91010100D00D01 /* RushHourEntryView.swift */,
+				EEAE30002FA1000100D00D01 /* MechanicalPuzzlePickerView.swift */,
 				EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */,
 				EE82B69A2B69B41400B2BC49 /* SolvingView.swift */,
 				EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */,
@@ -203,7 +204,6 @@
 				EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */,
 				EED400022E10000100D00D01 /* Cube3x3Domain.swift */,
 				EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */,
-				EED400042E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift */,
 				EEF900022E50000100D00D01 /* PyraminxEntryView.swift */,
 				EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */,
 				EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */,
@@ -385,6 +385,7 @@
 				EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */,
 				EEAD20012F91000100D00D01 /* MechanicalPuzzleDomain.swift in Sources */,
 				EEAD20032F91010100D00D01 /* RushHourEntryView.swift in Sources */,
+				EEAE30012FA1000100D00D01 /* MechanicalPuzzlePickerView.swift in Sources */,
 				EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */,
 				EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */,
 				EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */,
@@ -405,7 +406,6 @@
 				EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */,
 				EED400012E10000100D00D01 /* Cube3x3Domain.swift in Sources */,
 				EEF700012E40000100D00D01 /* NonCubeTwistyDomain.swift in Sources */,
-				EED400032E10010100D00D01 /* FutureTwistyPuzzlePlaceholderView.swift in Sources */,
 				EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */,
 				EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */,
 				EEF600032E30000100D00D01 /* Cube3x3InputDomain.swift in Sources */,
