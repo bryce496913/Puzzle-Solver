@@ -38,7 +38,7 @@ enum MechanicalPuzzleType: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum MechanicalSolveStatus: Sendable {
+enum MechanicalSolveStatus: Sendable, Equatable {
     case solved
     case unsolved
 }
@@ -314,5 +314,120 @@ struct RushHourBoardState: Hashable, Sendable {
 
     private func isWithinBounds(_ cell: Cell) -> Bool {
         (0..<Self.gridSize).contains(cell.row) && (0..<Self.gridSize).contains(cell.column)
+    }
+}
+
+struct RushHourSolver: Sendable {
+    func solve(
+        from board: RushHourBoardState,
+        maxExploredStates: Int = 100_000
+    ) async -> MechanicalSolveResult<RushHourBoardState> {
+        await Task.detached(priority: .userInitiated) {
+            Self.solveOnWorkerThread(from: board, maxExploredStates: maxExploredStates)
+        }.value
+    }
+
+    private static func solveOnWorkerThread(
+        from board: RushHourBoardState,
+        maxExploredStates: Int
+    ) -> MechanicalSolveResult<RushHourBoardState> {
+        guard maxExploredStates > 0 else {
+            return MechanicalSolveResult(
+                puzzleType: .rushHour,
+                status: .unsolved,
+                steps: []
+            )
+        }
+
+        if board.isSolved() {
+            return MechanicalSolveResult(
+                puzzleType: .rushHour,
+                status: .solved,
+                steps: []
+            )
+        }
+
+        struct SearchNode: Sendable {
+            let board: RushHourBoardState
+            let path: [RushHourMove]
+        }
+
+        var queue: [SearchNode] = [SearchNode(board: board, path: [])]
+        var queueIndex = 0
+        var visited: Set<RushHourBoardState> = [board]
+
+        while queueIndex < queue.count, visited.count <= maxExploredStates {
+            let node = queue[queueIndex]
+            queueIndex += 1
+
+            for move in node.board.validMoves() {
+                guard let nextBoard = node.board.applying(move) else { continue }
+                guard !visited.contains(nextBoard) else { continue }
+
+                let nextPath = node.path + [move]
+                if nextBoard.isSolved() {
+                    let steps = buildSuccessfulPathSteps(from: board, using: nextPath)
+                    return MechanicalSolveResult(
+                        puzzleType: .rushHour,
+                        status: .solved,
+                        steps: steps
+                    )
+                }
+
+                visited.insert(nextBoard)
+                queue.append(SearchNode(board: nextBoard, path: nextPath))
+            }
+        }
+
+        return MechanicalSolveResult(
+            puzzleType: .rushHour,
+            status: .unsolved,
+            steps: []
+        )
+    }
+
+    private static func buildSuccessfulPathSteps(
+        from initialBoard: RushHourBoardState,
+        using moves: [RushHourMove]
+    ) -> [MechanicalSolutionStep<RushHourBoardState>] {
+        var steps: [MechanicalSolutionStep<RushHourBoardState>] = []
+        var board = initialBoard
+
+        for (index, move) in moves.enumerated() {
+            guard let updated = board.applying(move) else { continue }
+            let instruction = instructionLabel(for: move, on: board)
+            let mechanicalMove = MechanicalMove(
+                notation: "\(move.vehicleID)\(move.delta > 0 ? "+" : "")\(move.delta)",
+                description: instruction
+            )
+            steps.append(
+                MechanicalSolutionStep(
+                    stepNumber: index + 1,
+                    move: mechanicalMove,
+                    instruction: instruction,
+                    boardState: updated
+                )
+            )
+            board = updated
+        }
+
+        return steps
+    }
+
+    private static func instructionLabel(for move: RushHourMove, on board: RushHourBoardState) -> String {
+        guard let vehicle = board.vehicle(withID: move.vehicleID) else {
+            return "Move \(move.vehicleID) by \(abs(move.delta))"
+        }
+
+        let direction: String
+        switch vehicle.orientation {
+        case .horizontal:
+            direction = move.delta > 0 ? "right" : "left"
+        case .vertical:
+            direction = move.delta > 0 ? "down" : "up"
+        }
+
+        let vehicleName = vehicle.isTarget ? "red car" : "car \(vehicle.id)"
+        return "Move \(vehicleName) \(direction) \(abs(move.delta))"
     }
 }

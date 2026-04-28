@@ -217,4 +217,100 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertFalse(unsolvedBoard?.isSolved() ?? true)
     }
 
+    func testRushHourSolverReturnsOnlySuccessfulOrderedSolutionPath() async throws {
+        let target = RushHourVehicle(
+            id: "X",
+            orientation: .horizontal,
+            length: 2,
+            row: 2,
+            column: 0,
+            isTarget: true
+        )
+        let blockerA = RushHourVehicle(
+            id: "A",
+            orientation: .vertical,
+            length: 3,
+            row: 0,
+            column: 2
+        )
+        let blockerB = RushHourVehicle(
+            id: "B",
+            orientation: .vertical,
+            length: 2,
+            row: 1,
+            column: 3
+        )
+        let blockerC = RushHourVehicle(
+            id: "C",
+            orientation: .vertical,
+            length: 2,
+            row: 1,
+            column: 4
+        )
+        let exit = RushHourExit(wall: .right, index: 2)
+        let board = RushHourBoardState(
+            vehicles: [target!, blockerA!, blockerB!, blockerC!],
+            exit: exit!
+        )
+
+        XCTAssertNotNil(board)
+
+        let result = await RushHourSolver().solve(from: board!)
+        XCTAssertTrue(result.isSolved)
+        XCTAssertFalse(result.steps.isEmpty)
+
+        let ordered = result.orderedSteps
+        let expectedStepNumbers = Array(1...ordered.count)
+        XCTAssertEqual(ordered.map(\.stepNumber), expectedStepNumbers)
+        XCTAssertTrue(ordered.allSatisfy { $0.instruction.hasPrefix("Move ") })
+        XCTAssertTrue(ordered.contains { $0.instruction.contains("Move red car right") })
+
+        let finalBoard = ordered.last?.boardState
+        XCTAssertNotNil(finalBoard)
+        XCTAssertTrue(finalBoard?.isSolved() ?? false)
+    }
+
+    func testRushHourSolverReturnsUnsolvedForExplorationLimit() async {
+        let target = RushHourVehicle(
+            id: "X",
+            orientation: .horizontal,
+            length: 2,
+            row: 2,
+            column: 0,
+            isTarget: true
+        )
+        let blockerA = RushHourVehicle(
+            id: "A",
+            orientation: .vertical,
+            length: 3,
+            row: 0,
+            column: 2
+        )
+        let blockerB = RushHourVehicle(
+            id: "B",
+            orientation: .vertical,
+            length: 2,
+            row: 1,
+            column: 3
+        )
+        let blockerC = RushHourVehicle(
+            id: "C",
+            orientation: .vertical,
+            length: 2,
+            row: 1,
+            column: 4
+        )
+        let exit = RushHourExit(wall: .right, index: 2)
+        let board = RushHourBoardState(
+            vehicles: [target!, blockerA!, blockerB!, blockerC!],
+            exit: exit!
+        )
+
+        XCTAssertNotNil(board)
+
+        let result = await RushHourSolver().solve(from: board!, maxExploredStates: 1)
+        XCTAssertEqual(result.status, .unsolved)
+        XCTAssertTrue(result.steps.isEmpty)
+    }
+
 }
