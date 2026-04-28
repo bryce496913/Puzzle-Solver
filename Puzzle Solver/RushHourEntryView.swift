@@ -13,8 +13,7 @@ struct RushHourEntryView: View {
         )
     ]
     @State private var validationMessage: String?
-    @State private var solveBoard: RushHourBoardState?
-    @State private var shouldNavigateToSolve = false
+    @State private var resultDestination: RushHourResultDestination?
 
     var body: some View {
         TwistyScreenContainer {
@@ -45,10 +44,11 @@ struct RushHourEntryView: View {
         }
         .navigationTitle("Rush Hour")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $shouldNavigateToSolve) {
-            if let solveBoard {
-                RushHourSolvingView(initialBoard: solveBoard)
-            }
+        .navigationDestination(item: $resultDestination) { destination in
+            RushHourSolvingView(
+                initialBoard: destination.board,
+                initialValidationMessage: destination.validationMessage
+            )
         }
     }
 
@@ -135,20 +135,19 @@ struct RushHourEntryView: View {
             )
         ]
         validationMessage = nil
-        solveBoard = nil
-        shouldNavigateToSolve = false
+        resultDestination = nil
     }
 
     private func validateAndSolve() {
         validationMessage = nil
 
         guard !vehicles.isEmpty else {
-            validationMessage = "Add at least one vehicle before solving."
+            presentInvalidResult(message: "Add at least one vehicle before solving.")
             return
         }
 
         guard vehicles.filter(\.isTarget).count == 1 else {
-            validationMessage = "Choose exactly one red target car."
+            presentInvalidResult(message: "Choose exactly one red target car.")
             return
         }
 
@@ -164,27 +163,31 @@ struct RushHourEntryView: View {
         }
 
         guard domainVehicles.count == vehicles.count else {
-            validationMessage = "One or more vehicles are out of bounds for the 6×6 board."
+            presentInvalidResult(message: "One or more vehicles are out of bounds for the 6×6 board.")
             return
         }
 
         guard let target = domainVehicles.first(where: \.isTarget) else {
-            validationMessage = "Choose a target car before solving."
+            presentInvalidResult(message: "Choose a target car before solving.")
             return
         }
 
         guard let exit = RushHourExit(wall: .right, index: target.row) else {
-            validationMessage = "Target row is invalid for the exit."
+            presentInvalidResult(message: "Target row is invalid for the exit.")
             return
         }
 
         guard let board = RushHourBoardState(vehicles: domainVehicles, exit: exit) else {
-            validationMessage = "Vehicle placements overlap or are invalid. Please adjust and try again."
+            presentInvalidResult(message: "Vehicle placements overlap or are invalid. Please adjust and try again.")
             return
         }
 
-        solveBoard = board
-        shouldNavigateToSolve = true
+        resultDestination = RushHourResultDestination(board: board, validationMessage: nil)
+    }
+
+    private func presentInvalidResult(message: String) {
+        validationMessage = message
+        resultDestination = RushHourResultDestination(board: nil, validationMessage: message)
     }
 
     private func nextVehicleLabel() -> String {
@@ -197,6 +200,12 @@ struct RushHourEntryView: View {
         }
         return "V\(vehicles.count + 1)"
     }
+}
+
+private struct RushHourResultDestination: Identifiable {
+    let id = UUID()
+    let board: RushHourBoardState?
+    let validationMessage: String?
 }
 
 private struct EditableRushHourVehicle: Identifiable, Equatable {
@@ -332,10 +341,10 @@ private struct RushHourBoardPreview: View {
 }
 
 struct RushHourSolvingView: View {
-    let initialBoard: RushHourBoardState
+    let initialBoard: RushHourBoardState?
+    let initialValidationMessage: String?
 
-    @State private var isSolving = true
-    @State private var result: MechanicalSolveResult<RushHourBoardState>?
+    @State private var phase: RushHourSolvePhase = .loading
 
     var body: some View {
         TwistyScreenContainer {
@@ -344,24 +353,33 @@ struct RushHourSolvingView: View {
                 subtitle: "Computing shortest move sequence."
             )
 
-            if isSolving {
-                ProgressView("Solving…")
-                    .tint(AppTheme.Colors.highlight)
-                    .appSurfaceCard()
-            } else if let result {
+            switch phase {
+            case .loading:
+                MechanicalSolveLoadingCard(title: "Solving Rush Hour…")
+            case .invalid(let message):
+                MechanicalInvalidBoardCard(message: message)
+            case .unsolved(let result):
                 summaryCard(result: result)
-                    .appSurfaceCard()
-
+                MechanicalNoSolutionCard(
+                    message: "No solution found from this board state. Try moving blocker cars or changing the target lane."
+                )
+            case .solved(let result):
+                summaryCard(result: result)
+                MechanicalOrderedStepsHeader(stepCount: result.orderedSteps.count)
                 ForEach(result.orderedSteps) { step in
-                    VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-                        Text("Step \(step.stepNumber)")
-                            .appTextStyle(.h3)
-                        Text(step.instruction)
-                            .appTextStyle(.paragraph)
-                            .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
+                    MechanicalResultStepCard(
+                        stepNumber: step.stepNumber,
+                        moveLabel: step.move?.notation ?? "Initial",
+                        instruction: step.instruction
+                    ) {
+                        if let boardState = step.boardState {
+                            RushHourBoardStatePreview(board: boardState)
+                        } else {
+                            Text("Board preview unavailable")
+                                .appTextStyle(.paragraph)
+                                .foregroundStyle(AppTheme.Colors.text.opacity(0.75))
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .appSurfaceCard()
                 }
             }
         }
@@ -371,28 +389,84 @@ struct RushHourSolvingView: View {
     }
 
     private func summaryCard(result: MechanicalSolveResult<RushHourBoardState>) -> some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-            Text(result.isSolved ? "Status: Solved" : "Status: Unsolved")
-                .appTextStyle(.h2)
-                .foregroundStyle(result.isSolved ? AppTheme.Colors.text : AppTheme.Colors.highlight)
-
-            Text("Move count: \(result.moveCount)")
-                .appTextStyle(.paragraph)
-
-            if !result.isSolved {
-                Text("No solution found from this validated board state.")
-                    .appTextStyle(.paragraph)
-                    .foregroundStyle(AppTheme.Colors.highlight)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        MechanicalSolveSummaryCard(
+            isSolved: result.isSolved,
+            moveCount: result.moveCount,
+            stepCount: result.orderedSteps.count
+        )
     }
 
     @MainActor
     private func solve() async {
-        isSolving = true
-        result = await RushHourSolver().solve(from: initialBoard)
-        isSolving = false
+        if let initialValidationMessage {
+            phase = .invalid(initialValidationMessage)
+            return
+        }
+
+        guard let initialBoard else {
+            phase = .invalid("This board could not be loaded for solving.")
+            return
+        }
+
+        phase = .loading
+        let result = await RushHourSolver().solve(from: initialBoard)
+        phase = result.isSolved ? .solved(result) : .unsolved(result)
+    }
+}
+
+private enum RushHourSolvePhase {
+    case loading
+    case invalid(String)
+    case unsolved(MechanicalSolveResult<RushHourBoardState>)
+    case solved(MechanicalSolveResult<RushHourBoardState>)
+}
+
+private struct RushHourBoardStatePreview: View {
+    let board: RushHourBoardState
+
+    private var boardMap: [String: RushHourVehicle] {
+        var map: [String: RushHourVehicle] = [:]
+        for vehicle in board.vehicles {
+            for cell in vehicle.occupiedCells {
+                map["\(cell.row)-\(cell.column)"] = vehicle
+            }
+        }
+        return map
+    }
+
+    var body: some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: AppTheme.Spacing.xSmall), count: RushHourBoardState.gridSize)
+
+        LazyVGrid(columns: columns, spacing: AppTheme.Spacing.xSmall) {
+            ForEach(0..<RushHourBoardState.gridSize, id: \.self) { row in
+                ForEach(0..<RushHourBoardState.gridSize, id: \.self) { column in
+                    let key = "\(row)-\(column)"
+                    let vehicle = boardMap[key]
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(vehicleColor(for: vehicle))
+
+                        Text(vehicle?.id ?? "")
+                            .appTextStyle(.paragraph)
+                            .foregroundStyle(AppTheme.Colors.text)
+                    }
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(AppTheme.Colors.text.opacity(0.28), lineWidth: 1)
+                    )
+                }
+            }
+        }
+    }
+
+    private func vehicleColor(for vehicle: RushHourVehicle?) -> Color {
+        guard let vehicle else {
+            return AppTheme.Colors.background.opacity(0.35)
+        }
+
+        return vehicle.isTarget ? AppTheme.Colors.highlight : AppTheme.Colors.accent.opacity(0.9)
     }
 }
 

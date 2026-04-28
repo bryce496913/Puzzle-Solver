@@ -800,3 +800,136 @@ struct TwistyStepCardView: View {
         .appSurfaceCard()
     }
 }
+
+struct MechanicalSolveLoadingCard: View {
+    let title: String
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.small) {
+            ProgressView()
+                .tint(AppTheme.Colors.highlight)
+            Text(title)
+                .appTextStyle(.h3)
+                .foregroundStyle(AppTheme.Colors.text)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
+struct MechanicalInvalidBoardCard: View {
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text("Invalid board")
+                .appTextStyle(.h2)
+                .foregroundStyle(AppTheme.Colors.highlight)
+            Text(message)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.88))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
+struct MechanicalNoSolutionCard: View {
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text("No solution found")
+                .appTextStyle(.h2)
+                .foregroundStyle(AppTheme.Colors.highlight)
+            Text(message)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.88))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
+struct MechanicalSolveSummaryCard: View {
+    let isSolved: Bool
+    let moveCount: Int
+    let stepCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            Text(isSolved ? "Status: Solved" : "Status: Unsolved")
+                .appTextStyle(.h2)
+                .foregroundStyle(isSolved ? AppTheme.Colors.text : AppTheme.Colors.highlight)
+
+            Text("Move count: \(moveCount)")
+                .appTextStyle(.paragraph)
+
+            Text("Ordered steps: \(stepCount)")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.82))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
+struct MechanicalOrderedStepsHeader: View {
+    let stepCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
+            Text("Ordered solution steps")
+                .appTextStyle(.h2)
+            Text("\(stepCount) total step\(stepCount == 1 ? "" : "s")")
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.8))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
+
+struct MechanicalResultStepCard<Preview: View>: View {
+    let stepNumber: Int
+    let moveLabel: String
+    let instruction: String
+    let preview: Preview
+
+    init(
+        stepNumber: Int,
+        moveLabel: String,
+        instruction: String,
+        @ViewBuilder preview: () -> Preview
+    ) {
+        self.stepNumber = stepNumber
+        self.moveLabel = moveLabel
+        self.instruction = instruction
+        self.preview = preview()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+            HStack(alignment: .firstTextBaseline, spacing: AppTheme.Spacing.small) {
+                Text("Step \(stepNumber)")
+                    .appTextStyle(.h3)
+                Spacer(minLength: 0)
+                Text(moveLabel)
+                    .appTextStyle(.h3)
+                    .foregroundStyle(AppTheme.Colors.highlight)
+            }
+
+            Text(instruction)
+                .appTextStyle(.paragraph)
+                .foregroundStyle(AppTheme.Colors.text.opacity(0.86))
+
+            preview
+                .padding(AppTheme.Spacing.xSmall)
+                .background(AppTheme.Colors.background.opacity(0.32))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small, style: .continuous))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appSurfaceCard()
+    }
+}
