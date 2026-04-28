@@ -181,6 +181,41 @@ struct PegSolitaireMove: Hashable, Sendable {
 /// - Produce narrated steps suitable for UI playback and educational explanations.
 struct PegSolitaireSolver: Sendable {}
 
+/// Placeholder board model for future Lights Out support.
+///
+/// Future behavior:
+/// - A move toggles the tapped light plus its orthogonal neighbors (up/down/left/right) when they exist in bounds.
+/// - Lights will be represented as binary on/off states, with board dimensions determined by `rowCount` and `columnCount`.
+/// - Solved-state checks will pass when every light is off.
+struct LightsOutBoard: Hashable, Sendable {
+    struct Coordinate: Hashable, Sendable {
+        let row: Int
+        let column: Int
+    }
+
+    let rowCount: Int
+    let columnCount: Int
+    let litCells: Set<Coordinate>
+}
+
+/// Placeholder move model for future Lights Out support.
+///
+/// Future behavior:
+/// - Pressing `coordinate` toggles that cell and each orthogonal neighbor still on the board.
+/// - No diagonal cells are affected by a move.
+/// - Repeated presses on the same coordinate are allowed and equivalent to XOR-style parity toggling.
+struct LightsOutMove: Hashable, Sendable {
+    let coordinate: LightsOutBoard.Coordinate
+}
+
+/// Placeholder solver for future Lights Out support.
+///
+/// Future behavior:
+/// - Encode the board as a linear system over GF(2), where each press contributes a toggle vector.
+/// - Solve for a press set that turns all lights off, using Gaussian elimination with optional minimal-move tie-breaking.
+/// - Convert solved press vectors into ordered, user-readable steps for playback.
+struct LightsOutSolver: Sendable {}
+
 enum RushHourWall: String, Hashable, Sendable {
     case top
     case bottom
