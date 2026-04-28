@@ -98,6 +98,46 @@ enum RushHourOrientation: String, Hashable, Sendable {
     case vertical
 }
 
+/// Placeholder board model for future Klotski support.
+///
+/// Future behavior:
+/// - Validate piece footprints stay within board bounds.
+/// - Enforce non-overlapping piece occupancy in the board grid.
+/// - Evaluate solved state by checking if the goal piece reaches `goalAnchor`.
+struct KlotskiBoard: Hashable, Sendable {
+    struct Cell: Hashable, Sendable {
+        let row: Int
+        let column: Int
+    }
+
+    let rowCount: Int
+    let columnCount: Int
+    let pieces: [KlotskiPiece]
+    let goalPieceID: String
+    let goalAnchor: Cell
+}
+
+/// Placeholder piece model for future Klotski support.
+///
+/// Future behavior:
+/// - Piece movement will be constrained to one-cell orthogonal slides.
+/// - Sliding logic will reject moves when any destination cell is occupied.
+/// - Movement generation will enumerate legal neighboring board states.
+struct KlotskiPiece: Hashable, Sendable, Identifiable {
+    let id: String
+    let width: Int
+    let height: Int
+    let origin: KlotskiBoard.Cell
+}
+
+/// Placeholder solver for future Klotski support.
+///
+/// Future behavior:
+/// - Run breadth-first or A* search across legal board states.
+/// - Reconstruct the move path once the goal anchor condition is met.
+/// - Produce narrated solution steps for UI playback.
+struct KlotskiSolver: Sendable {}
+
 enum RushHourWall: String, Hashable, Sendable {
     case top
     case bottom

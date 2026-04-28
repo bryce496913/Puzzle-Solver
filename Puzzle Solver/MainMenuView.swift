@@ -218,9 +218,17 @@ private struct MechanicalPuzzlePickerView: View {
         switch puzzleType {
         case .rushHour:
             RushHourEntryView()
-        case .klotski, .pegSolitaire, .towersOfHanoi, .lightsOut:
+        case .klotski:
+            KlotskiComingSoonView()
+        case .pegSolitaire, .towersOfHanoi, .lightsOut:
             MechanicalComingSoonView(puzzleType: puzzleType)
         }
+    }
+}
+
+private struct KlotskiComingSoonView: View {
+    var body: some View {
+        MechanicalComingSoonView(puzzleType: .klotski)
     }
 }
 
