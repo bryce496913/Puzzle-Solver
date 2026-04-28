@@ -422,9 +422,11 @@ private enum Cube3x3LookupTables {
 
 struct Cube3x3Solver: TwistyPuzzleSolver {
     typealias State = Cube3x3State
+    private let solveTimeoutSeconds: TimeInterval = 12
 
     func solve(from initialState: Cube3x3State) async -> TwistySolveResult {
         let start = Date()
+        print("[Cube3x3][Solver] Solver start.")
         let validation = initialState.validate()
         guard validation.isValid else {
             let issues = if case .invalid(let reasons) = validation {
@@ -432,18 +434,28 @@ struct Cube3x3Solver: TwistyPuzzleSolver {
             } else {
                 "Invalid cube state."
             }
+            print("[Cube3x3][Solver] Solver failure: invalid initial state. \(issues)")
             return Cube3x3ResultFormatter.invalidResult(message: issues, startedAt: start)
         }
 
         if initialState.isSolved {
+            print("[Cube3x3][Solver] Solver finish: cube already solved.")
             return Cube3x3ResultFormatter.alreadySolvedResult(startedAt: start)
         }
 
+        let deadline = Date().addingTimeInterval(solveTimeoutSeconds)
         let planner = Cube3x3StagePlanner()
-        guard let solution = planner.solve(initialState) else {
+        let planResult = planner.solve(initialState, deadline: deadline)
+        if planResult == .timedOut {
+            print("[Cube3x3][Solver] Solver timeout after \(solveTimeoutSeconds)s.")
+            return Cube3x3ResultFormatter.timeoutResult(startedAt: start)
+        }
+        guard case .solved(let solution) = planResult else {
+            print("[Cube3x3][Solver] Solver failure: unexpected planner result.")
             return Cube3x3ResultFormatter.searchLimitResult(startedAt: start)
         }
 
+        print("[Cube3x3][Solver] Solver finish: solved with \(solution.count) moves.")
         return Cube3x3ResultFormatter.solvedResult(
             from: Cube3x3MoveOptimizer.simplify(solution),
             startedAt: start
@@ -490,6 +502,18 @@ private enum Cube3x3ResultFormatter {
         )
     }
 
+    static func timeoutResult(startedAt: Date) -> TwistySolveResult {
+        TwistySolveResult(
+            puzzleType: .cube3x3,
+            stateValidation: .valid,
+            isSolvable: false,
+            moves: [],
+            steps: [TwistySolutionStep(move: nil, explanation: "Solver timed out while searching for a solution.")],
+            elapsedTime: Date().timeIntervalSince(startedAt),
+            finalStateDescription: nil
+        )
+    }
+
     static func solvedResult(from moves: [Cube3x3Move], startedAt: Date) -> TwistySolveResult {
         let steps = moves.enumerated().map { index, move in
             TwistySolutionStep(move: move.twistyMove, explanation: "Step \(index + 1): apply \(move.rawValue).")
@@ -510,32 +534,45 @@ private enum Cube3x3ResultFormatter {
 /// Solver pipeline that incrementally constrains more cubies until the whole cube is solved.
 /// This is intentionally stage-based to keep memory usage bounded for mobile devices.
 private struct Cube3x3StagePlanner {
-    func solve(_ initialState: Cube3x3State) -> [Cube3x3Move]? {
+    func solve(_ initialState: Cube3x3State, deadline: Date) -> Cube3x3PlannerResult {
         var state = initialState
         var allSteps: [Cube3x3Move] = []
 
         for stage in Cube3x3SolveStage.defaultStages {
-            guard let sequence = search(stage: stage, from: state) else {
-                return nil
+            let stageResult = search(stage: stage, from: state, deadline: deadline)
+            switch stageResult {
+            case .timedOut:
+                return .timedOut
+            case .failed:
+                return .failed
+            case .solved(let sequence):
+                allSteps.append(contentsOf: sequence)
+                state = state.applying(sequence: sequence)
             }
-            allSteps.append(contentsOf: sequence)
-            state = state.applying(sequence: sequence)
         }
 
-        return state.isSolved ? allSteps : nil
+        return state.isSolved ? .solved(allSteps) : .failed
     }
 
-    private func search(stage: Cube3x3SolveStage, from start: Cube3x3State) -> [Cube3x3Move]? {
-        if stage.goal(start) { return [] }
+    private func search(stage: Cube3x3SolveStage, from start: Cube3x3State, deadline: Date) -> Cube3x3PlannerResult {
+        if stage.goal(start) { return .solved([]) }
+        if Date() > deadline { return .timedOut }
 
         let searcher = Cube3x3IDDFSSearcher(
             allowedMoves: stage.allowedMoves,
             goal: stage.goal,
-            heuristic: stage.heuristic
+            heuristic: stage.heuristic,
+            deadline: deadline
         )
 
         return searcher.search(from: start, maxDepth: stage.maxDepth)
     }
+}
+
+private enum Cube3x3PlannerResult: Equatable {
+    case solved([Cube3x3Move])
+    case failed
+    case timedOut
 }
 
 private struct Cube3x3SolveStage {
@@ -644,26 +681,49 @@ private struct Cube3x3IDDFSSearcher {
     let allowedMoves: [Cube3x3Move]
     let goal: (Cube3x3State) -> Bool
     let heuristic: (Cube3x3State) -> Int
+    let deadline: Date
+    private let nodeVisitLimit: Int = 350_000
 
-    func search(from start: Cube3x3State, maxDepth: Int) -> [Cube3x3Move]? {
+    func search(from start: Cube3x3State, maxDepth: Int) -> Cube3x3PlannerResult {
         var path: [Cube3x3Move] = []
+        var nodesVisited = 0
         for limit in 0...maxDepth {
-            if depthLimited(state: start, depthRemaining: limit, path: &path, previousMove: nil) {
-                return path
+            if Date() > deadline {
+                return .timedOut
+            }
+            switch depthLimited(
+                state: start,
+                depthRemaining: limit,
+                path: &path,
+                previousMove: nil,
+                nodesVisited: &nodesVisited
+            ) {
+            case .solved:
+                return .solved(path)
+            case .timedOut:
+                return .timedOut
+            case .failed:
+                continue
             }
         }
-        return nil
+        return .failed
     }
 
     private func depthLimited(
         state: Cube3x3State,
         depthRemaining: Int,
         path: inout [Cube3x3Move],
-        previousMove: Cube3x3Move?
-    ) -> Bool {
-        if goal(state) { return true }
-        if depthRemaining == 0 { return false }
-        if heuristic(state) > depthRemaining { return false }
+        previousMove: Cube3x3Move?,
+        nodesVisited: inout Int
+    ) -> Cube3x3SearchStepResult {
+        if Task.isCancelled || Date() > deadline || nodesVisited >= nodeVisitLimit {
+            return .timedOut
+        }
+        nodesVisited += 1
+
+        if goal(state) { return .solved }
+        if depthRemaining == 0 { return .failed }
+        if heuristic(state) > depthRemaining { return .failed }
 
         for move in allowedMoves {
             if let previousMove, move.baseTurn == previousMove.baseTurn {
@@ -672,14 +732,30 @@ private struct Cube3x3IDDFSSearcher {
 
             let next = state.applying(move)
             path.append(move)
-            if depthLimited(state: next, depthRemaining: depthRemaining - 1, path: &path, previousMove: move) {
-                return true
+            switch depthLimited(
+                state: next,
+                depthRemaining: depthRemaining - 1,
+                path: &path,
+                previousMove: move,
+                nodesVisited: &nodesVisited
+            ) {
+            case .solved:
+                return .solved
+            case .timedOut:
+                return .timedOut
+            case .failed:
+                path.removeLast()
             }
-            path.removeLast()
         }
 
-        return false
+        return .failed
     }
+}
+
+private enum Cube3x3SearchStepResult {
+    case solved
+    case failed
+    case timedOut
 }
 
 private enum Cube3x3MoveOptimizer {

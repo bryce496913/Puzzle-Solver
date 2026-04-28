@@ -160,18 +160,23 @@ struct Cube3x3EntryView: View {
     }
 
     private func startSolveFlow() {
+        print("[Cube3x3][Entry] Solve button tapped.")
         inputError = nil
 
         let stateResult = Cube3x3StateBuilder.makeState(from: stickerAssignments)
+        print("[Cube3x3][Entry] Input validation result: \(validationStatus.message)")
         guard case .success(let cubeState) = stateResult else {
             if case .failure(let error) = stateResult {
+                print("[Cube3x3][Entry] Sticker input -> Cube3x3State conversion failed: \(error.message)")
                 inputError = friendlyValidationMessage(for: error)
             } else {
+                print("[Cube3x3][Entry] Sticker input -> Cube3x3State conversion failed with unknown error.")
                 inputError = "Please check your cube input and try again."
             }
             return
         }
 
+        print("[Cube3x3][Entry] Sticker input converted to Cube3x3State successfully. Navigating to solving screen.")
         solveState = cubeState
         shouldNavigateToSolve = true
     }
