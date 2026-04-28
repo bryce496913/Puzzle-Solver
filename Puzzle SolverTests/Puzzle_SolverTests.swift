@@ -119,4 +119,102 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertNil(result.output)
     }
 
+    func testRushHourBoardValidationRejectsCollision() {
+        let target = RushHourVehicle(
+            id: "X",
+            orientation: .horizontal,
+            length: 2,
+            row: 2,
+            column: 1,
+            isTarget: true
+        )
+        let blocker = RushHourVehicle(
+            id: "A",
+            orientation: .vertical,
+            length: 3,
+            row: 1,
+            column: 2
+        )
+        let exit = RushHourExit(wall: .right, index: 2)
+
+        XCTAssertNotNil(target)
+        XCTAssertNotNil(blocker)
+        XCTAssertNotNil(exit)
+
+        let board = RushHourBoardState(vehicles: [target!, blocker!], exit: exit!)
+        XCTAssertNil(board)
+    }
+
+    func testRushHourValidMoveGenerationAndApplication() {
+        let target = RushHourVehicle(
+            id: "X",
+            orientation: .horizontal,
+            length: 2,
+            row: 2,
+            column: 0,
+            isTarget: true
+        )
+        let blocker = RushHourVehicle(
+            id: "A",
+            orientation: .vertical,
+            length: 2,
+            row: 0,
+            column: 4
+        )
+        let exit = RushHourExit(wall: .right, index: 2)
+        let board = RushHourBoardState(vehicles: [target!, blocker!], exit: exit!)
+
+        XCTAssertNotNil(board)
+
+        let validMoves = Set(board!.validMoves())
+        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 1)!))
+        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 2)!))
+        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 3)!))
+        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 4)!))
+        XCTAssertFalse(validMoves.contains(RushHourMove(vehicleID: "X", delta: 5)!))
+
+        let moved = board!.applying(RushHourMove(vehicleID: "X", delta: 4)!)
+        XCTAssertNotNil(moved)
+        XCTAssertEqual(moved?.targetVehicle?.column, 4)
+        XCTAssertTrue(moved?.isSolved() ?? false)
+    }
+
+    func testRushHourSolvedStateDetectionWithWallAndTargetAlignment() {
+        let targetSolved = RushHourVehicle(
+            id: "X",
+            orientation: .horizontal,
+            length: 2,
+            row: 2,
+            column: 4,
+            isTarget: true
+        )
+        let targetNotAligned = RushHourVehicle(
+            id: "X",
+            orientation: .horizontal,
+            length: 2,
+            row: 1,
+            column: 4,
+            isTarget: true
+        )
+        let blocker = RushHourVehicle(
+            id: "B",
+            orientation: .vertical,
+            length: 2,
+            row: 0,
+            column: 0
+        )
+        let exit = RushHourExit(wall: .right, index: 2)
+
+        XCTAssertNotNil(targetSolved)
+        XCTAssertNotNil(targetNotAligned)
+        XCTAssertNotNil(blocker)
+        XCTAssertNotNil(exit)
+
+        let solvedBoard = RushHourBoardState(vehicles: [targetSolved!, blocker!], exit: exit!)
+        let unsolvedBoard = RushHourBoardState(vehicles: [targetNotAligned!, blocker!], exit: exit!)
+
+        XCTAssertTrue(solvedBoard?.isSolved() ?? false)
+        XCTAssertFalse(unsolvedBoard?.isSolved() ?? true)
+    }
+
 }
