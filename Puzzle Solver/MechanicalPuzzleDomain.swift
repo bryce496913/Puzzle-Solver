@@ -138,6 +138,49 @@ struct KlotskiPiece: Hashable, Sendable, Identifiable {
 /// - Produce narrated solution steps for UI playback.
 struct KlotskiSolver: Sendable {}
 
+/// Placeholder board model for future Peg Solitaire support.
+///
+/// Future behavior:
+/// - Represent a fixed board layout (English/French/triangular variants) where each slot is either occupied or empty.
+/// - Apply jump rules where a peg moves exactly two spaces in a straight line over an adjacent peg.
+/// - A jump is legal only when the origin contains a peg, the jumped slot contains a peg, and the landing slot is empty.
+/// - The jumped peg is removed after each legal jump, decreasing the total peg count by one.
+/// - Solved-state checks will typically succeed when exactly one peg remains, optionally constrained to a target finish slot.
+struct PegSolitaireBoard: Hashable, Sendable {
+    enum SlotState: Hashable, Sendable {
+        case occupied
+        case empty
+    }
+
+    struct Coordinate: Hashable, Sendable {
+        let row: Int
+        let column: Int
+    }
+
+    let slots: [Coordinate: SlotState]
+    let targetFinish: Coordinate?
+}
+
+/// Placeholder move model for future Peg Solitaire support.
+///
+/// Future behavior:
+/// - `from` to `to` must be a two-space orthogonal jump on cross-shaped boards.
+/// - `jumped` identifies the midpoint peg that will be removed as part of the move.
+/// - Move validation will reject non-linear hops, one-space slides, and jumps over empty slots.
+struct PegSolitaireMove: Hashable, Sendable {
+    let from: PegSolitaireBoard.Coordinate
+    let jumped: PegSolitaireBoard.Coordinate
+    let to: PegSolitaireBoard.Coordinate
+}
+
+/// Placeholder solver for future Peg Solitaire support.
+///
+/// Future behavior:
+/// - Explore the move tree (DFS/BFS/IDA*) to find a sequence that reaches the solved-state rule.
+/// - Use move ordering and symmetry pruning to reduce duplicate state exploration.
+/// - Produce narrated steps suitable for UI playback and educational explanations.
+struct PegSolitaireSolver: Sendable {}
+
 enum RushHourWall: String, Hashable, Sendable {
     case top
     case bottom
