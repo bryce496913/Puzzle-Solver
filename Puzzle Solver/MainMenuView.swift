@@ -225,6 +225,7 @@ private struct MechanicalPuzzlePickerView: View {
         case .towersOfHanoi:
             MechanicalComingSoonView(puzzleType: puzzleType)
         case .lightsOut:
+            // Temporary route until the interactive Lights Out entry/solver flow is implemented.
             LightsOutComingSoonView()
         }
     }

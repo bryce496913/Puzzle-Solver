@@ -188,6 +188,10 @@ struct PegSolitaireSolver: Sendable {}
 /// - Lights will be represented as binary on/off states, with board dimensions determined by `rowCount` and `columnCount`.
 /// - Applying the same move twice cancels itself (mod-2 parity), which keeps board transitions easy to compose.
 /// - Solved-state checks will pass when every light is off.
+///
+/// Notes:
+/// - This model intentionally stores only the currently lit cells (`litCells`) to keep placeholder state minimal.
+/// - Full validation helpers (`isInBounds`, `applying(move:)`, `isSolved`) will be introduced with gameplay support.
 struct LightsOutBoard: Hashable, Sendable {
     struct Coordinate: Hashable, Sendable {
         let row: Int
@@ -205,6 +209,9 @@ struct LightsOutBoard: Hashable, Sendable {
 /// - Pressing `coordinate` toggles that cell and each orthogonal neighbor still on the board.
 /// - No diagonal cells are affected by a move.
 /// - Repeated presses on the same coordinate are allowed and equivalent to XOR-style parity toggling.
+///
+/// Notes:
+/// - `LightsOutMove` only records intent right now; mutation and validation remain solver responsibilities for now.
 struct LightsOutMove: Hashable, Sendable {
     let coordinate: LightsOutBoard.Coordinate
 }
@@ -216,6 +223,9 @@ struct LightsOutMove: Hashable, Sendable {
 /// - Solve for a press set that turns all lights off via Gaussian elimination, then evaluate free variables for minimal-move tie-breaking.
 /// - Detect unsolvable states when the system is inconsistent (augmented rank exceeds coefficient rank).
 /// - Convert solved press vectors into ordered, user-readable steps for playback.
+///
+/// Notes:
+/// - We deliberately leave this as a marker type for now so app navigation can be wired before implementation begins.
 struct LightsOutSolver: Sendable {}
 
 enum RushHourWall: String, Hashable, Sendable {
