@@ -9,28 +9,33 @@ import XCTest
 @testable import Puzzle_Solver
 
 final class Puzzle_SolverTests: XCTestCase {
+    func testSolvedTwoByTwoReturnsSuccessWithoutMoves() throws {
+        let solver = Cube2x2Solver()
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        let result = solver.solve(.solved2x2, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertEqual(result.moveCount, 0)
+        XCTAssertTrue(result.steps.isEmpty)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testInvalidTwoByTwoReturnsInvalidInput() throws {
+        let solver = Cube2x2Solver()
+        let invalidState = CubeState(puzzle: .twoByTwo, stickers: ["U"])
+
+        let result = solver.solve(invalidState, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
+
+        XCTAssertEqual(result.status, .invalidInput)
+        XCTAssertEqual(result.moveCount, 0)
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
+    func testThreeByThreeReturnsUnavailableInsteadOfSearching() throws {
+        let solver = Cube3x3Solver()
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
-    }
+        let result = solver.solve(.solved3x3, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
 
+        XCTAssertEqual(result.status, .solverUnavailable)
+        XCTAssertEqual(result.moveCount, 0)
+        XCTAssertEqual(result.nodesExplored, 0)
+    }
 }

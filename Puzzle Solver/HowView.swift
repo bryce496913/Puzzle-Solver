@@ -20,7 +20,7 @@ struct HowView: View {
                     .padding(.top, 50)
 
                 ScrollView {
-                    Text("Welcome to Puzzle Solver!\n\nTo use the app:\n1. Open the app and go to the 'New Puzzle' section.\n2. Assign numbers to 8 out of the 9 tiles.\n3. Ask the app to solve the puzzle.\n4. Watch the app use the A* algorithm to find the solution.\n5. Enjoy the magic of puzzle-solving!\n\nFeel free to explore other features in the main menu.")
+                    Text("Welcome to Puzzle Solver!\n\nThe solver screen now uses the shared cube-solving service. It always returns a clear status instead of loading forever.\n\nCurrent status:\n1. 2×2 uses a bounded IDA* path with timeout and node limits.\n2. 3×3 solving is being upgraded and is not available yet.\n3. 4×4 and 5×5 are safe reduction-method placeholders.\n\nStatuses include Solving…, Invalid cube, Solver unavailable, Could not solve quickly, and Solved.")
 
                         .foregroundColor(.white)
                         .padding()
