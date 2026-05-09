@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct MainMenuView: View {
+    @AppStorage("SolverDebugLoggingEnabled") private var debugLoggingEnabled = false
+
     var body: some View {
         ZStack {
             Color.black
@@ -34,6 +36,23 @@ struct MainMenuView: View {
                             .cornerRadius(10)
                     }
                 )
+
+                #if DEBUG
+                Toggle("Debug logging", isOn: $debugLoggingEnabled)
+                    .foregroundColor(.white)
+                    .frame(width: 200)
+
+                NavigationLink(
+                    destination: DiagnosticsView(),
+                    label: {
+                        Text("Diagnostics")
+                            .foregroundColor(.black)
+                            .frame(width: 200, height: 50)
+                            .background(Color(hex: 0xffffcc))
+                            .cornerRadius(10)
+                    }
+                )
+                #endif
 
                 NavigationLink(
                     destination: HowView(),
@@ -69,3 +88,48 @@ struct MainMenuView_Previews: PreviewProvider {
         MainMenuView()
     }
 }
+
+
+#if DEBUG
+struct DiagnosticsView: View {
+    private var lastStatus: SolveStatusSnapshot { SolverDiagnosticsStore.shared.lastSolveStatus }
+
+    var body: some View {
+        ZStack {
+            Color.black
+                .edgesIgnoringSafeArea(.all)
+
+            List {
+                Section(header: Text("Puzzle Modes")) {
+                    ForEach(PuzzleModeRegistry.diagnostics) { mode in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(mode.name)
+                                Text(mode.enabled ? "Enabled" : "Disabled")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Text(mode.solverAvailable ? "Solver ready" : "No solver")
+                                .font(.caption)
+                                .foregroundColor(mode.solverAvailable ? .green : .red)
+                        }
+                    }
+                }
+
+                Section(header: Text("Last Solve")) {
+                    Text("Mode: \(lastStatus.modeName)")
+                    Text("Status: \(lastStatus.state.rawValue)")
+                    Text("Detail: \(lastStatus.detail)")
+                }
+
+                Section(header: Text("Build")) {
+                    Text("Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Debug")")
+                    Text("Build: \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Local")")
+                }
+            }
+        }
+        .navigationTitle("Diagnostics")
+    }
+}
+#endif
