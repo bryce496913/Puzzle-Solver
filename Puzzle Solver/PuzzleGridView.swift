@@ -9,13 +9,17 @@ import SwiftUI
 
 struct PuzzleGridView: View {
     let boardState: [[Int?]]
+    var tileSize: CGFloat = 60
+    var spacing: CGFloat = 10
+
+    private var puzzleSize: Int { boardState.count }
 
     var body: some View {
-        VStack(spacing: 10) {
-            ForEach(0..<3, id: \.self) { row in
-                HStack(spacing: 10) {
-                    ForEach(0..<3, id: \.self) { column in
-                        PuzzleTileView(number: boardState[row][column])
+        VStack(spacing: spacing) {
+            ForEach(0..<puzzleSize, id: \.self) { row in
+                HStack(spacing: spacing) {
+                    ForEach(0..<boardState[row].count, id: \.self) { column in
+                        PuzzleTileView(number: boardState[row][column], size: tileSize)
                     }
                 }
             }
@@ -25,10 +29,9 @@ struct PuzzleGridView: View {
 
 struct PuzzleGridView_Previews: PreviewProvider {
     static var previews: some View {
-        PuzzleGridView(boardState: [
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, nil]
-        ])
+        VStack {
+            PuzzleGridView(boardState: PuzzlePresets.sliding3x3Medium.toGrid())
+            PuzzleGridView(boardState: PuzzlePresets.sliding4x4Medium.toGrid(), tileSize: 44)
+        }
     }
 }

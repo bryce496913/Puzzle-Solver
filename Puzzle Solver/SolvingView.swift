@@ -15,6 +15,7 @@ struct SolvingView: View {
     @State private var progressText = SolveState.idle.friendlyMessage
     @State private var movementList: [String] = []
     @State private var failureDetail: String?
+    @State private var solutionSteps: [SlidingPuzzleStep] = []
     @State private var isSolving = false
     @State private var didFinish = false
 
@@ -75,6 +76,24 @@ struct SolvingView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical)
+
+                    if !solutionSteps.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Solution Path:")
+                                .font(.title2)
+                                .foregroundColor(.white)
+
+                            ForEach(Array(solutionSteps.enumerated()), id: \.offset) { index, step in
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(index == 0 ? "Start" : "Step \(index): \(step.move?.rawValue ?? "Move")")
+                                        .foregroundColor(.gray)
+                                        .font(.caption)
+                                    MovementGridView(boardState: step.board.toGrid(), tileSize: puzzleSize == 4 ? 30 : 36, spacing: 4)
+                                }
+                            }
+                        }
+                        .padding(.bottom)
+                    }
                 }
 
                 Spacer()
@@ -104,7 +123,7 @@ struct SolvingView: View {
     private func solvePuzzle() {
         transition(to: .validating, detail: SolveState.validating.friendlyMessage)
         guard let board = SlidingPuzzleBoard.fromGrid(initialState, size: puzzleSize) else {
-            complete(state: .invalid, moves: [], reason: "Please fill the board first.", elapsedTime: 0, nodes: 0)
+            complete(state: .invalid, moves: [], steps: [], reason: "Please fill the board first.", elapsedTime: 0, nodes: 0)
             return
         }
 
@@ -112,14 +131,14 @@ struct SolvingView: View {
         let timeout: TimeInterval = 5
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
             guard !self.didFinish else { return }
-            self.complete(state: .timedOut, moves: [], reason: "Solver took too long.", elapsedTime: timeout, nodes: 0)
+            self.complete(state: .timedOut, moves: [], steps: [], reason: "Solver took too long.", elapsedTime: timeout, nodes: 0)
         }
 
         DispatchQueue.global(qos: .userInitiated).async {
             let result = SlidingPuzzleSolver().solve(board, options: SlidingPuzzleSolveOptions(timeout: timeout, maxNodes: 250_000))
             DispatchQueue.main.async {
                 guard !self.didFinish else { return }
-                self.complete(state: result.state, moves: result.moves, reason: result.failureReason, elapsedTime: result.elapsedTime, nodes: result.nodesExplored)
+                self.complete(state: result.state, moves: result.moves, steps: result.steps, reason: result.failureReason, elapsedTime: result.elapsedTime, nodes: result.nodesExplored)
             }
         }
     }
@@ -132,11 +151,12 @@ struct SolvingView: View {
         SolverDebugLogger.shared.log("solve state: \(state.rawValue)")
     }
 
-    private func complete(state: SolveState, moves: [String], reason: String?, elapsedTime: TimeInterval, nodes: Int) {
+    private func complete(state: SolveState, moves: [String], steps: [SlidingPuzzleStep], reason: String?, elapsedTime: TimeInterval, nodes: Int) {
         didFinish = true
         isSolving = false
         solveState = state
         failureDetail = userFacingDetail(for: state, reason: reason)
+        solutionSteps = state == .solved ? steps : []
         movementList = format(state: state, moves: moves)
         progressText = progressSummary(state: state, moveCount: moves.count, elapsedTime: elapsedTime, nodes: nodes)
         SolverDiagnosticsStore.shared.record(modeName: "\(puzzleSize)×\(puzzleSize) Sliding Puzzle", state: state, detail: failureDetail ?? progressText)
