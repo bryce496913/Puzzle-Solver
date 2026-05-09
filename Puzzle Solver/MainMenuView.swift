@@ -37,6 +37,18 @@ struct MainMenuView: View {
                     }
                 )
 
+
+                NavigationLink(
+                    destination: TwistyPuzzleInputView(),
+                    label: {
+                        Text("Twisty Puzzles")
+                            .foregroundColor(.black)
+                            .frame(width: 200, height: 50)
+                            .background(Color(hex: 0x99ffcc))
+                            .cornerRadius(10)
+                    }
+                )
+
                 #if DEBUG
                 Toggle("Debug logging", isOn: $debugLoggingEnabled)
                     .foregroundColor(.white)
