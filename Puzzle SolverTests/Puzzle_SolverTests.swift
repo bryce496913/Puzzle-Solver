@@ -256,18 +256,45 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertThrowsError(try parsed.get())
     }
 
-    func testPyraminxAndSkewbPlaceholdersReturnUnavailable() throws {
+    func testSolvedPyraminxAndSkewbReturnSuccess() throws {
         let pyraminx = PyraminxSolver().solve(.solvedPyraminx, options: .default)
         let skewb = SkewbSolver().solve(.solvedSkewb, options: .default)
 
-        XCTAssertEqual(pyraminx.status, .solverUnavailable)
-        XCTAssertEqual(skewb.status, .solverUnavailable)
+        XCTAssertEqual(pyraminx.status, .success)
+        XCTAssertEqual(skewb.status, .success)
+        XCTAssertEqual(pyraminx.moveCount, 0)
+        XCTAssertEqual(skewb.moveCount, 0)
+    }
+
+    func testPyraminxAndSkewbScramblesSolveWithSharedResults() throws {
+        let pyraminxMoves = try TwistyMoveNotation.parse("U R L'", spec: TwistyPuzzleKind.pyraminx.notation).get()
+        let pyraminxState = PyraminxMoveEngine.apply(pyraminxMoves, to: .solvedPyraminx)
+        let pyraminx = PyraminxSolver().solve(pyraminxState, options: CubeSolveOptions(timeout: 2, maxDepth: 8, maxNodes: 50_000, includeStepStates: true))
+
+        let skewbMoves = try TwistyMoveNotation.parse("R U B'", spec: TwistyPuzzleKind.skewb.notation).get()
+        let skewbState = SkewbMoveEngine.apply(skewbMoves, to: .solvedSkewb)
+        let skewb = SkewbSolver().solve(skewbState, options: CubeSolveOptions(timeout: 2, maxDepth: 8, maxNodes: 50_000, includeStepStates: true))
+
+        XCTAssertEqual(pyraminx.status, .success)
+        XCTAssertEqual(skewb.status, .success)
+        XCTAssertEqual(PyraminxMoveEngine.apply(try TwistyMoveNotation.parse(pyraminx.formattedMoves, spec: TwistyPuzzleKind.pyraminx.notation).get(), to: pyraminxState), .solvedPyraminx)
+        XCTAssertEqual(SkewbMoveEngine.apply(try TwistyMoveNotation.parse(skewb.formattedMoves, spec: TwistyPuzzleKind.skewb.notation).get(), to: skewbState), .solvedSkewb)
+    }
+
+    func testMegaminxAndSquareOnePlaceholdersReturnUnavailable() throws {
+        let megaminx = MegaminxSolver().solve(.solvedMegaminx, options: .default)
+        let squareOne = SquareOneSolver().solve(.solvedSquareOne, options: .default)
+
+        XCTAssertEqual(megaminx.status, .solverUnavailable)
+        XCTAssertEqual(squareOne.status, .solverUnavailable)
     }
 
     func testDiagnosticsListsTwistyArchitectures() throws {
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "2×2 Cube" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Pyraminx" && $0.enabled && !$0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Skewb" && $0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Pyraminx" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Skewb" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Megaminx" && $0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Square-1" && $0.enabled && !$0.solverAvailable })
     }
 
     // MARK: - Shared state and diagnostics

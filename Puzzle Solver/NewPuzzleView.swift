@@ -257,7 +257,7 @@ struct TwistyPuzzleInputView: View {
     @State private var selectedPuzzle: TwistyPuzzleKind = .threeByThree
     @State private var scrambleNotation = "R U R' U'"
     @State private var selectedSticker = "U"
-    @State private var currentState = CubeState.solved2x2
+    @State private var currentState = CubeState.solved3x3
     @State private var solveResult: CubeSolveResult?
     @State private var notationError: String?
     @State private var isSolving = false
@@ -273,19 +273,15 @@ struct TwistyPuzzleInputView: View {
                         .foregroundColor(Color(hex: 0xccffff))
 
                     Picker("Puzzle", selection: $selectedPuzzle) {
-                        ForEach(TwistyPuzzleKind.allCases.filter { [.twoByTwo, .threeByThree, .pyraminx, .skewb].contains($0) }) { puzzle in
+                        ForEach(TwistyPuzzleKind.allCases) { puzzle in
                             Text(puzzle.displayName).tag(puzzle)
                         }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
+                    .pickerStyle(MenuPickerStyle())
                     .onChange(of: selectedPuzzle) { _ in resetForSelectedPuzzle() }
 
-                    if selectedPuzzle == .threeByThree {
-                        Cube3x3StickerInputView(state: currentState, selectedSticker: $selectedSticker) { index in
-                            setSticker(at: index)
-                        }
-                    } else {
-                        TwistyFaceNetView(state: currentState)
+                    TwistyStickerInputGrid(state: currentState, selectedSticker: $selectedSticker) { index in
+                        setSticker(at: index)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -294,8 +290,11 @@ struct TwistyPuzzleInputView: View {
                             .font(.headline)
                         TextField("Example: U R F", text: $scrambleNotation)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        Text("2×2: \(TwoByTwoMoveEngine.legalMoveNotation) • 3×3: \(Cube3x3MoveEngine.legalMoveNotation)")
+                        Text(selectedPuzzle.notation.helpText)
                             .font(.caption)
+                            .foregroundColor(.gray)
+                        Text("Supported: \(selectedPuzzle.notation.supportedMovesText)")
+                            .font(.caption2)
                             .foregroundColor(.gray)
                     }
 
@@ -335,46 +334,65 @@ struct TwistyPuzzleInputView: View {
     private func resetForSelectedPuzzle() {
         currentState = CubeState.solved(selectedPuzzle)
         solveResult = nil
-        selectedSticker = "U"
+        selectedSticker = selectedPuzzle.faces.first ?? "U"
+        scrambleNotation = selectedPuzzle.notation.sampleScramble
         notationError = selectedPuzzle.isSolveEnabled ? nil : "\(selectedPuzzle.displayName) has a registered placeholder architecture; solving is not implemented yet."
     }
 
     private func applyScramble() {
         notationError = nil
         solveResult = nil
-        switch selectedPuzzle {
-        case .twoByTwo:
-            switch TwistyMoveNotation.parse(scrambleNotation, allowedFaces: Set(["U", "R", "F"])) {
-            case .success(let moves): currentState = TwoByTwoMoveEngine.apply(moves.map(\.notation), to: .solved2x2)
-            case .failure(let error): notationError = error.localizedDescription
+        switch TwistyMoveNotation.parse(scrambleNotation, spec: selectedPuzzle.notation) {
+        case .success(let moves):
+            switch selectedPuzzle {
+            case .twoByTwo:
+                currentState = TwoByTwoMoveEngine.apply(moves.map(\.notation), to: .solved2x2)
+            case .threeByThree:
+                currentState = Cube3x3MoveEngine.apply(moves.map(\.notation), to: .solved3x3)
+            case .pyraminx:
+                currentState = PyraminxMoveEngine.apply(moves, to: .solvedPyraminx)
+            case .skewb:
+                currentState = SkewbMoveEngine.apply(moves, to: .solvedSkewb)
+            default:
+                currentState = CubeState.solved(selectedPuzzle)
+                notationError = "Scramble replay is reserved in the \(selectedPuzzle.displayName) placeholder architecture."
             }
-        case .threeByThree:
-            switch TwistyMoveNotation.parse(scrambleNotation, allowedFaces: Set(["U", "R", "F", "D", "L", "B"])) {
-            case .success(let moves): currentState = Cube3x3MoveEngine.apply(moves.map(\.notation), to: .solved3x3)
-            case .failure(let error): notationError = error.localizedDescription
-            }
-        default:
-            currentState = CubeState.solved(selectedPuzzle)
-            notationError = "Scramble replay is implemented for 2×2 and 3×3 cubes."
+        case .failure(let error): notationError = error.localizedDescription
         }
     }
 
 
     private func setSticker(at index: Int) {
-        guard selectedPuzzle == .threeByThree, ![4, 13, 22, 31, 40, 49].contains(index) else { return }
+        guard !fixedStickerIndices.contains(index) else { return }
         var stickers = currentState.stickers
         guard stickers.indices.contains(index) else { return }
         stickers[index] = selectedSticker
-        currentState = CubeState(puzzle: .threeByThree, stickers: stickers)
+        currentState = CubeState(puzzle: selectedPuzzle, stickers: stickers)
         solveResult = nil
         notationError = nil
+    }
+
+    private var fixedStickerIndices: Set<Int> {
+        guard selectedPuzzle == .threeByThree else { return [] }
+        return [4, 13, 22, 31, 40, 49]
+    }
+
+    private var solveOptions: CubeSolveOptions {
+        switch selectedPuzzle {
+        case .threeByThree:
+            return CubeSolveOptions(timeout: 10, maxDepth: 24, maxNodes: 1_000_000, includeStepStates: false)
+        case .pyraminx, .skewb:
+            return CubeSolveOptions(timeout: 5, maxDepth: 12, maxNodes: 150_000, includeStepStates: true)
+        default:
+            return CubeSolveOptions(timeout: 5, maxDepth: 14, maxNodes: 75_000, includeStepStates: false)
+        }
     }
 
     private func solveCurrentPuzzle() {
         notationError = nil
         isSolving = true
         SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: .solving, detail: "Twisty solve started.")
-        CubeSolvingService.shared.solve(currentState, options: CubeSolveOptions(timeout: selectedPuzzle == .threeByThree ? 10 : 5, maxDepth: selectedPuzzle == .threeByThree ? 24 : 14, maxNodes: selectedPuzzle == .threeByThree ? 1_000_000 : 75_000, includeStepStates: false)) { result in
+        CubeSolvingService.shared.solve(currentState, options: solveOptions) { result in
             isSolving = false
             solveResult = result
             SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: result.status.solveState, detail: result.failureReason ?? result.status.userFacingMessage)
@@ -382,21 +400,22 @@ struct TwistyPuzzleInputView: View {
     }
 }
 
-struct Cube3x3StickerInputView: View {
+struct TwistyStickerInputGrid: View {
     let state: CubeState
     @Binding var selectedSticker: String
     let onStickerTap: (Int) -> Void
 
-    private let faces = ["U", "R", "F", "D", "L", "B"]
-    private let centerIndices: Set<Int> = [4, 13, 22, 31, 40, 49]
+    private var faces: [String] { state.puzzle.faces }
+    private var centerIndices: Set<Int> { state.puzzle == .threeByThree ? [4, 13, 22, 31, 40, 49] : [] }
+    private var perFace: Int { max(1, (state.puzzle.stickerCount ?? state.stickers.count) / max(1, faces.count)) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("3×3 sticker input")
+            Text("Twisty sticker input")
                 .font(.headline)
                 .foregroundColor(.white)
 
-            Text("Choose a color, then tap stickers in the cube net. Centers are fixed and validity is checked before solving.")
+            Text("Choose a face label, then tap stickers in the reusable puzzle net. Fixed centers are locked when the puzzle requires them.")
                 .font(.caption)
                 .foregroundColor(.gray)
 
@@ -418,9 +437,9 @@ struct Cube3x3StickerInputView: View {
                         Text(face)
                             .foregroundColor(.gray)
                             .font(.caption)
-                        LazyVGrid(columns: Array(repeating: GridItem(.fixed(22), spacing: 4), count: 3), spacing: 4) {
-                            ForEach(0..<9, id: \.self) { offset in
-                                let stickerIndex = faceIndex * 9 + offset
+                        LazyVGrid(columns: faceColumns, spacing: 4) {
+                            ForEach(0..<perFace, id: \.self) { offset in
+                                let stickerIndex = faceIndex * perFace + offset
                                 Button(action: { onStickerTap(stickerIndex) }) {
                                     Text(state.stickers[safe: stickerIndex] ?? "?")
                                         .font(.caption2.bold())
@@ -442,6 +461,11 @@ struct Cube3x3StickerInputView: View {
         }
     }
 
+    private var faceColumns: [GridItem] {
+        let side = Int(ceil(sqrt(Double(perFace))))
+        return Array(repeating: GridItem(.fixed(22), spacing: 4), count: side)
+    }
+
     private func stickerColor(_ label: String) -> Color {
         switch label {
         case "U": return .white
@@ -450,6 +474,7 @@ struct Cube3x3StickerInputView: View {
         case "D": return Color(hex: 0xffff99)
         case "L": return Color(hex: 0xffcc99)
         case "B": return Color(hex: 0x99ccff)
+        case "uR", "uL", "dR", "dL", "bR", "bL", "M": return Color(hex: 0xccccff)
         default: return Color(hex: 0xccccff)
         }
     }
