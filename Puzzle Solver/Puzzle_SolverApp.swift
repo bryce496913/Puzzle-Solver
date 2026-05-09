@@ -2,7 +2,7 @@
 //  Puzzle_SolverApp.swift
 //  Puzzle Solver
 //
-//  Created by Bryce Cameron on 30/1/24.
+//  Created by Aditi Abrol on 30/1/24.
 //
 
 import SwiftUI

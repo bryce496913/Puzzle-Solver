@@ -8,178 +8,140 @@
 import SwiftUI
 
 struct MainMenuView: View {
-    private let puzzleCategories = PuzzleCategory.all
+    @AppStorage("SolverDebugLoggingEnabled") private var debugLoggingEnabled = false
 
     var body: some View {
         ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
+            Color.black
+                .edgesIgnoringSafeArea(.all)
 
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
-                VStack(alignment: .leading, spacing: AppTheme.Spacing.xSmall) {
-                    Text("Puzzle Solver")
-                        .appTextStyle(.h1)
-                        .foregroundStyle(AppTheme.Colors.highlight)
+            VStack(spacing: 20) {
+                Text("Puzzle")
+                    .foregroundColor(Color(hex: 0xff99cc))
+                    .font(.system(size: 60))
 
-                    Text("Choose a puzzle type")
-                        .appTextStyle(.h2)
-                        .foregroundStyle(AppTheme.Colors.text.opacity(0.85))
-                }
-                .padding(.horizontal, AppTheme.Spacing.large)
-                .padding(.top, AppTheme.Spacing.xLarge)
+                Text("Solver")
+                    .foregroundColor(Color(hex: 0xccffff))
+                    .font(.system(size: 60))
 
-                ScrollView {
-                    VStack(spacing: AppTheme.Spacing.medium) {
-                        ForEach(puzzleCategories) { puzzleCategory in
-                            NavigationLink {
-                                destinationView(for: puzzleCategory)
-                            } label: {
-                                PuzzleTypeCard(
-                                    title: puzzleCategory.title,
-                                    subtitle: puzzleCategory.subtitle,
-                                    icon: puzzleCategory.icon,
-                                    isEnabled: puzzleCategory.availability == .available,
-                                    accentVariant: puzzleCategory.accentVariant
-                                )
-                            }
-                            .disabled(puzzleCategory.availability == .comingSoon)
-                            .buttonStyle(.plain)
-                        }
+                Spacer()
+
+                NavigationLink(
+                    destination: NewPuzzleView(),
+                    label: {
+                        Text("New Puzzle")
+                            .foregroundColor(.black)
+                            .frame(width: 200, height: 50)
+                            .background(Color(hex: 0x99ccff))
+                            .cornerRadius(10)
                     }
-                    .padding(.horizontal, AppTheme.Spacing.large)
-                    .padding(.bottom, AppTheme.Spacing.xLarge)
+                )
+
+
+                NavigationLink(
+                    destination: TwistyPuzzleInputView(),
+                    label: {
+                        Text("Twisty Puzzles")
+                            .foregroundColor(.black)
+                            .frame(width: 200, height: 50)
+                            .background(Color(hex: 0x99ffcc))
+                            .cornerRadius(10)
+                    }
+                )
+
+                #if DEBUG
+                Toggle("Debug logging", isOn: $debugLoggingEnabled)
+                    .foregroundColor(.white)
+                    .frame(width: 200)
+
+                NavigationLink(
+                    destination: DiagnosticsView(),
+                    label: {
+                        Text("Diagnostics")
+                            .foregroundColor(.black)
+                            .frame(width: 200, height: 50)
+                            .background(Color(hex: 0xffffcc))
+                            .cornerRadius(10)
+                    }
+                )
+                #endif
+
+                NavigationLink(
+                    destination: HowView(),
+                    label: {
+                        Text("How")
+                            .foregroundColor(.black)
+                            .frame(width: 200, height: 50)
+                            .background(Color(hex: 0xccffff))
+                            .cornerRadius(10)
+                    }
+                )
+
+                Button(action: {
+                    // Close the app
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }) {
+                    Text("Exit")
+                        .foregroundColor(.black)
+                        .frame(width: 200, height: 50)
+                        .background(Color(hex: 0xff99cc))
+                        .cornerRadius(10)
                 }
+                .padding(.bottom, 20)
             }
+            .padding()
         }
-        .navigationBarBackButtonHidden(true)
-    }
-
-    @ViewBuilder
-    private func destinationView(for puzzleCategory: PuzzleCategory) -> some View {
-        switch puzzleCategory.destination {
-        case .slidingPuzzleSizeSelection:
-            SlidingPuzzleSizeSelectionView()
-        case .twistyPuzzlePicker:
-            TwistyPuzzlePickerView()
-        case .logicPuzzlePicker:
-            LogicPuzzlePickerView()
-        case .mechanicalPuzzlePicker:
-            MechanicalPuzzlePickerView()
-        case .comingSoon:
-            ComingSoonPuzzleView(puzzleName: puzzleCategory.title)
-        }
-    }
-}
-
-private struct PuzzleCategory: Identifiable {
-    enum Availability {
-        case available
-        case comingSoon
-
-        var subtitle: String {
-            switch self {
-            case .available:
-                return "Ready now"
-            case .comingSoon:
-                return "Coming soon"
-            }
-        }
-    }
-
-    enum Destination {
-        case slidingPuzzleSizeSelection
-        case twistyPuzzlePicker
-        case logicPuzzlePicker
-        case mechanicalPuzzlePicker
-        case comingSoon
-    }
-
-    let id: String
-    let title: String
-    let icon: String
-    let availability: Availability
-    let destination: Destination
-
-    var subtitle: String {
-        availability.subtitle
-    }
-
-    var accentVariant: PuzzleTypeCard.AccentVariant {
-        availability == .available ? .accent : .highlight
-    }
-
-    static let all: [PuzzleCategory] = [
-        PuzzleCategory(
-            id: "sliding",
-            title: "Sliding Puzzle",
-            icon: "square.grid.3x3.fill",
-            availability: .available,
-            destination: .slidingPuzzleSizeSelection
-        ),
-        PuzzleCategory(
-            id: "twisty",
-            title: "Twisty Puzzles",
-            icon: "cube.transparent.fill",
-            availability: .available,
-            destination: .twistyPuzzlePicker
-        ),
-        PuzzleCategory(
-            id: "logic",
-            title: "Logic Puzzles",
-            icon: "number.square.fill",
-            availability: .available,
-            destination: .logicPuzzlePicker
-        ),
-        PuzzleCategory(
-            id: "mechanical",
-            title: "Mechanical Puzzles",
-            icon: "shippingbox.fill",
-            availability: .available,
-            destination: .mechanicalPuzzlePicker
-        )
-    ]
-}
-
-struct ComingSoonPuzzleView: View {
-    let puzzleName: String
-
-    var body: some View {
-        ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
-
-            VStack {
-                VStack(spacing: AppTheme.Spacing.medium) {
-                    Text(puzzleName)
-                        .appTextStyle(.h1)
-                        .foregroundStyle(AppTheme.Colors.highlight)
-                        .multilineTextAlignment(.center)
-
-                    Text("Coming Soon")
-                        .appTextStyle(.h2)
-                        .foregroundStyle(AppTheme.Colors.text)
-
-                    Text("This puzzle mode is planned for a future version.")
-                        .appTextStyle(.paragraph)
-                        .foregroundStyle(AppTheme.Colors.text.opacity(0.78))
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: 320)
-                .padding(AppTheme.Spacing.xLarge)
-                .appSurfaceCard()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, AppTheme.Spacing.large)
-        }
-        .navigationTitle(puzzleName)
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(true) // Hide the navigation bar
     }
 }
 
 struct MainMenuView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationStack {
-            MainMenuView()
-        }
+        MainMenuView()
     }
 }
+
+
+#if DEBUG
+struct DiagnosticsView: View {
+    private var lastStatus: SolveStatusSnapshot { SolverDiagnosticsStore.shared.lastSolveStatus }
+
+    var body: some View {
+        ZStack {
+            Color.black
+                .edgesIgnoringSafeArea(.all)
+
+            List {
+                Section(header: Text("Puzzle Modes")) {
+                    ForEach(PuzzleModeRegistry.diagnostics) { mode in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(mode.name)
+                                Text(mode.enabled ? "Enabled" : "Disabled")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Text(mode.solverAvailable ? "Solver ready" : "No solver")
+                                .font(.caption)
+                                .foregroundColor(mode.solverAvailable ? .green : .red)
+                        }
+                    }
+                }
+
+                Section(header: Text("Last Solve")) {
+                    Text("Mode: \(lastStatus.modeName)")
+                    Text("Status: \(lastStatus.state.rawValue)")
+                    Text("Detail: \(lastStatus.detail)")
+                }
+
+                Section(header: Text("Build")) {
+                    Text("Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Debug")")
+                    Text("Build: \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Local")")
+                }
+            }
+        }
+        .navigationTitle("Diagnostics")
+    }
+}
+#endif

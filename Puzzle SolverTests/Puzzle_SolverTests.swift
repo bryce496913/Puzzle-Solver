@@ -2,315 +2,366 @@
 //  Puzzle_SolverTests.swift
 //  Puzzle SolverTests
 //
-//  Created by Bryce Cameron on 30/1/24.
+//  Created by Aditi Abrol on 30/1/24.
 //
 
 import XCTest
 @testable import Puzzle_Solver
 
 final class Puzzle_SolverTests: XCTestCase {
+    // MARK: - 3×3 sliding puzzle
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    func testSolvedThreeByThreeSlidingPuzzleReturnsSolvedWithoutMoves() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3Solved)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.moves, [])
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testOneMoveThreeByThreeSlidingPuzzleSolves() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3OneMove)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.moves.count, 1)
     }
 
-    func testCube3x3SolverSolvesShortScramble() async throws {
-        let scramble: [Cube3x3Move] = [.r, .u, .fPrime, .l2, .d]
-        let scrambled = Cube3x3State.solved.applying(sequence: scramble)
+    func testMediumThreeByThreeSlidingPuzzleSolves() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3Medium)
 
-        let result = await Cube3x3Solver().solve(from: scrambled)
-
-        XCTAssertTrue(result.isSolvable)
+        XCTAssertEqual(result.state, .solved)
         XCTAssertFalse(result.moves.isEmpty)
-
-        let solved = result.moves.reduce(scrambled) { partial, move in
-            guard let cubeMove = Cube3x3Move(rawValue: move.token) else {
-                XCTFail("Unexpected move token returned: \(move.token)")
-                return partial
-            }
-            return partial.applying(cubeMove)
-        }
-        XCTAssertEqual(solved, .solved)
     }
 
-    func testCube3x3StateValidationRejectsParityMismatch() throws {
-        var invalid = Cube3x3State.solved
-        var perm = invalid.cornerPermutation
-        perm.swapAt(0, 1)
-        invalid = Cube3x3State(
-            cornerPermutation: perm,
-            cornerOrientation: invalid.cornerOrientation,
-            edgePermutation: invalid.edgePermutation,
-            edgeOrientation: invalid.edgeOrientation
-        )
+    func testInvalidThreeByThreeSlidingPuzzleReturnsInvalid() throws {
+        let invalid = SlidingPuzzleBoard(size: 3, tiles: [1, 1, 2, 3, 4, 5, 6, 7, 0])
+        let result = SlidingPuzzleSolver().solve(invalid)
 
-        let validation = invalid.validate()
-        XCTAssertFalse(validation.isValid)
+        XCTAssertEqual(result.state, .invalid)
     }
 
-    func testSudokuSolverSolvesValidGrid() {
-        let puzzle = SudokuGrid(rows: [
-            [5, 3, 0, 0, 7, 0, 0, 0, 0],
-            [6, 0, 0, 1, 9, 5, 0, 0, 0],
-            [0, 9, 8, 0, 0, 0, 0, 6, 0],
-            [8, 0, 0, 0, 6, 0, 0, 0, 3],
-            [4, 0, 0, 8, 0, 3, 0, 0, 1],
-            [7, 0, 0, 0, 2, 0, 0, 0, 6],
-            [0, 6, 0, 0, 0, 0, 2, 8, 0],
-            [0, 0, 0, 4, 1, 9, 0, 0, 5],
-            [0, 0, 0, 0, 8, 0, 0, 7, 9]
-        ])
+    func testUnsolvableThreeByThreeSlidingPuzzleReturnsUnsolvable() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3Unsolvable)
 
-        XCTAssertNotNil(puzzle)
-
-        let result = SudokuSolver().solve(puzzle ?? SudokuGrid())
-
-        XCTAssertTrue(result.isValid)
-        XCTAssertEqual(result.completion, .solved)
-        XCTAssertNotNil(result.output)
-        XCTAssertTrue(result.output?.isSolved ?? false)
+        XCTAssertEqual(result.state, .unsolvable)
     }
 
-    func testSudokuSolverRejectsInvalidStartingGrid() {
-        let invalid = SudokuGrid(rows: [
-            [5, 5, 0, 0, 7, 0, 0, 0, 0],
-            [6, 0, 0, 1, 9, 5, 0, 0, 0],
-            [0, 9, 8, 0, 0, 0, 0, 6, 0],
-            [8, 0, 0, 0, 6, 0, 0, 0, 3],
-            [4, 0, 0, 8, 0, 3, 0, 0, 1],
-            [7, 0, 0, 0, 2, 0, 0, 0, 6],
-            [0, 6, 0, 0, 0, 0, 2, 8, 0],
-            [0, 0, 0, 4, 1, 9, 0, 0, 5],
-            [0, 0, 0, 0, 8, 0, 0, 7, 9]
-        ])
+    func testThreeByThreeSlidingPuzzleUsesSuccessfulOrderedPath() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3OneMove)
 
-        XCTAssertNotNil(invalid)
-
-        let result = SudokuSolver().solve(invalid ?? SudokuGrid())
-
-        XCTAssertFalse(result.isValid)
-        XCTAssertEqual(result.completion, .unsolved)
-        XCTAssertNil(result.output)
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(result.path.first, PuzzlePresets.sliding3x3OneMove)
+        XCTAssertEqual(result.path.last, PuzzlePresets.sliding3x3Solved)
+        XCTAssertEqual(result.steps.count, result.path.count)
     }
 
-    func testSudokuSolverReturnsUnsolvedForNoSolutionGrid() {
-        let impossible = SudokuGrid(rows: [
-            [5, 1, 6, 8, 4, 9, 7, 3, 2],
-            [3, 0, 7, 6, 0, 5, 0, 0, 0],
-            [8, 0, 9, 7, 0, 0, 0, 6, 5],
-            [1, 3, 5, 0, 6, 0, 9, 0, 7],
-            [4, 7, 2, 5, 9, 1, 0, 0, 6],
-            [9, 6, 8, 3, 7, 0, 0, 5, 0],
-            [2, 5, 3, 1, 8, 6, 0, 7, 4],
-            [6, 8, 4, 2, 0, 7, 5, 0, 0],
-            [7, 9, 1, 0, 5, 0, 6, 0, 8]
-        ])
+    func testThreeByThreeSlidingPuzzleDoesNotReturnFailurePath() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3Unsolvable)
 
-        XCTAssertNotNil(impossible)
-
-        let result = SudokuSolver().solve(impossible ?? SudokuGrid())
-
-        XCTAssertTrue(result.isValid)
-        XCTAssertEqual(result.completion, .unsolved)
-        XCTAssertNil(result.output)
-    }
-
-    func testRushHourBoardValidationRejectsCollision() {
-        let target = RushHourVehicle(
-            id: "X",
-            orientation: .horizontal,
-            length: 2,
-            row: 2,
-            column: 1,
-            isTarget: true
-        )
-        let blocker = RushHourVehicle(
-            id: "A",
-            orientation: .vertical,
-            length: 3,
-            row: 1,
-            column: 2
-        )
-        let exit = RushHourExit(wall: .right, index: 2)
-
-        XCTAssertNotNil(target)
-        XCTAssertNotNil(blocker)
-        XCTAssertNotNil(exit)
-
-        let board = RushHourBoardState(vehicles: [target!, blocker!], exit: exit!)
-        XCTAssertNil(board)
-    }
-
-    func testRushHourValidMoveGenerationAndApplication() {
-        let target = RushHourVehicle(
-            id: "X",
-            orientation: .horizontal,
-            length: 2,
-            row: 2,
-            column: 0,
-            isTarget: true
-        )
-        let blocker = RushHourVehicle(
-            id: "A",
-            orientation: .vertical,
-            length: 2,
-            row: 0,
-            column: 4
-        )
-        let exit = RushHourExit(wall: .right, index: 2)
-        let board = RushHourBoardState(vehicles: [target!, blocker!], exit: exit!)
-
-        XCTAssertNotNil(board)
-
-        let validMoves = Set(board!.validMoves())
-        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 1)!))
-        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 2)!))
-        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 3)!))
-        XCTAssertTrue(validMoves.contains(RushHourMove(vehicleID: "X", delta: 4)!))
-        XCTAssertFalse(validMoves.contains(RushHourMove(vehicleID: "X", delta: 5)!))
-
-        let moved = board!.applying(RushHourMove(vehicleID: "X", delta: 4)!)
-        XCTAssertNotNil(moved)
-        XCTAssertEqual(moved?.targetVehicle?.column, 4)
-        XCTAssertTrue(moved?.isSolved() ?? false)
-    }
-
-    func testRushHourSolvedStateDetectionWithWallAndTargetAlignment() {
-        let targetSolved = RushHourVehicle(
-            id: "X",
-            orientation: .horizontal,
-            length: 2,
-            row: 2,
-            column: 4,
-            isTarget: true
-        )
-        let targetNotAligned = RushHourVehicle(
-            id: "X",
-            orientation: .horizontal,
-            length: 2,
-            row: 1,
-            column: 4,
-            isTarget: true
-        )
-        let blocker = RushHourVehicle(
-            id: "B",
-            orientation: .vertical,
-            length: 2,
-            row: 0,
-            column: 0
-        )
-        let exit = RushHourExit(wall: .right, index: 2)
-
-        XCTAssertNotNil(targetSolved)
-        XCTAssertNotNil(targetNotAligned)
-        XCTAssertNotNil(blocker)
-        XCTAssertNotNil(exit)
-
-        let solvedBoard = RushHourBoardState(vehicles: [targetSolved!, blocker!], exit: exit!)
-        let unsolvedBoard = RushHourBoardState(vehicles: [targetNotAligned!, blocker!], exit: exit!)
-
-        XCTAssertTrue(solvedBoard?.isSolved() ?? false)
-        XCTAssertFalse(unsolvedBoard?.isSolved() ?? true)
-    }
-
-    func testRushHourSolverReturnsOnlySuccessfulOrderedSolutionPath() async throws {
-        let target = RushHourVehicle(
-            id: "X",
-            orientation: .horizontal,
-            length: 2,
-            row: 2,
-            column: 0,
-            isTarget: true
-        )
-        let blockerA = RushHourVehicle(
-            id: "A",
-            orientation: .vertical,
-            length: 3,
-            row: 0,
-            column: 2
-        )
-        let blockerB = RushHourVehicle(
-            id: "B",
-            orientation: .vertical,
-            length: 2,
-            row: 1,
-            column: 3
-        )
-        let blockerC = RushHourVehicle(
-            id: "C",
-            orientation: .vertical,
-            length: 2,
-            row: 1,
-            column: 4
-        )
-        let exit = RushHourExit(wall: .right, index: 2)
-        let board = RushHourBoardState(
-            vehicles: [target!, blockerA!, blockerB!, blockerC!],
-            exit: exit!
-        )
-
-        XCTAssertNotNil(board)
-
-        let result = await RushHourSolver().solve(from: board!)
-        XCTAssertTrue(result.isSolved)
-        XCTAssertFalse(result.steps.isEmpty)
-
-        let ordered = result.orderedSteps
-        let expectedStepNumbers = Array(1...ordered.count)
-        XCTAssertEqual(ordered.map(\.stepNumber), expectedStepNumbers)
-        XCTAssertTrue(ordered.allSatisfy { $0.instruction.hasPrefix("Move ") })
-        XCTAssertTrue(ordered.contains { $0.instruction.contains("Move red car right") })
-
-        let finalBoard = ordered.last?.boardState
-        XCTAssertNotNil(finalBoard)
-        XCTAssertTrue(finalBoard?.isSolved() ?? false)
-    }
-
-    func testRushHourSolverReturnsUnsolvedForExplorationLimit() async {
-        let target = RushHourVehicle(
-            id: "X",
-            orientation: .horizontal,
-            length: 2,
-            row: 2,
-            column: 0,
-            isTarget: true
-        )
-        let blockerA = RushHourVehicle(
-            id: "A",
-            orientation: .vertical,
-            length: 3,
-            row: 0,
-            column: 2
-        )
-        let blockerB = RushHourVehicle(
-            id: "B",
-            orientation: .vertical,
-            length: 2,
-            row: 1,
-            column: 3
-        )
-        let blockerC = RushHourVehicle(
-            id: "C",
-            orientation: .vertical,
-            length: 2,
-            row: 1,
-            column: 4
-        )
-        let exit = RushHourExit(wall: .right, index: 2)
-        let board = RushHourBoardState(
-            vehicles: [target!, blockerA!, blockerB!, blockerC!],
-            exit: exit!
-        )
-
-        XCTAssertNotNil(board)
-
-        let result = await RushHourSolver().solve(from: board!, maxExploredStates: 1)
-        XCTAssertEqual(result.status, .unsolved)
+        XCTAssertFalse(result.succeeded)
+        XCTAssertTrue(result.moves.isEmpty)
+        XCTAssertTrue(result.path.isEmpty)
         XCTAssertTrue(result.steps.isEmpty)
     }
 
+    func testThreeByThreeSlidingPuzzleTimeoutIsBounded() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3Medium, options: SlidingPuzzleSolveOptions(timeout: 0, maxNodes: 100_000))
+
+        XCTAssertEqual(result.state, .timedOut)
+    }
+
+    // MARK: - 4×4 sliding puzzle solver coverage
+
+    func testSolvedFourByFourSlidingPuzzleReturnsSolvedWithoutMoves() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4Solved)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.moves, [])
+    }
+
+    func testOneMoveFourByFourSlidingPuzzleSolves() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4OneMove)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.moves.count, 1)
+    }
+
+    func testMediumFourByFourSlidingPuzzleSolves() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4Medium)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertFalse(result.moves.isEmpty)
+    }
+
+    func testFourByFourSlidingPuzzleUsesIDAStarPath() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4OneMove)
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(result.path.first, PuzzlePresets.sliding4x4OneMove)
+        XCTAssertEqual(result.path.last, PuzzlePresets.sliding4x4Solved)
+        XCTAssertEqual(result.moves, [SlidingPuzzleMove.right.rawValue])
+    }
+
+    func testInvalidFourByFourSlidingPuzzleReturnsInvalid() throws {
+        let invalid = SlidingPuzzleBoard(size: 4, tiles: Array(repeating: 0, count: 16))
+        let result = SlidingPuzzleSolver().solve(invalid)
+
+        XCTAssertEqual(result.state, .invalid)
+    }
+
+    func testFourByFourSlidingPuzzleTimeoutIsBounded() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4Medium, options: SlidingPuzzleSolveOptions(timeout: 0, maxNodes: 100_000))
+
+        XCTAssertEqual(result.state, .timedOut)
+    }
+
+    // MARK: - 2×2 cube solver coverage
+
+    func testSolvedTwoByTwoReturnsSuccessWithoutMoves() throws {
+        let solver = Cube2x2Solver()
+
+        let result = solver.solve(.solved2x2, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertEqual(result.moveCount, 0)
+        XCTAssertTrue(result.steps.isEmpty)
+    }
+
+    func testOneMoveTwoByTwoSolves() throws {
+        let solver = Cube2x2Solver()
+        let scrambled = makeTwoByTwoState(after: ["U"])
+
+        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 2, maxDepth: 4, maxNodes: 10_000, includeStepStates: true))
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertFalse(result.moves.isEmpty)
+    }
+
+    func testMediumTwoByTwoScrambleSolves() throws {
+        let solver = Cube2x2Solver()
+        let scrambled = makeTwoByTwoState(after: ["U", "R", "F"])
+
+        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 3, maxDepth: 8, maxNodes: 50_000, includeStepStates: false))
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertFalse(result.moves.isEmpty)
+    }
+
+    func testInvalidTwoByTwoReturnsInvalidInput() throws {
+        let solver = Cube2x2Solver()
+        let invalidState = CubeState(puzzle: .twoByTwo, stickers: ["U"])
+
+        let result = solver.solve(invalidState, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
+
+        XCTAssertEqual(result.status, .invalidInput)
+        XCTAssertEqual(result.moveCount, 0)
+    }
+
+    func testTwoByTwoTimeoutIsBounded() throws {
+        let solver = Cube2x2Solver()
+        let scrambled = makeTwoByTwoState(after: ["U", "R", "F"])
+
+        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 0, maxDepth: 8, maxNodes: 50_000, includeStepStates: false))
+
+        XCTAssertEqual(result.status, .timeout)
+    }
+
+    // MARK: - 3×3 cube solver coverage
+
+    func testSolvedThreeByThreeReturnsSuccessWithoutMoves() throws {
+        let solver = Cube3x3Solver()
+
+        let result = solver.solve(.solved3x3, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertEqual(result.moveCount, 0)
+        XCTAssertTrue(result.steps.isEmpty)
+    }
+
+    func testSingleRThreeByThreeReturnsInverseOrEquivalent() throws {
+        let solver = Cube3x3Solver()
+        let scrambled = makeThreeByThreeState(after: [.R])
+
+        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 2, maxDepth: 4, maxNodes: 20_000, includeStepStates: true))
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertFalse(result.moves.isEmpty)
+        XCTAssertTrue(result.steps.isEmpty)
+        XCTAssertTrue(solves(scrambled, moves: result.moves))
+    }
+
+    func testSimpleThreeByThreeScrambleSolves() throws {
+        let solver = Cube3x3Solver()
+        let scrambled = makeThreeByThreeState(after: [.R, .U, .Ri, .Ui])
+
+        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 5, maxDepth: 8, maxNodes: 250_000, includeStepStates: false))
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertTrue(solves(scrambled, moves: result.moves))
+    }
+
+    func testInvalidThreeByThreeColorCountFailsBeforeSolving() throws {
+        let solver = Cube3x3Solver()
+        var stickers = CubeState.solved3x3.stickers
+        stickers[0] = "R"
+        let invalid = CubeState(puzzle: .threeByThree, stickers: stickers)
+
+        let result = solver.solve(invalid, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: false))
+
+        XCTAssertEqual(result.status, .invalidInput)
+        XCTAssertEqual(result.nodesExplored, 0)
+    }
+
+    func testThreeByThreeSafetyOptionsKeepSearchBounded() throws {
+        let solver = Cube3x3Solver()
+        let scrambled = makeThreeByThreeState(after: [.R, .U, .Ri, .Ui])
+
+        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 0, maxDepth: 8, maxNodes: 1, includeStepStates: false))
+
+        XCTAssertTrue([CubeSolveStatus.success, .timeout, .failure].contains(result.status))
+        XCTAssertLessThan(result.elapsedTime, 2)
+    }
+
+    // MARK: - Larger active cube placeholders
+
+    func testFourByFourCubeReportsUnavailableInsteadOfHanging() throws {
+        let solver = Cube4x4Solver()
+        let state = CubeState(puzzle: .fourByFour, stickers: Array(repeating: "U", count: 96))
+
+        let result = solver.solve(state, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 1, includeStepStates: false))
+
+        XCTAssertEqual(result.status, .solverUnavailable)
+    }
+
+    func testInvalidFourByFourCubeReturnsInvalidInput() throws {
+        let solver = Cube4x4Solver()
+        let result = solver.solve(CubeState(puzzle: .fourByFour, stickers: []), options: .default)
+
+        XCTAssertEqual(result.status, .invalidInput)
+    }
+
+
+    // MARK: - Shared twisty architecture
+
+    func testTwistyMoveNotationParsesAndFormatsReusableMoves() throws {
+        let parsed = try TwistyMoveNotation.parse("U R' F2", allowedFaces: Set(["U", "R", "F"])).get()
+
+        XCTAssertEqual(parsed.map(\.notation), ["U", "R'", "F2"])
+        XCTAssertEqual(TwistyMoveNotation.format(parsed), "U R' F2")
+        XCTAssertEqual(parsed[1].inverse.notation, "R")
+    }
+
+    func testTwistyMoveNotationRejectsUnsupportedFaces() throws {
+        let parsed = TwistyMoveNotation.parse("B", allowedFaces: Set(["U", "R", "F"]))
+
+        XCTAssertThrowsError(try parsed.get())
+    }
+
+    func testSolvedPyraminxAndSkewbReturnSuccess() throws {
+        let pyraminx = PyraminxSolver().solve(.solvedPyraminx, options: .default)
+        let skewb = SkewbSolver().solve(.solvedSkewb, options: .default)
+
+        XCTAssertEqual(pyraminx.status, .success)
+        XCTAssertEqual(skewb.status, .success)
+        XCTAssertEqual(pyraminx.moveCount, 0)
+        XCTAssertEqual(skewb.moveCount, 0)
+    }
+
+    func testPyraminxAndSkewbScramblesSolveWithSharedResults() throws {
+        let pyraminxMoves = try TwistyMoveNotation.parse("U R L'", spec: TwistyPuzzleKind.pyraminx.notation).get()
+        let pyraminxState = PyraminxMoveEngine.apply(pyraminxMoves, to: .solvedPyraminx)
+        let pyraminx = PyraminxSolver().solve(pyraminxState, options: CubeSolveOptions(timeout: 2, maxDepth: 8, maxNodes: 50_000, includeStepStates: true))
+
+        let skewbMoves = try TwistyMoveNotation.parse("R U B'", spec: TwistyPuzzleKind.skewb.notation).get()
+        let skewbState = SkewbMoveEngine.apply(skewbMoves, to: .solvedSkewb)
+        let skewb = SkewbSolver().solve(skewbState, options: CubeSolveOptions(timeout: 2, maxDepth: 8, maxNodes: 50_000, includeStepStates: true))
+
+        XCTAssertEqual(pyraminx.status, .success)
+        XCTAssertEqual(skewb.status, .success)
+        XCTAssertEqual(PyraminxMoveEngine.apply(try TwistyMoveNotation.parse(pyraminx.formattedMoves, spec: TwistyPuzzleKind.pyraminx.notation).get(), to: pyraminxState), .solvedPyraminx)
+        XCTAssertEqual(SkewbMoveEngine.apply(try TwistyMoveNotation.parse(skewb.formattedMoves, spec: TwistyPuzzleKind.skewb.notation).get(), to: skewbState), .solvedSkewb)
+    }
+
+    func testMegaminxAndSquareOnePlaceholdersReturnUnavailable() throws {
+        let megaminx = MegaminxSolver().solve(.solvedMegaminx, options: .default)
+        let squareOne = SquareOneSolver().solve(.solvedSquareOne, options: .default)
+
+        XCTAssertEqual(megaminx.status, .solverUnavailable)
+        XCTAssertEqual(squareOne.status, .solverUnavailable)
+    }
+
+    func testDiagnosticsListsTwistyArchitectures() throws {
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "2×2 Cube" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Pyraminx" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Skewb" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Megaminx" && $0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Square-1" && $0.enabled && !$0.solverAvailable })
+    }
+
+    // MARK: - Shared state and diagnostics
+
+    func testSolveStateContainsEveryRequiredState() throws {
+        XCTAssertEqual(Set(SolveState.allCases.map(\.rawValue)), ["idle", "validating", "solving", "solved", "invalid", "unsolvable", "timedOut", "failed", "unsupported"])
+    }
+
+    func testDiagnosticsListsEnabledSlidingPuzzleMode() throws {
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "3×3 Sliding Puzzle" && $0.enabled && $0.solverAvailable })
+    }
+
+    func testDiagnosticsListsEnabledFourByFourSlidingPuzzleMode() throws {
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "4×4 Sliding Puzzle" && $0.enabled && $0.solverAvailable })
+    }
+
+    // MARK: - Helpers
+
+    private func makeThreeByThreeState(after moves: [Cube3x3Move]) -> CubeState {
+        let stickers = moves.reduce(CubeState.solved3x3.stickers) { stickers, move in
+            Cube3x3MoveTables.shared.apply(move, to: stickers)
+        }
+        return CubeState(puzzle: .threeByThree, stickers: stickers)
+    }
+
+    private func solves(_ state: CubeState, moves: [String]) -> Bool {
+        let finalStickers = moves.reduce(state.stickers) { stickers, moveName in
+            guard let move = Cube3x3Move(rawValue: moveName) else { return stickers }
+            return Cube3x3MoveTables.shared.apply(move, to: stickers)
+        }
+        return finalStickers == CubeState.solved3x3.stickers
+    }
+
+    private func makeTwoByTwoState(after moves: [String]) -> CubeState {
+        moves.reduce(CubeState.solved2x2) { state, move in
+            applyTwoByTwo(move, to: state)
+        }
+    }
+
+    private func applyTwoByTwo(_ move: String, to state: CubeState) -> CubeState {
+        let turns: Int
+        switch move.last {
+        case "'": turns = 3
+        case "2": turns = 2
+        default: turns = 1
+        }
+
+        var result = state
+        for _ in 0..<turns {
+            switch move.first {
+            case "U": result = quarterTurn(result, cycles: [[0, 2, 3, 1], [8, 4, 20, 16], [9, 5, 21, 17]])
+            case "R": result = quarterTurn(result, cycles: [[4, 6, 7, 5], [1, 9, 13, 23], [3, 11, 15, 21]])
+            case "F": result = quarterTurn(result, cycles: [[8, 10, 11, 9], [2, 16, 13, 7], [3, 18, 12, 5]])
+            default: break
+            }
+        }
+        return result
+    }
+
+    private func quarterTurn(_ state: CubeState, cycles: [[Int]]) -> CubeState {
+        var stickers = state.stickers
+        let old = stickers
+        for cycle in cycles {
+            for index in 0..<cycle.count {
+                stickers[cycle[(index + 1) % cycle.count]] = old[cycle[index]]
+            }
+        }
+        return CubeState(puzzle: state.puzzle, stickers: stickers)
+    }
 }

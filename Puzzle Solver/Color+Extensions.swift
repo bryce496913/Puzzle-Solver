@@ -17,11 +17,4 @@ extension Color {
             opacity: 1
         )
     }
-
-    // Convenience aliases to reference app palette directly from Color.
-    static let appBackground = AppTheme.Colors.background
-    static let appSurface = AppTheme.Colors.surface
-    static let appAccent = AppTheme.Colors.accent
-    static let appHighlight = AppTheme.Colors.highlight
-    static let appText = AppTheme.Colors.text
 }

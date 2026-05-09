@@ -8,44 +8,49 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var launchPhase: LaunchPhase = .splash
-
+    @State private var isActive: Bool = false
+    
     var body: some View {
-        NavigationStack {
-            MainMenuView()
-        }
-        .overlay {
-            if launchPhase == .splash {
-                LaunchSplashView()
-                    .transition(.opacity)
+        ZStack {
+            Color.black
+                .edgesIgnoringSafeArea(.all)
+            
+            VStack {
+                Text("Puzzle")
+                    .foregroundColor(Color(hex: 0xff99cc))
+                    .font(.system(size: 60))
+                
+                Text("Solver")
+                    .foregroundColor(Color(hex: 0xccffff))
+                    .font(.system(size: 60))
             }
+            .opacity(isActive ? 1 : 0)
+            .animation(.easeInOut(duration: 1))
         }
-        .task {
-            guard launchPhase == .splash else { return }
-
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            withAnimation(.easeOut(duration: 0.3)) {
-                launchPhase = .menu
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation {
+                    self.isActive = true
+                }
+                
+                // Navigate to MainMenuView after the splash screen
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.navigateToMainMenu()
+                }
             }
         }
     }
-}
-
-private enum LaunchPhase {
-    case splash
-    case menu
-}
-
-private struct LaunchSplashView: View {
-    var body: some View {
-        ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
-
-            Text("Puzzle Solver")
-                .appTextStyle(.h1)
-                .foregroundStyle(AppTheme.Colors.highlight)
+    
+    private func navigateToMainMenu() {
+        // Use NavigationLink to navigate to MainMenuView
+        let mainMenuView = MainMenuView()
+        let contentView = NavigationView { // Assuming you want to embed in a NavigationView
+            NavigationLink(destination: mainMenuView, isActive: $isActive) {
+                EmptyView()
+            }
         }
+        UIApplication.shared.windows.first?.rootViewController = UIHostingController(rootView: contentView)
+        UIApplication.shared.windows.first?.makeKeyAndVisible()
     }
 }
 

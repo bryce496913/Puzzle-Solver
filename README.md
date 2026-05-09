@@ -1,33 +1,33 @@
 # Puzzle Solver
 
-Puzzle Solver is a Swift application designed to solve classic sliding tile puzzles efficiently using the A* search algorithm with heuristics.
+Puzzle Solver is a Swift application with a shared cube-solving service layer for twisty puzzles.
 
 ## Features
 
-- Solves sliding tile puzzles with 9 tiles.
-- Implements the A* search algorithm from https://holyswift.app/solving-eight-puzzle-with-a-algorithm-in-swift/.
-- Provides a graphical user interface (GUI).
+- Shared `CubeSolvingService` and `CubeSolverProtocol` abstractions for cube solvers.
+- Common `CubeSolveResult` responses for success, invalid input, timeout, unsupported puzzles, and unavailable solvers.
+- Bounded 2×2 IDA* solver path with timeout, max-depth, and max-node safety limits.
+- Cubie-level 3×3 solver with edge orientation/permutation and corner orientation/permutation tracking, all face turns, validity checks, bounded two-phase search, pruning tables, and timeout handling.
+- 4×4 and 5×5 reduction-method placeholders that avoid naive full-state solving.
+- UI statuses for Solving…, Invalid cube, Solver unavailable, Could not solve quickly, and Solved.
 
-## How it Works
+## Solver Status
 
-1. User sets the locations of the 8 numbers. This is loaded into the **Initial State**
-2. **Initial State**: Provide the initial configuration of the puzzle board.
-3. **A* Search**: The application uses the A* search algorithm to find the optimal solution to the puzzle.
-5. **Interactive Interface**: The GUI displays the current state of the puzzle and the solution path.
-6. **Optimization**: The algorithm prioritizes moves based on the chosen heuristic to minimize the number of misplaced tiles.
-7. **Solution Path**: Once the solution is found, the app displays the sequence of moves needed to solve the puzzle.
+| Puzzle | Status |
+| --- | --- |
+| 2×2 Cube | Bounded IDA* search path available. |
+| 3×3 Cube | Cubie-level two-phase solver available with pruning tables and sticker-input UI. |
+| 4×4 Cube | Reduction-method placeholder. |
+| 5×5 Cube | Reduction-method placeholder. |
+| Pyraminx / Skewb | Recognized as future twisty puzzles; unsupported until a solver is registered. |
 
 ## Getting Started
 
-To get started with the Puzzle Solver app:
-
-1. Clone or download the repository to your local machine.
-2. Open the project in Xcode.
+1. Clone or download the repository.
+2. Open `Puzzle Solver.xcodeproj` in Xcode.
 3. Build and run the application on a simulator or device.
-4. Provide the initial state of the puzzle board.
-5. Choose the heuristic function to use.
-6. Let the application solve the puzzle and display the solution path.
+4. Open the solver screen to see a guaranteed terminal solve status.
 
 ## Contributing
 
-Contributions to the Puzzle Solver app are welcome! If you encounter any issues or have suggestions for improvements, please open an issue or submit a pull request on GitHub.
+Contributions to improve pruning-table coverage, add more twisty-puzzle solvers, or add reduction-method solvers for larger cubes are welcome.

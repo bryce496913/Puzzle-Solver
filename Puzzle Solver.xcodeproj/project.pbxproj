@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		EE18DB782B939DD000B3843E /* SlidingPuzzleSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */; };
-		EE38313D2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE38313C2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift */; };
+		EE18DB782B939DD000B3843E /* PuzzleSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE18DB772B939DD000B3843E /* PuzzleSolver.swift */; };
+		EE38313D2B950E3E00D96988 /* MovementGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE38313C2B950E3E00D96988 /* MovementGridView.swift */; };
 		EE82B6672B69931500B2BC49 /* Puzzle_SolverApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */; };
 		EE82B6692B69931500B2BC49 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6682B69931500B2BC49 /* ContentView.swift */; };
 		EE82B66B2B69931600B2BC49 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE82B66A2B69931600B2BC49 /* Assets.xcassets */; };
@@ -17,42 +17,12 @@
 		EE82B6822B69931700B2BC49 /* Puzzle_SolverUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6812B69931700B2BC49 /* Puzzle_SolverUITests.swift */; };
 		EE82B6842B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */; };
 		EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6902B69973D00B2BC49 /* MainMenuView.swift */; };
-		EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */; };
-		EEB2C0012F90000100D00D01 /* SudokuEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB2C0002F90000100D00D01 /* SudokuEntryView.swift */; };
-		EEB2C0032F90000100D00D01 /* LogicPuzzleComingSoonViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB2C0022F90000100D00D01 /* LogicPuzzleComingSoonViews.swift */; };
-		EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */; };
-		EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */; };
-		EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */; };
-		EE82B6932B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */; };
+		EE82B6932B699B1D00B2BC49 /* NewPuzzleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */; };
+		EE82B6952B699B3000B2BC49 /* HowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6942B699B3000B2BC49 /* HowView.swift */; };
 		EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */; };
 		EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69A2B69B41400B2BC49 /* SolvingView.swift */; };
-		EEA100042C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */; };
-		EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100002C01000000D00D01 /* AppDesignSystem.swift */; };
-		EEA100032C01012300D00D01 /* PuzzleTypeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */; };
-		EEB310012FA2000100D00D01 /* PuzzleCategorySectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB310002FA2000100D00D01 /* PuzzleCategorySectionsView.swift */; };
-		EEB200012C02000100D00D01 /* SlidingPuzzleBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */; };
-		EEB200042C02010100D00D01 /* TwistyPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */; };
-		EEB200062C02020200D00D01 /* Cube2x2EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200052C02020200D00D01 /* Cube2x2EntryView.swift */; };
-		EEB200082C02040400D00D01 /* Cube2x2SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB200072C02040400D00D01 /* Cube2x2SolvingView.swift */; };
-		EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */; };
-		EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */; };
-		EED400012E10000100D00D01 /* Cube3x3Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED400022E10000100D00D01 /* Cube3x3Domain.swift */; };
-		EEF700012E40000100D00D01 /* NonCubeTwistyDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */; };
-		EEF500012E20000100D00D01 /* Cube2x2InputDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF500022E20000100D00D01 /* Cube2x2InputDomain.swift */; };
-		EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */; };
-		EEF600032E30000100D00D01 /* Cube3x3InputDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */; };
-		EEF600052E30000100D00D01 /* Cube3x3SolvingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */; };
-		EEF900012E50000100D00D01 /* PyraminxEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEF900022E50000100D00D01 /* PyraminxEntryView.swift */; };
-		EEAA10012F70000100D00D01 /* LogicPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */; };
-		EEB1A0012F80000100D00D01 /* NonogramGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0022F80000100D00D01 /* NonogramGrid.swift */; };
-		EEB1A0032F80000100D00D01 /* NonogramClues.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0042F80000100D00D01 /* NonogramClues.swift */; };
-		EEB1A0052F80000100D00D01 /* NonogramSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB1A0062F80000100D00D01 /* NonogramSolver.swift */; };
-		EEAC10012F81000100D00D01 /* KakuroGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10002F81000100D00D01 /* KakuroGrid.swift */; };
-		EEAC10032F81000100D00D01 /* KakuroClueCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10022F81000100D00D01 /* KakuroClueCell.swift */; };
-		EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAC10042F81000100D00D01 /* KakuroSolver.swift */; };
-		EEAD20012F91000100D00D01 /* MechanicalPuzzleDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */; };
-		EEAD20032F91010100D00D01 /* RushHourEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAD20022F91010100D00D01 /* RushHourEntryView.swift */; };
-		EEAE30012FA1000100D00D01 /* MechanicalPuzzlePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEAE30002FA1000100D00D01 /* MechanicalPuzzlePickerView.swift */; };
+		EE82B69D2B69CE2800B2BC49 /* PuzzleGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */; };
+		EE82B69F2B69CE4100B2BC49 /* PuzzleTileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,8 +43,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleSolver.swift; sourceTree = "<group>"; };
-		EE38313C2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleSolutionStepCardView.swift; sourceTree = "<group>"; };
+		EE18DB772B939DD000B3843E /* PuzzleSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleSolver.swift; sourceTree = "<group>"; };
+		EE38313C2B950E3E00D96988 /* MovementGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovementGridView.swift; sourceTree = "<group>"; };
 		EE82B6632B69931500B2BC49 /* Puzzle Solver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Puzzle Solver.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverApp.swift; sourceTree = "<group>"; };
 		EE82B6682B69931500B2BC49 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -86,42 +56,12 @@
 		EE82B6812B69931700B2BC49 /* Puzzle_SolverUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverUITests.swift; sourceTree = "<group>"; };
 		EE82B6832B69931700B2BC49 /* Puzzle_SolverUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		EE82B6902B69973D00B2BC49 /* MainMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenuView.swift; sourceTree = "<group>"; };
-		EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzlePickerView.swift; sourceTree = "<group>"; };
-		EEB2C0002F90000100D00D01 /* SudokuEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SudokuEntryView.swift; sourceTree = "<group>"; };
-		EEB2C0022F90000100D00D01 /* LogicPuzzleComingSoonViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleComingSoonViews.swift; sourceTree = "<group>"; };
-		EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuGrid.swift; sourceTree = "<group>"; };
-		EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuCage.swift; sourceTree = "<group>"; };
-		EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuSolver.swift; sourceTree = "<group>"; };
-		EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleEntryView.swift; sourceTree = "<group>"; };
+		EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewPuzzleView.swift; sourceTree = "<group>"; };
+		EE82B6942B699B3000B2BC49 /* HowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HowView.swift; sourceTree = "<group>"; };
 		EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Extensions.swift"; sourceTree = "<group>"; };
 		EE82B69A2B69B41400B2BC49 /* SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolvingView.swift; sourceTree = "<group>"; };
-		EEA100002C01000000D00D01 /* AppDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDesignSystem.swift; sourceTree = "<group>"; };
-		EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleTypeCard.swift; sourceTree = "<group>"; };
-		EEB310002FA2000100D00D01 /* PuzzleCategorySectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleCategorySectionsView.swift; sourceTree = "<group>"; };
-		EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleSizeSelectionView.swift; sourceTree = "<group>"; };
-		EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlidingPuzzleBoardView.swift; sourceTree = "<group>"; };
-		EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzlePickerView.swift; sourceTree = "<group>"; };
-		EEB200052C02020200D00D01 /* Cube2x2EntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube2x2EntryView.swift; sourceTree = "<group>"; };
-		EEB200072C02040400D00D01 /* Cube2x2SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube2x2SolvingView.swift; sourceTree = "<group>"; };
-		EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleDomain.swift; sourceTree = "<group>"; };
-		EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TwistyPuzzleComponents.swift; sourceTree = "<group>"; };
-		EED400022E10000100D00D01 /* Cube3x3Domain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3Domain.swift; sourceTree = "<group>"; };
-		EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonCubeTwistyDomain.swift; sourceTree = "<group>"; };
-		EEF500022E20000100D00D01 /* Cube2x2InputDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube2x2InputDomain.swift; sourceTree = "<group>"; };
-		EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3EntryView.swift; sourceTree = "<group>"; };
-		EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3InputDomain.swift; sourceTree = "<group>"; };
-		EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3SolvingView.swift; sourceTree = "<group>"; };
-		EEF900022E50000100D00D01 /* PyraminxEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyraminxEntryView.swift; sourceTree = "<group>"; };
-		EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleDomain.swift; sourceTree = "<group>"; };
-		EEB1A0022F80000100D00D01 /* NonogramGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramGrid.swift; sourceTree = "<group>"; };
-		EEB1A0042F80000100D00D01 /* NonogramClues.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramClues.swift; sourceTree = "<group>"; };
-		EEB1A0062F80000100D00D01 /* NonogramSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramSolver.swift; sourceTree = "<group>"; };
-		EEAC10002F81000100D00D01 /* KakuroGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroGrid.swift; sourceTree = "<group>"; };
-		EEAC10022F81000100D00D01 /* KakuroClueCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroClueCell.swift; sourceTree = "<group>"; };
-		EEAC10042F81000100D00D01 /* KakuroSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroSolver.swift; sourceTree = "<group>"; };
-		EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleDomain.swift; sourceTree = "<group>"; };
-		EEAD20022F91010100D00D01 /* RushHourEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RushHourEntryView.swift; sourceTree = "<group>"; };
-		EEAE30002FA1000100D00D01 /* MechanicalPuzzlePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzlePickerView.swift; sourceTree = "<group>"; };
+		EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleGridView.swift; sourceTree = "<group>"; };
+		EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleTileView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,43 +115,13 @@
 				EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */,
 				EE82B6682B69931500B2BC49 /* ContentView.swift */,
 				EE82B6902B69973D00B2BC49 /* MainMenuView.swift */,
-				EE9A10002F60000100D00D01 /* LogicPuzzlePickerView.swift */,
-				EEB2C0002F90000100D00D01 /* SudokuEntryView.swift */,
-				EEB2C0022F90000100D00D01 /* LogicPuzzleComingSoonViews.swift */,
-				EEAA10002F70000100D00D01 /* LogicPuzzleDomain.swift */,
-				EEB1A0022F80000100D00D01 /* NonogramGrid.swift */,
-				EEB1A0042F80000100D00D01 /* NonogramClues.swift */,
-				EEB1A0062F80000100D00D01 /* NonogramSolver.swift */,
-				EEAC10002F81000100D00D01 /* KakuroGrid.swift */,
-				EEAC10022F81000100D00D01 /* KakuroClueCell.swift */,
-				EEAC10042F81000100D00D01 /* KakuroSolver.swift */,
-				EEAB10002F71000100D00D01 /* KillerSudokuGrid.swift */,
-				EEAB10022F71000100D00D01 /* KillerSudokuCage.swift */,
-				EEAB10042F71000100D00D01 /* KillerSudokuSolver.swift */,
-				EEAD20002F91000100D00D01 /* MechanicalPuzzleDomain.swift */,
-				EEAD20022F91010100D00D01 /* RushHourEntryView.swift */,
-				EEAE30002FA1000100D00D01 /* MechanicalPuzzlePickerView.swift */,
-				EE82B6922B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift */,
+				EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */,
+				EE82B6942B699B3000B2BC49 /* HowView.swift */,
 				EE82B69A2B69B41400B2BC49 /* SolvingView.swift */,
-				EE18DB772B939DD000B3843E /* SlidingPuzzleSolver.swift */,
-				EE38313C2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift */,
-				EEA100022C01012300D00D01 /* PuzzleTypeCard.swift */,
-				EEB310002FA2000100D00D01 /* PuzzleCategorySectionsView.swift */,
-				EEA100052C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift */,
-				EEB200022C02000100D00D01 /* SlidingPuzzleBoardView.swift */,
-				EEB200032C02010100D00D01 /* TwistyPuzzlePickerView.swift */,
-				EEB200052C02020200D00D01 /* Cube2x2EntryView.swift */,
-				EEF500022E20000100D00D01 /* Cube2x2InputDomain.swift */,
-				EEB200072C02040400D00D01 /* Cube2x2SolvingView.swift */,
-				EEC300022D00000100D00D01 /* TwistyPuzzleDomain.swift */,
-				EEC300042D00010100D00D01 /* TwistyPuzzleComponents.swift */,
-				EED400022E10000100D00D01 /* Cube3x3Domain.swift */,
-				EEF700022E40000100D00D01 /* NonCubeTwistyDomain.swift */,
-				EEF900022E50000100D00D01 /* PyraminxEntryView.swift */,
-				EEF600022E30000100D00D01 /* Cube3x3EntryView.swift */,
-				EEF600042E30000100D00D01 /* Cube3x3InputDomain.swift */,
-				EEF600062E30000100D00D01 /* Cube3x3SolvingView.swift */,
-				EEA100002C01000000D00D01 /* AppDesignSystem.swift */,
+				EE18DB772B939DD000B3843E /* PuzzleSolver.swift */,
+				EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */,
+				EE38313C2B950E3E00D96988 /* MovementGridView.swift */,
+				EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */,
 				EE82B66A2B69931600B2BC49 /* Assets.xcassets */,
 				EE82B66C2B69931600B2BC49 /* Preview Content */,
 				EE82B6962B699B9800B2BC49 /* Color+Extensions.swift */,
@@ -374,47 +284,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EE18DB782B939DD000B3843E /* SlidingPuzzleSolver.swift in Sources */,
+				EE18DB782B939DD000B3843E /* PuzzleSolver.swift in Sources */,
 				EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */,
-				EE9A10012F60000100D00D01 /* LogicPuzzlePickerView.swift in Sources */,
-				EEB2C0012F90000100D00D01 /* SudokuEntryView.swift in Sources */,
-				EEB2C0032F90000100D00D01 /* LogicPuzzleComingSoonViews.swift in Sources */,
-				EEAA10012F70000100D00D01 /* LogicPuzzleDomain.swift in Sources */,
-				EEB1A0012F80000100D00D01 /* NonogramGrid.swift in Sources */,
-				EEB1A0032F80000100D00D01 /* NonogramClues.swift in Sources */,
-				EEB1A0052F80000100D00D01 /* NonogramSolver.swift in Sources */,
-				EEAC10012F81000100D00D01 /* KakuroGrid.swift in Sources */,
-				EEAC10032F81000100D00D01 /* KakuroClueCell.swift in Sources */,
-				EEAC10052F81000100D00D01 /* KakuroSolver.swift in Sources */,
-				EEAD20012F91000100D00D01 /* MechanicalPuzzleDomain.swift in Sources */,
-				EEAD20032F91010100D00D01 /* RushHourEntryView.swift in Sources */,
-				EEAE30012FA1000100D00D01 /* MechanicalPuzzlePickerView.swift in Sources */,
-				EEAB10012F71000100D00D01 /* KillerSudokuGrid.swift in Sources */,
-				EEAB10032F71000100D00D01 /* KillerSudokuCage.swift in Sources */,
-				EEAB10052F71000100D00D01 /* KillerSudokuSolver.swift in Sources */,
+				EE82B69F2B69CE4100B2BC49 /* PuzzleTileView.swift in Sources */,
 				EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */,
-				EE82B6932B699B1D00B2BC49 /* SlidingPuzzleEntryView.swift in Sources */,
-				EE38313D2B950E3E00D96988 /* SlidingPuzzleSolutionStepCardView.swift in Sources */,
+				EE82B69D2B69CE2800B2BC49 /* PuzzleGridView.swift in Sources */,
+				EE82B6932B699B1D00B2BC49 /* NewPuzzleView.swift in Sources */,
+				EE38313D2B950E3E00D96988 /* MovementGridView.swift in Sources */,
+				EE82B6952B699B3000B2BC49 /* HowView.swift in Sources */,
 				EE82B6692B69931500B2BC49 /* ContentView.swift in Sources */,
 				EE82B6672B69931500B2BC49 /* Puzzle_SolverApp.swift in Sources */,
-				EEA100012C01000100D00D01 /* AppDesignSystem.swift in Sources */,
-				EEA100032C01012300D00D01 /* PuzzleTypeCard.swift in Sources */,
-				EEB310012FA2000100D00D01 /* PuzzleCategorySectionsView.swift in Sources */,
-				EEA100042C01032100D00D01 /* SlidingPuzzleSizeSelectionView.swift in Sources */,
-				EEB200012C02000100D00D01 /* SlidingPuzzleBoardView.swift in Sources */,
-				EEB200042C02010100D00D01 /* TwistyPuzzlePickerView.swift in Sources */,
-				EEB200062C02020200D00D01 /* Cube2x2EntryView.swift in Sources */,
-				EEF500012E20000100D00D01 /* Cube2x2InputDomain.swift in Sources */,
-				EEB200082C02040400D00D01 /* Cube2x2SolvingView.swift in Sources */,
-				EEC300012D00000100D00D01 /* TwistyPuzzleDomain.swift in Sources */,
-				EEC300032D00010100D00D01 /* TwistyPuzzleComponents.swift in Sources */,
-				EED400012E10000100D00D01 /* Cube3x3Domain.swift in Sources */,
-				EEF700012E40000100D00D01 /* NonCubeTwistyDomain.swift in Sources */,
 				EE82B6972B699B9800B2BC49 /* Color+Extensions.swift in Sources */,
-				EEF600012E30000100D00D01 /* Cube3x3EntryView.swift in Sources */,
-				EEF600032E30000100D00D01 /* Cube3x3InputDomain.swift in Sources */,
-				EEF600052E30000100D00D01 /* Cube3x3SolvingView.swift in Sources */,
-				EEF900012E50000100D00D01 /* PyraminxEntryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -501,7 +381,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -555,7 +435,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -581,7 +461,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -614,7 +494,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -639,7 +519,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -658,7 +538,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -676,7 +556,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -694,7 +573,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "Bryce-Cameron-Design.Puzzle-SolverUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
