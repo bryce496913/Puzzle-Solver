@@ -38,7 +38,7 @@ enum TwistyPuzzleKind: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    var isSolveEnabled: Bool { self == .twoByTwo }
+    var isSolveEnabled: Bool { self == .twoByTwo || self == .threeByThree }
 }
 
 struct TwistyPuzzleState: Hashable {
@@ -667,17 +667,128 @@ final class Cube3x3MoveTables {
 struct Cube3x3PruningTables {
     static let shared = Cube3x3PruningTables()
 
+    private let cornerOrientationDepth: [Int8]
+    private let edgeOrientationDepth: [Int8]
+    private let sliceCombinationDepth: [Int8]
+    private let phase2CornerPermutationDepth: [Int8]
+    private let phase2UDEdgePermutationDepth: [Int8]
+    private let phase2SliceEdgePermutationDepth: [Int8]
+
+    init(moveTables: Cube3x3MoveTables = .shared) {
+        let allMoves = Cube3x3Move.allCases
+        let phase2Moves = Cube3x3Move.allCases.filter(\.isPhase2Move)
+        cornerOrientationDepth = Self.buildPruningTable(size: 2_187, moves: allMoves, moveTables: moveTables, coordinate: Self.cornerOrientationCoordinate)
+        edgeOrientationDepth = Self.buildPruningTable(size: 2_048, moves: allMoves, moveTables: moveTables, coordinate: Self.edgeOrientationCoordinate)
+        sliceCombinationDepth = Self.buildPruningTable(size: 495, moves: allMoves, moveTables: moveTables, coordinate: Self.sliceCombinationCoordinate)
+        phase2CornerPermutationDepth = Self.buildPruningTable(size: 40_320, moves: phase2Moves, moveTables: moveTables, coordinate: Self.cornerPermutationCoordinate)
+        phase2UDEdgePermutationDepth = Self.buildPruningTable(size: 40_320, moves: phase2Moves, moveTables: moveTables, coordinate: Self.udEdgePermutationCoordinate)
+        phase2SliceEdgePermutationDepth = Self.buildPruningTable(size: 24, moves: phase2Moves, moveTables: moveTables, coordinate: Self.sliceEdgePermutationCoordinate)
+    }
+
     func phase1LowerBound(_ state: Cube3x3CubieState) -> Int {
-        let twistedCorners = state.cornerOrientation.filter { $0 != 0 }.count
-        let flippedEdges = state.edgeOrientation.filter { $0 != 0 }.count
-        let misplacedSliceEdges = state.edgePermutation[8..<12].filter { !(8..<12).contains($0) }.count
-        return max(Int(ceil(Double(twistedCorners) / 4.0)), Int(ceil(Double(flippedEdges) / 4.0)), Int(ceil(Double(misplacedSliceEdges) / 4.0)))
+        max(
+            Int(cornerOrientationDepth[Self.cornerOrientationCoordinate(state)]),
+            Int(edgeOrientationDepth[Self.edgeOrientationCoordinate(state)]),
+            Int(sliceCombinationDepth[Self.sliceCombinationCoordinate(state)])
+        )
     }
 
     func phase2LowerBound(_ state: Cube3x3CubieState) -> Int {
-        let badCorners = zip(state.cornerPermutation, 0..<8).filter { $0.0 != $0.1 }.count
-        let badEdges = zip(state.edgePermutation, 0..<12).filter { $0.0 != $0.1 }.count
-        return max(Int(ceil(Double(badCorners) / 4.0)), Int(ceil(Double(badEdges) / 4.0)))
+        max(
+            Int(phase2CornerPermutationDepth[Self.cornerPermutationCoordinate(state)]),
+            Int(phase2UDEdgePermutationDepth[Self.udEdgePermutationCoordinate(state)]),
+            Int(phase2SliceEdgePermutationDepth[Self.sliceEdgePermutationCoordinate(state)])
+        )
+    }
+
+    private static func buildPruningTable(size: Int, moves: [Cube3x3Move], moveTables: Cube3x3MoveTables, coordinate: (Cube3x3CubieState) -> Int) -> [Int8] {
+        var depths = Array(repeating: Int8(-1), count: size)
+        var frontier = [Cube3x3CubieState.solved]
+        depths[coordinate(.solved)] = 0
+        var depth = Int8(0)
+
+        while !frontier.isEmpty {
+            var nextFrontier: [Cube3x3CubieState] = []
+            nextFrontier.reserveCapacity(frontier.count * 2)
+            for state in frontier {
+                for move in moves {
+                    let next = state.applying(move, tables: moveTables)
+                    let index = coordinate(next)
+                    if depths[index] == -1 {
+                        depths[index] = depth + 1
+                        nextFrontier.append(next)
+                    }
+                }
+            }
+            frontier = nextFrontier
+            depth += 1
+        }
+        return depths
+    }
+
+    private static func cornerOrientationCoordinate(_ state: Cube3x3CubieState) -> Int {
+        state.cornerOrientation.dropLast().reduce(0) { $0 * 3 + $1 }
+    }
+
+    private static func edgeOrientationCoordinate(_ state: Cube3x3CubieState) -> Int {
+        state.edgeOrientation.dropLast().reduce(0) { $0 * 2 + $1 }
+    }
+
+    private static func sliceCombinationCoordinate(_ state: Cube3x3CubieState) -> Int {
+        let positions = state.edgePermutation.enumerated().compactMap { (index, cubie) in (8..<12).contains(cubie) ? index : nil }
+        return combinationRank(positions, choose: 4, from: 12)
+    }
+
+    private static func cornerPermutationCoordinate(_ state: Cube3x3CubieState) -> Int {
+        permutationRank(state.cornerPermutation)
+    }
+
+    private static func udEdgePermutationCoordinate(_ state: Cube3x3CubieState) -> Int {
+        let udEdges = state.edgePermutation[0..<8].map { $0 }
+        return permutationRank(Array(udEdges))
+    }
+
+    private static func sliceEdgePermutationCoordinate(_ state: Cube3x3CubieState) -> Int {
+        let sliceEdges = state.edgePermutation[8..<12].map { $0 - 8 }
+        return permutationRank(Array(sliceEdges))
+    }
+
+    private static func permutationRank(_ permutation: [Int]) -> Int {
+        var rank = 0
+        var factor = 1
+        for i in stride(from: permutation.count - 1, through: 0, by: -1) {
+            var smaller = 0
+            if i + 1 < permutation.count {
+                for j in (i + 1)..<permutation.count where permutation[j] < permutation[i] { smaller += 1 }
+            }
+            rank += smaller * factor
+            factor *= permutation.count - i
+        }
+        return rank
+    }
+
+    private static func combinationRank(_ selected: [Int], choose k: Int, from n: Int) -> Int {
+        var rank = 0
+        var nextMinimum = 0
+        for (i, value) in selected.sorted().enumerated() {
+            if nextMinimum < value {
+                for skipped in nextMinimum..<value {
+                    rank += binomial(n - 1 - skipped, k - 1 - i)
+                }
+            }
+            nextMinimum = value + 1
+        }
+        return rank
+    }
+
+    private static func binomial(_ n: Int, _ k: Int) -> Int {
+        guard k >= 0 && k <= n else { return 0 }
+        if k == 0 || k == n { return 1 }
+        var result = 1
+        for i in 1...min(k, n - k) {
+            result = result * (n - k + i) / i
+        }
+        return result
     }
 }
 
@@ -768,6 +879,21 @@ final class Cube3x3KociembaSolver {
     }
 }
 
+
+
+enum Cube3x3MoveEngine {
+    static let legalMoveNotation = Cube3x3Move.allCases.map(\.rawValue).joined(separator: " ")
+
+    static func apply(_ move: String, to state: CubeState) -> CubeState {
+        guard state.puzzle == .threeByThree, let cubeMove = Cube3x3Move(rawValue: move) else { return state }
+        return CubeState(puzzle: state.puzzle, stickers: Cube3x3MoveTables.shared.apply(cubeMove, to: state.stickers))
+    }
+
+    static func apply(_ moves: [String], to state: CubeState) -> CubeState {
+        moves.reduce(state) { apply($1, to: $0) }
+    }
+}
+
 final class Cube3x3Solver: CubeSolverProtocol {
     let supportedPuzzle: CubePuzzleKind = .threeByThree
     private let kociembaSolver = Cube3x3KociembaSolver()
@@ -787,8 +913,24 @@ final class Cube3x3Solver: CubeSolverProtocol {
         }
 
         let search = kociembaSolver.solve(cubieState, options: normalizedOptions)
-        let moveNames = search.moves.map(\.rawValue)
+        let moveNames = search.status == .success ? Self.simplify(search.moves).map(\.rawValue) : []
         return CubeSolveResult(status: search.status, puzzle: supportedPuzzle, moves: moveNames, steps: [], failureReason: search.reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: search.nodes)
+    }
+
+    private static func simplify(_ moves: [Cube3x3Move]) -> [Cube3x3Move] {
+        var simplified: [Cube3x3Move] = []
+        for move in moves {
+            guard let last = simplified.last, last.face == move.face else {
+                simplified.append(move)
+                continue
+            }
+            simplified.removeLast()
+            let turns = (last.quarterTurns + move.quarterTurns) % 4
+            if turns == 0 { continue }
+            let notation = String(move.face) + (turns == 2 ? "2" : turns == 3 ? "'" : "")
+            if let combined = Cube3x3Move(rawValue: notation) { simplified.append(combined) }
+        }
+        return simplified
     }
 
 }
