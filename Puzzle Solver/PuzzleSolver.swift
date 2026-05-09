@@ -14,6 +14,8 @@ enum TwistyPuzzleKind: String, CaseIterable, Identifiable, Hashable {
     case threeByThree = "3×3 Cube"
     case pyraminx = "Pyraminx"
     case skewb = "Skewb"
+    case megaminx = "Megaminx"
+    case squareOne = "Square-1"
     case fourByFour = "4×4 Cube"
     case fiveByFive = "5×5 Cube"
 
@@ -26,6 +28,8 @@ enum TwistyPuzzleKind: String, CaseIterable, Identifiable, Hashable {
         case .threeByThree: return 54
         case .pyraminx: return 36
         case .skewb: return 30
+        case .megaminx: return 132
+        case .squareOne: return 24
         case .fourByFour: return 96
         case .fiveByFive: return 150
         }
@@ -34,11 +38,20 @@ enum TwistyPuzzleKind: String, CaseIterable, Identifiable, Hashable {
     var faces: [String] {
         switch self {
         case .pyraminx: return ["U", "L", "R", "B"]
+        case .megaminx: return ["U", "R", "F", "D", "L", "B", "uR", "uL", "dR", "dL", "bR", "bL"]
+        case .squareOne: return ["U", "D", "M"]
         default: return ["U", "R", "F", "D", "L", "B"]
         }
     }
 
-    var isSolveEnabled: Bool { self == .twoByTwo || self == .threeByThree }
+    var isSolveEnabled: Bool {
+        switch self {
+        case .twoByTwo, .threeByThree, .pyraminx, .skewb: return true
+        case .megaminx, .squareOne, .fourByFour, .fiveByFive: return false
+        }
+    }
+
+    var notation: TwistyNotationSpec { TwistyNotationSpec(puzzle: self) }
 }
 
 struct TwistyPuzzleState: Hashable {
@@ -67,6 +80,8 @@ struct TwistyPuzzleState: Hashable {
     static let solved3x3 = TwistyPuzzleState.solved(.threeByThree)
     static let solvedPyraminx = TwistyPuzzleState.solved(.pyraminx)
     static let solvedSkewb = TwistyPuzzleState.solved(.skewb)
+    static let solvedMegaminx = TwistyPuzzleState.solved(.megaminx)
+    static let solvedSquareOne = TwistyPuzzleState.solved(.squareOne)
 }
 
 struct TwistyMove: Hashable, Identifiable, CustomStringConvertible {
@@ -100,6 +115,82 @@ struct TwistyMove: Hashable, Identifiable, CustomStringConvertible {
     }
 }
 
+struct TwistyNotationSpec: Hashable {
+    let puzzle: TwistyPuzzleKind
+    let allowedFaces: Set<String>
+    let allowedAmounts: Set<TwistyMove.Amount>
+    let allowWideMoves: Bool
+    let sampleScramble: String
+    let helpText: String
+
+    init(puzzle: TwistyPuzzleKind) {
+        self.puzzle = puzzle
+        switch puzzle {
+        case .twoByTwo:
+            allowedFaces = Set(["U", "R", "F"])
+            allowedAmounts = Set([.clockwise, .halfTurn, .counterClockwise])
+            allowWideMoves = false
+            sampleScramble = "R U R' U'"
+            helpText = "2×2 uses U/R/F quarter turns, inverse turns, and half turns."
+        case .threeByThree:
+            allowedFaces = Set(["U", "R", "F", "D", "L", "B"])
+            allowedAmounts = Set([.clockwise, .halfTurn, .counterClockwise])
+            allowWideMoves = false
+            sampleScramble = "R U R' U'"
+            helpText = "3×3 uses standard Singmaster notation: U R F D L B, optional ' or 2."
+        case .pyraminx:
+            allowedFaces = Set(["U", "L", "R", "B", "u", "l", "r", "b"])
+            allowedAmounts = Set([.clockwise, .counterClockwise])
+            allowWideMoves = false
+            sampleScramble = "U R L' B u r'"
+            helpText = "Pyraminx supports U/L/R/B body turns plus lowercase u/l/r/b tip turns; use ' for inverse."
+        case .skewb:
+            allowedFaces = Set(["U", "L", "R", "B"])
+            allowedAmounts = Set([.clockwise, .counterClockwise])
+            allowWideMoves = false
+            sampleScramble = "R U R' B L'"
+            helpText = "Skewb supports U/L/R/B corner-axis turns and inverse turns."
+        case .megaminx:
+            allowedFaces = Set(["R", "D", "U"])
+            allowedAmounts = Set([.clockwise, .counterClockwise])
+            allowWideMoves = true
+            sampleScramble = "R D' U'"
+            helpText = "Megaminx placeholder accepts a future R++/R--/D++/D-- style notation architecture."
+        case .squareOne:
+            allowedFaces = []
+            allowedAmounts = []
+            allowWideMoves = false
+            sampleScramble = "(1,0) / (3,-2) /"
+            helpText = "Square-1 placeholder is reserved for tuple turns such as (1,0) followed by slash moves."
+        case .fourByFour:
+            allowedFaces = Set(["U", "R", "F", "D", "L", "B"])
+            allowedAmounts = Set([.clockwise, .halfTurn, .counterClockwise])
+            allowWideMoves = true
+            sampleScramble = "Rw U Rw' F2"
+            helpText = "4×4 placeholder supports future outer and wide move notation."
+        case .fiveByFive:
+            allowedFaces = Set(["U", "R", "F", "D", "L", "B"])
+            allowedAmounts = Set([.clockwise, .halfTurn, .counterClockwise])
+            allowWideMoves = true
+            sampleScramble = "Rw U2 Fw' R"
+            helpText = "5×5 placeholder supports future outer and wide move notation."
+        }
+    }
+
+    var supportedMovesText: String {
+        switch puzzle {
+        case .pyraminx: return "U U' L L' R R' B B' u u' l l' r r' b b'"
+        case .skewb: return "U U' L L' R R' B B'"
+        case .squareOne: return "Tuple notation placeholder: (top,bottom) and /"
+        case .megaminx: return "Placeholder parser: R R' D D' U U' (R++/D-- tables planned)"
+        default:
+            return allowedFaces.sorted().flatMap { face in
+                allowedAmounts.sorted { $0.rawValue < $1.rawValue }.map { face + $0.suffix }
+            }.joined(separator: " ")
+        }
+    }
+}
+
 enum TwistyMoveNotation {
     enum NotationError: LocalizedError {
         case emptyToken
@@ -115,12 +206,12 @@ enum TwistyMoveNotation {
         }
     }
 
-    static func parse(_ notation: String, allowedFaces: Set<String>) -> Result<[TwistyMove], NotationError> {
+    static func parse(_ notation: String, allowedFaces: Set<String>, allowedAmounts: Set<TwistyMove.Amount> = Set([.clockwise, .halfTurn, .counterClockwise]), allowWideMoves: Bool = true) -> Result<[TwistyMove], NotationError> {
         let normalized = notation.replacingOccurrences(of: "’", with: "'")
         let tokens = normalized.split(whereSeparator: { $0.isWhitespace }).map(String.init)
         var moves: [TwistyMove] = []
         for token in tokens {
-            switch parseToken(token, allowedFaces: allowedFaces) {
+            switch parseToken(token, allowedFaces: allowedFaces, allowedAmounts: allowedAmounts, allowWideMoves: allowWideMoves) {
             case .success(let move): moves.append(move)
             case .failure(let error): return .failure(error)
             }
@@ -132,14 +223,18 @@ enum TwistyMoveNotation {
         moves.map(\.notation).joined(separator: " ")
     }
 
-    private static func parseToken(_ token: String, allowedFaces: Set<String>) -> Result<TwistyMove, NotationError> {
+    static func parse(_ notation: String, spec: TwistyNotationSpec) -> Result<[TwistyMove], NotationError> {
+        parse(notation, allowedFaces: spec.allowedFaces, allowedAmounts: spec.allowedAmounts, allowWideMoves: spec.allowWideMoves)
+    }
+
+    private static func parseToken(_ token: String, allowedFaces: Set<String>, allowedAmounts: Set<TwistyMove.Amount>, allowWideMoves: Bool) -> Result<TwistyMove, NotationError> {
         guard !token.isEmpty else { return .failure(.emptyToken) }
         var remaining = token
         let face = String(remaining.removeFirst())
         guard allowedFaces.contains(face) else { return .failure(.invalidFace(token)) }
 
         var wide = false
-        if remaining.first == "w" {
+        if allowWideMoves, remaining.first == "w" {
             wide = true
             remaining.removeFirst()
         }
@@ -151,6 +246,7 @@ enum TwistyMoveNotation {
         case "'": amount = .counterClockwise
         default: return .failure(.invalidSuffix(token))
         }
+        guard allowedAmounts.contains(amount) else { return .failure(.invalidSuffix(token)) }
         return .success(TwistyMove(face: face, amount: amount, wide: wide))
     }
 }
@@ -250,7 +346,7 @@ final class CubeSolvingService {
     private let solvers: [CubePuzzleKind: CubeSolverProtocol]
     private let queue = DispatchQueue(label: "cube.solving.service", qos: .userInitiated)
 
-    init(solvers: [CubeSolverProtocol] = [Cube2x2Solver(), Cube3x3Solver(), PyraminxSolver(), SkewbSolver(), Cube4x4Solver(), Cube5x5Solver()]) {
+    init(solvers: [CubeSolverProtocol] = [Cube2x2Solver(), Cube3x3Solver(), PyraminxSolver(), SkewbSolver(), MegaminxSolver(), SquareOneSolver(), Cube4x4Solver(), Cube5x5Solver()]) {
         self.solvers = Dictionary(uniqueKeysWithValues: solvers.map { ($0.supportedPuzzle, $0) })
     }
 
@@ -1019,6 +1115,167 @@ extension Cube3x3CubieState {
     }
 }
 
+// MARK: - Advanced twisty permutation engines
+
+protocol StickerPermutationEngine {
+    static var puzzle: TwistyPuzzleKind { get }
+    static var legalMoveNotation: String { get }
+    static var legalMoves: [TwistyMove] { get }
+    static var maxChangedStickersPerMove: Int { get }
+    static func apply(_ move: TwistyMove, to state: TwistyPuzzleState) -> TwistyPuzzleState
+}
+
+extension StickerPermutationEngine {
+    static func apply(_ moves: [TwistyMove], to state: TwistyPuzzleState) -> TwistyPuzzleState {
+        moves.reduce(state) { apply($1, to: $0) }
+    }
+
+    static func apply(_ moveNames: [String], to state: TwistyPuzzleState) -> TwistyPuzzleState {
+        let spec = puzzle.notation
+        let moves = moveNames.compactMap { try? TwistyMoveNotation.parse($0, spec: spec).get().first }
+        return apply(moves, to: state)
+    }
+}
+
+private enum StickerCycleEngine {
+    static func apply(_ move: TwistyMove, cycles: [[Int]], to state: TwistyPuzzleState) -> TwistyPuzzleState {
+        var stickers = state.stickers
+        let turns = move.amount == .counterClockwise ? 2 : 1
+        for _ in 0..<turns {
+            for cycle in cycles where cycle.count > 1 {
+                let last = stickers[cycle[cycle.count - 1]]
+                for index in stride(from: cycle.count - 1, through: 1, by: -1) {
+                    stickers[cycle[index]] = stickers[cycle[index - 1]]
+                }
+                stickers[cycle[0]] = last
+            }
+        }
+        return TwistyPuzzleState(puzzle: state.puzzle, stickers: stickers)
+    }
+
+    static func changedStickerCount(in cycles: [[Int]]) -> Int {
+        Set(cycles.flatMap { $0 }).count
+    }
+}
+
+enum PyraminxMoveEngine: StickerPermutationEngine {
+    static let puzzle: TwistyPuzzleKind = .pyraminx
+    static let legalMoveNotation = TwistyPuzzleKind.pyraminx.notation.supportedMovesText
+    static let legalMoves = TwistyMoveNotation.parse(legalMoveNotation, spec: TwistyPuzzleKind.pyraminx.notation).movesOrEmpty
+    static let maxChangedStickersPerMove = bodyCycles.values.map(StickerCycleEngine.changedStickerCount).max() ?? 12
+
+    private static let bodyCycles: [String: [[Int]]] = [
+        "U": [[0, 2, 8], [1, 5, 7], [9, 18, 27], [10, 19, 28], [11, 20, 29]],
+        "L": [[9, 11, 17], [10, 14, 16], [0, 27, 24], [3, 30, 21], [6, 33, 18]],
+        "R": [[18, 20, 26], [19, 23, 25], [2, 15, 29], [5, 12, 32], [8, 9, 35]],
+        "B": [[27, 29, 35], [28, 32, 34], [6, 26, 17], [7, 25, 16], [8, 24, 15]]
+    ]
+    private static let tipCycles: [String: [[Int]]] = [
+        "u": [[0, 1, 2]],
+        "l": [[9, 10, 11]],
+        "r": [[18, 19, 20]],
+        "b": [[27, 28, 29]]
+    ]
+
+    static func apply(_ move: TwistyMove, to state: TwistyPuzzleState) -> TwistyPuzzleState {
+        StickerCycleEngine.apply(move, cycles: bodyCycles[move.face] ?? tipCycles[move.face] ?? [], to: state)
+    }
+}
+
+enum SkewbMoveEngine: StickerPermutationEngine {
+    static let puzzle: TwistyPuzzleKind = .skewb
+    static let legalMoveNotation = TwistyPuzzleKind.skewb.notation.supportedMovesText
+    static let legalMoves = TwistyMoveNotation.parse(legalMoveNotation, spec: TwistyPuzzleKind.skewb.notation).movesOrEmpty
+    static let maxChangedStickersPerMove = cyclesByFace.values.map(StickerCycleEngine.changedStickerCount).max() ?? 14
+
+    private static let cyclesByFace: [String: [[Int]]] = [
+        "U": [[0, 1, 2], [5, 10, 25], [6, 11, 26], [7, 12, 27], [15, 20, 28]],
+        "L": [[20, 21, 22], [0, 25, 15], [2, 27, 17], [4, 29, 19], [10, 5, 16]],
+        "R": [[7, 8, 9], [0, 10, 15], [1, 11, 16], [3, 13, 18], [25, 20, 19]],
+        "B": [[25, 26, 27], [0, 20, 10], [1, 21, 11], [2, 22, 12], [5, 15, 23]]
+    ]
+
+    static func apply(_ move: TwistyMove, to state: TwistyPuzzleState) -> TwistyPuzzleState {
+        StickerCycleEngine.apply(move, cycles: cyclesByFace[move.face] ?? [], to: state)
+    }
+}
+
+class IterativeDeepeningTwistySolver<Engine: StickerPermutationEngine>: CubeSolverProtocol {
+    let supportedPuzzle: CubePuzzleKind = Engine.puzzle
+
+    func solve(_ state: CubeState, options: CubeSolveOptions) -> CubeSolveResult {
+        let start = Date()
+        guard state.puzzle == supportedPuzzle, state.stickers.count == supportedPuzzle.stickerCount else {
+            return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected \(supportedPuzzle.stickerCount ?? 0) stickers for a \(supportedPuzzle.displayName) state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        }
+        let counts = Dictionary(grouping: state.stickers, by: { $0 }).mapValues(\.count)
+        let expected = (supportedPuzzle.stickerCount ?? 0) / supportedPuzzle.faces.count
+        guard Set(counts.keys) == Set(supportedPuzzle.faces), counts.values.allSatisfy({ $0 == expected }) else {
+            return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Sticker colors must match the \(supportedPuzzle.displayName) face inventory.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        }
+        if state.isSolvedByFace {
+            return CubeSolveResult(status: .success, puzzle: state.puzzle, moves: [], steps: [CubeSolutionStep(move: nil, state: state)], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        }
+
+        let solved = CubeState.solved(supportedPuzzle)
+        var nodes = 0
+        var path: [TwistyMove] = []
+        let depthLimit = max(0, options.maxDepth)
+        for depth in 0...depthLimit {
+            if Date().timeIntervalSince(start) >= options.timeout {
+                return CubeSolveResult(status: .timeout, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Solver exceeded the \(options.timeout)s timeout.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+            }
+            if search(state, solved: solved, depthRemaining: depth, previous: nil, path: &path, nodes: &nodes, options: options, start: start) {
+                let steps = makeSteps(from: state, moves: path, includeStates: options.includeStepStates)
+                return CubeSolveResult(status: .success, puzzle: state.puzzle, moves: path.map(\.notation), steps: steps, failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+            }
+            if nodes >= options.maxNodes { break }
+        }
+        let reason = nodes >= options.maxNodes ? "Solver reached the \(options.maxNodes) node limit." : "No solution found within depth \(depthLimit)."
+        return CubeSolveResult(status: .failure, puzzle: state.puzzle, moves: [], steps: [], failureReason: reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+    }
+
+    private var effectiveMoves: [TwistyMove] {
+        let solved = CubeState.solved(supportedPuzzle)
+        return Engine.legalMoves.filter { Engine.apply($0, to: solved) != solved }
+    }
+
+    private func search(_ state: CubeState, solved: CubeState, depthRemaining: Int, previous: TwistyMove?, path: inout [TwistyMove], nodes: inout Int, options: CubeSolveOptions, start: Date) -> Bool {
+        nodes += 1
+        if state == solved { return true }
+        if depthRemaining == 0 { return false }
+        if nodes >= options.maxNodes || Date().timeIntervalSince(start) >= options.timeout { return false }
+        if heuristic(state, solved: solved) > depthRemaining { return false }
+
+        for move in effectiveMoves {
+            if let previous, move.face == previous.face { continue }
+            let next = Engine.apply(move, to: state)
+            path.append(move)
+            if search(next, solved: solved, depthRemaining: depthRemaining - 1, previous: move, path: &path, nodes: &nodes, options: options, start: start) { return true }
+            path.removeLast()
+        }
+        return false
+    }
+
+    private func heuristic(_ state: CubeState, solved: CubeState) -> Int {
+        let mismatched = zip(state.stickers, solved.stickers).filter { $0 != $1 }.count
+        return Int(ceil(Double(mismatched) / Double(max(1, Engine.maxChangedStickersPerMove))))
+    }
+
+    private func makeSteps(from state: CubeState, moves: [TwistyMove], includeStates: Bool) -> [CubeSolutionStep] {
+        var current = state
+        var steps = [CubeSolutionStep(move: nil, state: includeStates ? state : nil)]
+        for move in moves {
+            current = Engine.apply(move, to: current)
+            steps.append(CubeSolutionStep(move: move, state: includeStates ? current : nil))
+        }
+        return steps
+    }
+}
+
+final class PyraminxSolver: IterativeDeepeningTwistySolver<PyraminxMoveEngine> {}
+final class SkewbSolver: IterativeDeepeningTwistySolver<SkewbMoveEngine> {}
+
 
 // MARK: - Placeholder architectures for future twisty solvers
 
@@ -1065,33 +1322,54 @@ struct SkewbSolverArchitecture: TwistyPlaceholderArchitecture {
     let supportedMoves = TwistyMoveNotation.parse("U U' L L' R R' B B'", allowedFaces: Set(["U", "L", "R", "B"])).movesOrEmpty
 }
 
+struct MegaminxSolverArchitecture: TwistyPlaceholderArchitecture {
+    let puzzle: TwistyPuzzleKind = .megaminx
+    let phases = [
+        TwistySolverPhase(name: "Star and F2L reduction", description: "Plan dodecahedral layer-by-layer state coordinates.", implemented: false),
+        TwistySolverPhase(name: "Last-layer edge orientation", description: "Reserve pruning tables for Megaminx edge orientation patterns.", implemented: false),
+        TwistySolverPhase(name: "Last-layer permutation", description: "Apply Megaminx-specific algorithms and replay states.", implemented: false)
+    ]
+    let supportedMoves = TwistyMoveNotation.parse("R R' D D' U U'", spec: TwistyPuzzleKind.megaminx.notation).movesOrEmpty
+}
+
+struct SquareOneSolverArchitecture: TwistyPlaceholderArchitecture {
+    let puzzle: TwistyPuzzleKind = .squareOne
+    let phases = [
+        TwistySolverPhase(name: "Shape normalization", description: "Model top and bottom layer tuple turns plus slash transitions.", implemented: false),
+        TwistySolverPhase(name: "Cubeshape search", description: "Add a shape-space search before permutation solving.", implemented: false),
+        TwistySolverPhase(name: "Piece permutation", description: "Solve corners and edges with Square-1 parity handling.", implemented: false)
+    ]
+    let supportedMoves: [TwistyMove] = []
+}
+
 extension Result where Success == [TwistyMove], Failure == TwistyMoveNotation.NotationError {
     var movesOrEmpty: [TwistyMove] { (try? get()) ?? [] }
 }
 
-final class PyraminxSolver: CubeSolverProtocol {
-    let supportedPuzzle: CubePuzzleKind = .pyraminx
-    private let architecture = PyraminxSolverArchitecture()
+
+final class MegaminxSolver: CubeSolverProtocol {
+    let supportedPuzzle: CubePuzzleKind = .megaminx
+    private let architecture = MegaminxSolverArchitecture()
 
     func solve(_ state: CubeState, options: CubeSolveOptions) -> CubeSolveResult {
         let start = Date()
-        guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.pyraminx.stickerCount else {
-            return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 36 stickers for a Pyraminx state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.megaminx.stickerCount else {
+            return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 132 stickers for a Megaminx state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-        return CubeSolveResult.unavailable(for: .pyraminx, reason: "Pyraminx solver architecture is registered with \(architecture.phases.count) planned phases, but the search is not implemented yet.", elapsedTime: Date().timeIntervalSince(start))
+        return CubeSolveResult.unavailable(for: .megaminx, reason: "Megaminx placeholder architecture is registered with \(architecture.phases.count) planned phases; search tables are not implemented yet.", elapsedTime: Date().timeIntervalSince(start))
     }
 }
 
-final class SkewbSolver: CubeSolverProtocol {
-    let supportedPuzzle: CubePuzzleKind = .skewb
-    private let architecture = SkewbSolverArchitecture()
+final class SquareOneSolver: CubeSolverProtocol {
+    let supportedPuzzle: CubePuzzleKind = .squareOne
+    private let architecture = SquareOneSolverArchitecture()
 
     func solve(_ state: CubeState, options: CubeSolveOptions) -> CubeSolveResult {
         let start = Date()
-        guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.skewb.stickerCount else {
-            return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 30 stickers for a Skewb state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.squareOne.stickerCount else {
+            return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 24 stickers for a Square-1 state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-        return CubeSolveResult.unavailable(for: .skewb, reason: "Skewb solver architecture is registered with \(architecture.phases.count) planned phases, but the search is not implemented yet.", elapsedTime: Date().timeIntervalSince(start))
+        return CubeSolveResult.unavailable(for: .squareOne, reason: "Square-1 placeholder architecture is registered with \(architecture.phases.count) planned phases; tuple-turn shape search is not implemented yet.", elapsedTime: Date().timeIntervalSince(start))
     }
 }
 
@@ -1218,8 +1496,10 @@ enum PuzzleModeRegistry {
         PuzzleModeDiagnostic(name: "4×4 Sliding Puzzle", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "2×2 Cube", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "3×3 Cube", enabled: true, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Pyraminx", enabled: true, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Skewb", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Pyraminx", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "Skewb", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "Megaminx", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Square-1", enabled: true, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Sudoku", enabled: false, solverAvailable: false)
     ]
 }
