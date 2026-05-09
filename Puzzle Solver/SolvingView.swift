@@ -9,17 +9,23 @@ import SwiftUI
 
 struct SolvingView: View {
     let initialState: [[Int?]]
-    let cubePuzzle: CubePuzzleKind
+    let puzzleSize: Int
 
-    @State private var statusText = "Solving…"
-    @State private var progressText = "Preparing bounded two-phase search…"
+    @State private var solveState: SolveState = .idle
+    @State private var progressText = SolveState.idle.friendlyMessage
     @State private var movementList: [String] = []
     @State private var failureDetail: String?
-    @State private var isSolving = true
+    @State private var isSolving = false
+    @State private var didFinish = false
 
     init(initialState: [[Int?]], cubePuzzle: CubePuzzleKind = .threeByThree) {
         self.initialState = initialState
-        self.cubePuzzle = cubePuzzle
+        self.puzzleSize = initialState.count == 4 ? 4 : 3
+    }
+
+    init(initialState: [[Int?]], puzzleSize: Int) {
+        self.initialState = initialState
+        self.puzzleSize = puzzleSize
     }
 
     var body: some View {
@@ -29,7 +35,7 @@ struct SolvingView: View {
 
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(statusText)
+                    Text(solveState.friendlyTitle)
                         .font(.title)
                         .foregroundColor(statusColor)
 
@@ -82,75 +88,87 @@ struct SolvingView: View {
     }
 
     private var statusColor: Color {
-        switch statusText {
-        case "Solved": return Color(hex: 0xccffcc)
-        case "Solving…": return Color(hex: 0xccffff)
+        switch solveState {
+        case .solved: return Color(hex: 0xccffcc)
+        case .validating, .solving: return Color(hex: 0xccffff)
+        case .idle: return Color.gray
         default: return Color(hex: 0xff99cc)
         }
     }
 
     private var emptyMovementMessage: String {
-        if isSolving { return "Solving…" }
+        if isSolving { return solveState.friendlyTitle }
         return "No moves available."
     }
 
     private func solvePuzzle() {
-        log("state conversion started for UI input")
-        let cubeState = makeCubeState(from: initialState, puzzle: cubePuzzle)
+        transition(to: .validating, detail: SolveState.validating.friendlyMessage)
+        guard let board = SlidingPuzzleBoard.fromGrid(initialState, size: puzzleSize) else {
+            complete(state: .invalid, moves: [], reason: "Please fill the board first.", elapsedTime: 0, nodes: 0)
+            return
+        }
 
-        CubeSolvingService.shared.solve(cubeState) { result in
-            log("UI state update received: \(result.status.rawValue)")
-            statusText = result.status.userFacingMessage
-            progressText = progressSummary(for: result)
-            failureDetail = userFacingDetail(for: result)
-            movementList = format(result)
-            isSolving = false
+        transition(to: .solving, detail: SolveState.solving.friendlyMessage)
+        let timeout: TimeInterval = 5
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
+            guard !self.didFinish else { return }
+            self.complete(state: .timedOut, moves: [], reason: "Solver took too long.", elapsedTime: timeout, nodes: 0)
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = SlidingPuzzleSolver().solve(board, options: SlidingPuzzleSolveOptions(timeout: timeout, maxNodes: 250_000))
+            DispatchQueue.main.async {
+                guard !self.didFinish else { return }
+                self.complete(state: result.state, moves: result.moves, reason: result.failureReason, elapsedTime: result.elapsedTime, nodes: result.nodesExplored)
+            }
         }
     }
 
-    private func makeCubeState(from grid: [[Int?]], puzzle: CubePuzzleKind) -> CubeState {
-        // The current app screen collects a 3×3 tile grid, not full cube facelets.
-        // Route 3×3 requests to a valid solved-format cube state so the shared
-        // service exercises the real bounded solver instead of hanging on invalid tile-grid input.
-        if puzzle == .threeByThree {
-            log("state conversion selected solved 3×3 cube state")
-            return .solved3x3
+    private func transition(to state: SolveState, detail: String) {
+        solveState = state
+        progressText = detail
+        isSolving = state == .validating || state == .solving
+        SolverDiagnosticsStore.shared.record(modeName: "\(puzzleSize)×\(puzzleSize) Sliding Puzzle", state: state, detail: detail)
+        SolverDebugLogger.shared.log("solve state: \(state.rawValue)")
+    }
+
+    private func complete(state: SolveState, moves: [String], reason: String?, elapsedTime: TimeInterval, nodes: Int) {
+        didFinish = true
+        isSolving = false
+        solveState = state
+        failureDetail = userFacingDetail(for: state, reason: reason)
+        movementList = format(state: state, moves: moves)
+        progressText = progressSummary(state: state, moveCount: moves.count, elapsedTime: elapsedTime, nodes: nodes)
+        SolverDiagnosticsStore.shared.record(modeName: "\(puzzleSize)×\(puzzleSize) Sliding Puzzle", state: state, detail: failureDetail ?? progressText)
+        SolverDebugLogger.shared.log("solve finished: \(state.rawValue)")
+        if let reason { SolverDebugLogger.shared.log("failure reason: \(reason)") }
+    }
+
+    private func userFacingDetail(for state: SolveState, reason: String?) -> String? {
+        switch state {
+        case .solved: return nil
+        case .invalid, .unsolvable, .timedOut, .failed, .unsupported: return reason ?? state.friendlyMessage
+        default: return nil
         }
+    }
 
-        if puzzle == .twoByTwo {
-            log("state conversion selected solved 2×2 placeholder")
-            return .solved2x2
+    private func progressSummary(state: SolveState, moveCount: Int, elapsedTime: TimeInterval, nodes: Int) -> String {
+        let elapsed = String(format: "%.2f", elapsedTime)
+        if state == .solved {
+            return "Move count: \(moveCount) • Nodes checked: \(nodes) • Time: \(elapsed)s"
         }
-
-        let count = puzzle.stickerCount ?? 0
-        log("state conversion selected unsupported placeholder with \(count) stickers")
-        return CubeState(puzzle: puzzle, stickers: Array(repeating: "?", count: count))
+        return state.friendlyMessage
     }
 
-    private func userFacingDetail(for result: CubeSolveResult) -> String? {
-        return result.failureReason
-    }
+    private func format(state: SolveState, moves: [String]) -> [String] {
+        guard state == .solved else { return [] }
+        if moves.isEmpty { return ["Already solved."] }
 
-    private func progressSummary(for result: CubeSolveResult) -> String {
-        let elapsed = String(format: "%.2f", result.elapsedTime)
-        return "Move count: \(result.moveCount) • Nodes checked: \(result.nodesExplored) • Time: \(elapsed)s"
-    }
-
-    private func format(_ result: CubeSolveResult) -> [String] {
-        guard result.succeeded else { return [] }
-        if result.moves.isEmpty { return ["Already solved."] }
-
-        var lines = ["Move count: \(result.moveCount)"]
-        for (index, move) in result.moves.enumerated() {
+        var lines = ["Move count: \(moves.count)"]
+        for (index, move) in moves.enumerated() {
             lines.append("\(index + 1). \(move)")
         }
         return lines
-    }
-
-    private func log(_ message: String) {
-        #if DEBUG
-        print("[SolvingView] \(message)")
-        #endif
     }
 }
 

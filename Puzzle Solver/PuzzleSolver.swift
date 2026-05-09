@@ -172,9 +172,7 @@ final class CubeSolvingService {
     }
 
     private func log(_ message: String) {
-        #if DEBUG
-        print("[CubeSolvingService] \(message)")
-        #endif
+        SolverDebugLogger.shared.log("CubeSolvingService: \(message)")
     }
 }
 
@@ -738,5 +736,291 @@ final class Cube5x5Solver: CubeSolverProtocol {
             return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 150 stickers for a 5×5 cube state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
         return CubeSolveResult.unavailable(for: .fiveByFive, reason: "5×5 reduction-method solver placeholder only; naive full-state solving is intentionally disabled.", elapsedTime: Date().timeIntervalSince(start))
+    }
+}
+
+// MARK: - Shared solve states, diagnostics, and logging
+
+enum SolveState: String, CaseIterable, Equatable {
+    case idle
+    case validating
+    case solving
+    case solved
+    case invalid
+    case unsolvable
+    case timedOut
+    case failed
+    case unsupported
+
+    var friendlyTitle: String {
+        switch self {
+        case .idle: return "Ready"
+        case .validating: return "Checking puzzle…"
+        case .solving: return "Solving…"
+        case .solved: return "Solved"
+        case .invalid: return "Check your puzzle"
+        case .unsolvable: return "This puzzle cannot be solved"
+        case .timedOut: return "Solver took too long"
+        case .failed: return "Could not solve this one"
+        case .unsupported: return "Solver unavailable"
+        }
+    }
+
+    var friendlyMessage: String {
+        switch self {
+        case .idle: return "Enter a puzzle or try an example."
+        case .validating: return "Making sure the puzzle is valid."
+        case .solving: return "Looking for a safe solution."
+        case .solved: return "Solution ready."
+        case .invalid: return "Please check the puzzle and try again."
+        case .unsolvable: return "This layout is not solvable."
+        case .timedOut: return "Try a simpler scramble or raise the limit."
+        case .failed: return "Please try another puzzle."
+        case .unsupported: return "This mode is not supported yet."
+        }
+    }
+}
+
+struct SolveStatusSnapshot: Equatable {
+    let modeName: String
+    let state: SolveState
+    let detail: String
+    let timestamp: Date
+}
+
+final class SolverDiagnosticsStore {
+    static let shared = SolverDiagnosticsStore()
+
+    private let lock = NSLock()
+    private var snapshot = SolveStatusSnapshot(modeName: "None", state: .idle, detail: "No solve has run yet.", timestamp: Date())
+
+    var lastSolveStatus: SolveStatusSnapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return snapshot
+    }
+
+    func record(modeName: String, state: SolveState, detail: String) {
+        lock.lock()
+        snapshot = SolveStatusSnapshot(modeName: modeName, state: state, detail: detail, timestamp: Date())
+        lock.unlock()
+    }
+}
+
+final class SolverDebugLogger {
+    static let shared = SolverDebugLogger()
+
+    var isEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "SolverDebugLoggingEnabled") }
+        set { UserDefaults.standard.set(newValue, forKey: "SolverDebugLoggingEnabled") }
+    }
+
+    func log(_ message: String) {
+        #if DEBUG
+        guard isEnabled else { return }
+        print("[SolverDebug] \(message)")
+        #endif
+    }
+}
+
+struct PuzzleModeDiagnostic: Identifiable, Equatable {
+    let id = UUID()
+    let name: String
+    let enabled: Bool
+    let solverAvailable: Bool
+}
+
+enum PuzzleModeRegistry {
+    static let diagnostics: [PuzzleModeDiagnostic] = [
+        PuzzleModeDiagnostic(name: "3×3 Sliding Puzzle", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "4×4 Sliding Puzzle", enabled: false, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "2×2 Cube", enabled: false, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "3×3 Cube", enabled: false, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "4×4 Cube", enabled: false, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Sudoku", enabled: false, solverAvailable: false)
+    ]
+}
+
+// MARK: - Sliding puzzle solver
+
+struct SlidingPuzzleBoard: Hashable, Equatable {
+    let size: Int
+    let tiles: [Int]
+
+    var blankIndex: Int? { tiles.firstIndex(of: 0) }
+    var isSolved: Bool { tiles == SlidingPuzzleBoard.solved(size: size).tiles }
+
+    static func solved(size: Int) -> SlidingPuzzleBoard {
+        SlidingPuzzleBoard(size: size, tiles: Array(1..<(size * size)) + [0])
+    }
+
+    static func fromGrid(_ grid: [[Int?]], size: Int) -> SlidingPuzzleBoard? {
+        guard grid.count == size, grid.allSatisfy({ $0.count == size }) else { return nil }
+        return SlidingPuzzleBoard(size: size, tiles: grid.flatMap { row in row.map { $0 ?? 0 } })
+    }
+
+    func toGrid() -> [[Int?]] {
+        stride(from: 0, to: tiles.count, by: size).map { start in
+            tiles[start..<(start + size)].map { $0 == 0 ? nil : $0 }
+        }
+    }
+}
+
+struct SlidingPuzzleSolveOptions {
+    let timeout: TimeInterval
+    let maxNodes: Int
+
+    static let `default` = SlidingPuzzleSolveOptions(timeout: 5, maxNodes: 250_000)
+}
+
+struct SlidingPuzzleSolveResult: Equatable {
+    let state: SolveState
+    let moves: [String]
+    let failureReason: String?
+    let elapsedTime: TimeInterval
+    let nodesExplored: Int
+
+    var succeeded: Bool { state == .solved }
+}
+
+final class SlidingPuzzleSolver {
+    private struct SearchNode {
+        let board: SlidingPuzzleBoard
+        let moves: [String]
+        let cost: Int
+        let priority: Int
+    }
+
+    func solve(_ board: SlidingPuzzleBoard, options: SlidingPuzzleSolveOptions = .default) -> SlidingPuzzleSolveResult {
+        let start = Date()
+        SolverDebugLogger.shared.log("solver selected: SlidingPuzzleSolver \(board.size)×\(board.size)")
+        SolverDebugLogger.shared.log("validation result: started")
+
+        guard validate(board) else {
+            SolverDebugLogger.shared.log("validation result: invalid")
+            SolverDebugLogger.shared.log("failure reason: invalid sliding puzzle input")
+            return finish(.invalid, reason: "Please use each tile once.", start: start, nodes: 0)
+        }
+        SolverDebugLogger.shared.log("validation result: valid")
+
+        guard isSolvable(board) else {
+            SolverDebugLogger.shared.log("failure reason: unsolvable sliding puzzle")
+            return finish(.unsolvable, reason: "This layout is not solvable.", start: start, nodes: 0)
+        }
+
+        if board.isSolved {
+            SolverDebugLogger.shared.log("solve finished: already solved")
+            return SlidingPuzzleSolveResult(state: .solved, moves: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        }
+
+        SolverDebugLogger.shared.log("solve started")
+        let deadline = start.addingTimeInterval(max(0, options.timeout))
+        var frontier = [SearchNode(board: board, moves: [], cost: 0, priority: manhattan(board))]
+        var bestCost: [SlidingPuzzleBoard: Int] = [board: 0]
+        var nodes = 0
+
+        while !frontier.isEmpty {
+            if Date() >= deadline {
+                SolverDebugLogger.shared.log("failure reason: sliding puzzle timed out")
+                return finish(.timedOut, reason: "Solver took too long.", start: start, nodes: nodes)
+            }
+            if nodes >= options.maxNodes {
+                SolverDebugLogger.shared.log("failure reason: sliding puzzle node limit reached")
+                return finish(.timedOut, reason: "Solver took too long.", start: start, nodes: nodes)
+            }
+
+            frontier.sort { lhs, rhs in
+                lhs.priority == rhs.priority ? lhs.cost > rhs.cost : lhs.priority > rhs.priority
+            }
+            let current = frontier.removeLast()
+            nodes += 1
+
+            if current.board.isSolved {
+                SolverDebugLogger.shared.log("solve finished: solved in \(current.moves.count) moves")
+                return SlidingPuzzleSolveResult(state: .solved, moves: current.moves, failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+            }
+
+            for neighbor in neighbors(of: current.board) {
+                let nextCost = current.cost + 1
+                guard nextCost < (bestCost[neighbor.board] ?? Int.max) else { continue }
+                bestCost[neighbor.board] = nextCost
+                let nextMoves = current.moves + [neighbor.move]
+                frontier.append(SearchNode(board: neighbor.board, moves: nextMoves, cost: nextCost, priority: nextCost + manhattan(neighbor.board)))
+            }
+        }
+
+        SolverDebugLogger.shared.log("failure reason: no solution found")
+        return finish(.failed, reason: "Could not find a solution.", start: start, nodes: nodes)
+    }
+
+    private func validate(_ board: SlidingPuzzleBoard) -> Bool {
+        guard board.size >= 2, board.tiles.count == board.size * board.size else { return false }
+        return board.tiles.sorted() == Array(0..<(board.size * board.size))
+    }
+
+    private func isSolvable(_ board: SlidingPuzzleBoard) -> Bool {
+        let values = board.tiles.filter { $0 != 0 }
+        var inversions = 0
+        for i in 0..<values.count {
+            for j in (i + 1)..<values.count where values[i] > values[j] { inversions += 1 }
+        }
+        if board.size % 2 == 1 { return inversions % 2 == 0 }
+        guard let blankIndex = board.blankIndex else { return false }
+        let blankRowFromBottom = board.size - (blankIndex / board.size)
+        return blankRowFromBottom % 2 == 0 ? inversions % 2 == 1 : inversions % 2 == 0
+    }
+
+    private func manhattan(_ board: SlidingPuzzleBoard) -> Int {
+        board.tiles.enumerated().reduce(0) { total, entry in
+            let (index, value) = entry
+            guard value != 0 else { return total }
+            let goal = value - 1
+            return total + abs(index / board.size - goal / board.size) + abs(index % board.size - goal % board.size)
+        }
+    }
+
+    private func neighbors(of board: SlidingPuzzleBoard) -> [(board: SlidingPuzzleBoard, move: String)] {
+        guard let blank = board.blankIndex else { return [] }
+        let row = blank / board.size
+        let col = blank % board.size
+        let candidates: [(dr: Int, dc: Int, move: String)] = [(-1, 0, "Move blank up"), (1, 0, "Move blank down"), (0, -1, "Move blank left"), (0, 1, "Move blank right")]
+
+        return candidates.compactMap { candidate in
+            let nextRow = row + candidate.dr
+            let nextCol = col + candidate.dc
+            guard (0..<board.size).contains(nextRow), (0..<board.size).contains(nextCol) else { return nil }
+            var tiles = board.tiles
+            let swapIndex = nextRow * board.size + nextCol
+            tiles[blank] = tiles[swapIndex]
+            tiles[swapIndex] = 0
+            return (SlidingPuzzleBoard(size: board.size, tiles: tiles), candidate.move)
+        }
+    }
+
+    private func finish(_ state: SolveState, reason: String, start: Date, nodes: Int) -> SlidingPuzzleSolveResult {
+        SlidingPuzzleSolveResult(state: state, moves: [], failureReason: reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+    }
+}
+
+enum PuzzlePresets {
+    static let sliding3x3Solved = SlidingPuzzleBoard.solved(size: 3)
+    static let sliding3x3OneMove = SlidingPuzzleBoard(size: 3, tiles: [1, 2, 3, 4, 5, 6, 7, 0, 8])
+    static let sliding3x3Medium = SlidingPuzzleBoard(size: 3, tiles: [1, 2, 3, 5, 0, 6, 4, 7, 8])
+    static let sliding3x3Unsolvable = SlidingPuzzleBoard(size: 3, tiles: [1, 2, 3, 4, 5, 6, 8, 7, 0])
+
+    static let sliding4x4Solved = SlidingPuzzleBoard.solved(size: 4)
+    static let sliding4x4OneMove = SlidingPuzzleBoard(size: 4, tiles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15])
+    static let sliding4x4Medium = SlidingPuzzleBoard(size: 4, tiles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 14, 15])
+}
+
+extension CubeSolveStatus {
+    var solveState: SolveState {
+        switch self {
+        case .success: return .solved
+        case .failure: return .failed
+        case .invalidInput: return .invalid
+        case .timeout: return .timedOut
+        case .unsupportedPuzzle, .solverUnavailable: return .unsupported
+        }
     }
 }

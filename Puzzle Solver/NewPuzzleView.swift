@@ -37,6 +37,15 @@ struct NewPuzzleView: View {
                     }
                 }
 
+                Button(action: loadExample) {
+                    Text("Try Example")
+                        .font(.title2)
+                        .frame(width: 200, height: 44)
+                        .background(Color(hex: 0xccffff))
+                        .foregroundColor(.black)
+                        .cornerRadius(10)
+                }
+
                 // Conditionally render KeypadView or SolveButton based on UI state
                 if isSolveButtonVisible {
                     NavigationLink(
@@ -117,17 +126,33 @@ struct NewPuzzleView: View {
         } else if numbersInGrid.contains(number) {
             // Check if the number is available for assignment
             if let selectedTile = selectedTile {
+                if let existingNumber = gridNumbers[selectedTile / 3][selectedTile % 3] {
+                    numbersInGrid.insert(existingNumber)
+                }
                 gridNumbers[selectedTile / 3][selectedTile % 3] = number
                 numbersInGrid.remove(number)
             }
         }
         self.selectedTile = nil
+        updateSolveButtonVisibility()
+    }
 
-        // Check if all 8 numbers are assigned, show the "Solve" button
+    private func loadExample() {
+        gridNumbers = PuzzlePresets.sliding3x3Medium.toGrid()
+        numbersInGrid = []
+        initialState = gridNumbers
+        selectedTile = nil
+        isSolveButtonVisible = true
+        SolverDebugLogger.shared.log("sample preset selected: 3×3 sliding medium")
+    }
+
+    private func updateSolveButtonVisibility() {
         if numbersInGrid.isEmpty {
             // Save the initial state
             initialState = gridNumbers
             isSolveButtonVisible = true
+        } else {
+            isSolveButtonVisible = false
         }
     }
 
