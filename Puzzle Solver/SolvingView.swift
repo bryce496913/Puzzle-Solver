@@ -9,64 +9,150 @@ import SwiftUI
 
 struct SolvingView: View {
     let initialState: [[Int?]]
-    @State private var solvedState: [[Int?]] = Array(repeating: Array(repeating: nil, count: 3), count: 3)
+    let cubePuzzle: CubePuzzleKind
+
+    @State private var statusText = "Solving…"
     @State private var movementList: [String] = []
+    @State private var failureDetail: String?
+    @State private var isSolving = true
+
+    init(initialState: [[Int?]], cubePuzzle: CubePuzzleKind = .threeByThree) {
+        self.initialState = initialState
+        self.cubePuzzle = cubePuzzle
+    }
 
     var body: some View {
         ZStack {
             Color.black
                 .edgesIgnoringSafeArea(.all)
 
-            VStack {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(statusText)
+                        .font(.title)
+                        .foregroundColor(statusColor)
+
+                    if isSolving {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    }
+                }
+                .padding(.top)
+
+                if let failureDetail {
+                    Text(failureDetail)
+                        .foregroundColor(.white)
+                        .font(.body)
+                }
+
                 ScrollView {
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Movement List:")
-                            .font(.title)
+                            .font(.title2)
                             .foregroundColor(.white)
                             .padding(.bottom)
 
-                        ForEach(movementList, id: \.self) { movement in
-                            Text(movement)
-                                .foregroundColor(.white)
+                        if movementList.isEmpty {
+                            Text(emptyMovementMessage)
+                                .foregroundColor(.gray)
+                        } else {
+                            ForEach(Array(movementList.enumerated()), id: \.offset) { _, movement in
+                                Text(movement)
+                                    .foregroundColor(.white)
+                            }
                         }
                     }
-                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical)
                 }
+
                 Spacer()
             }
+            .padding()
         }
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            solvedState = initialState // Set the initial state
             solvePuzzle()
         }
     }
 
-    private func solvePuzzle() {
-        DispatchQueue.global().async {
-            let puzzleSolver = PuzzleSolver()
-            
-            let puzzleSolved = puzzleSolver.aStarSearch(start: initialState.map { $0.map { $0 != nil ? "\($0!)" : "0" } })
-            
-            // Combine boardPathStateList and movementHistory into a single array
-            let combinedList = zip(puzzleSolved.boardPathStateList, puzzleSolved.movementHistory)
-            
-            // Convert combined list to a flat list of movements with proper formatting
-            var flatMovementList: [String] = []
-            for (board, movement) in combinedList {
-                flatMovementList.append(boardString(board))
-                flatMovementList.append("Move: \(movement)")
-                flatMovementList.append("") // Add an empty string to start the next move on a new line
-            }
-            
-            DispatchQueue.main.async {
-                movementList = flatMovementList
-            }
+    private var statusColor: Color {
+        switch statusText {
+        case "Solved": return Color(hex: 0xccffcc)
+        case "Solving…": return Color(hex: 0xccffff)
+        default: return Color(hex: 0xff99cc)
         }
     }
-    
-    // Convert a board state to a formatted string
-    private func boardString(_ board: [[String]]) -> String {
-        return board.map { $0.joined(separator: "  ") }.joined(separator: "\n")
+
+    private var emptyMovementMessage: String {
+        if isSolving { return "Solving…" }
+        return "No moves available."
+    }
+
+    private func solvePuzzle() {
+        log("state conversion started for UI input")
+        let cubeState = makeCubeState(from: initialState, puzzle: cubePuzzle)
+
+        CubeSolvingService.shared.solve(cubeState) { result in
+            log("UI state update received: \(result.status.rawValue)")
+            statusText = result.status.userFacingMessage
+            failureDetail = userFacingDetail(for: result)
+            movementList = format(result)
+            isSolving = false
+        }
+    }
+
+    private func makeCubeState(from grid: [[Int?]], puzzle: CubePuzzleKind) -> CubeState {
+        // The current app screen collects a 3×3 tile grid, not full cube facelets.
+        // Route 3×3 requests to a solved-format cube state so users see the safe
+        // unavailable message instead of invalid tile-grid noise while the real
+        // Kociemba two-phase adapter is being connected.
+        if puzzle == .threeByThree {
+            log("state conversion selected safe 3×3 cube placeholder")
+            return .solved3x3
+        }
+
+        if puzzle == .twoByTwo {
+            log("state conversion selected solved 2×2 placeholder")
+            return .solved2x2
+        }
+
+        let count = puzzle.stickerCount ?? 0
+        log("state conversion selected unsupported placeholder with \(count) stickers")
+        return CubeState(puzzle: puzzle, stickers: Array(repeating: "?", count: count))
+    }
+
+    private func userFacingDetail(for result: CubeSolveResult) -> String? {
+        if result.puzzle == .threeByThree && result.status == .solverUnavailable {
+            return "3×3 solving is being upgraded. This mode is not available yet."
+        }
+        return result.failureReason
+    }
+
+    private func format(_ result: CubeSolveResult) -> [String] {
+        guard result.succeeded else { return [] }
+        if result.moves.isEmpty { return ["Already solved."] }
+
+        var lines = ["Move count: \(result.moveCount)"]
+        for (index, move) in result.moves.enumerated() {
+            lines.append("\(index + 1). \(move)")
+            if let state = result.steps[safe: index]?.state {
+                lines.append(state.stickers.joined(separator: " "))
+            }
+        }
+        return lines
+    }
+
+    private func log(_ message: String) {
+        #if DEBUG
+        print("[SolvingView] \(message)")
+        #endif
+    }
+}
+
+private extension Array {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 
