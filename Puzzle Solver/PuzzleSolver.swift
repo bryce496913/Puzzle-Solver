@@ -326,29 +326,392 @@ final class Cube2x2Solver: CubeSolverProtocol {
     }
 }
 
-// MARK: - 3×3 Kociemba architecture placeholder
+
+// MARK: - 3×3 two-phase cubie solver
+
+enum Cube3x3Move: String, CaseIterable {
+    case U, Ui = "U'", U2
+    case D, Di = "D'", D2
+    case L, Li = "L'", L2
+    case R, Ri = "R'", R2
+    case F, Fi = "F'", F2
+    case B, Bi = "B'", B2
+
+    var face: Character { rawValue.first! }
+    var quarterTurns: Int {
+        if rawValue.hasSuffix("'") { return 3 }
+        if rawValue.hasSuffix("2") { return 2 }
+        return 1
+    }
+
+    var isPhase2Move: Bool {
+        switch self {
+        case .U, .Ui, .U2, .D, .Di, .D2, .L2, .R2, .F2, .B2: return true
+        default: return false
+        }
+    }
+
+    var inverseName: String {
+        if rawValue.hasSuffix("'") { return String(rawValue.dropLast()) }
+        if rawValue.hasSuffix("2") { return rawValue }
+        return rawValue + "'"
+    }
+}
+
+struct Cube3x3CubieState: Hashable {
+    var cornerPermutation: [Int]
+    var cornerOrientation: [Int]
+    var edgePermutation: [Int]
+    var edgeOrientation: [Int]
+
+    static let solved = Cube3x3CubieState(
+        cornerPermutation: Array(0..<8),
+        cornerOrientation: Array(repeating: 0, count: 8),
+        edgePermutation: Array(0..<12),
+        edgeOrientation: Array(repeating: 0, count: 12)
+    )
+
+    var isSolved: Bool { self == .solved }
+
+    var isInPhase2Subgroup: Bool {
+        cornerOrientation.allSatisfy { $0 == 0 } &&
+        edgeOrientation.allSatisfy { $0 == 0 } &&
+        Set(edgePermutation[8..<12]) == Set(8..<12)
+    }
+
+    func applying(_ move: Cube3x3Move, tables: Cube3x3MoveTables = .shared) -> Cube3x3CubieState {
+        let transform = tables.transforms[move]!
+        var next = Cube3x3CubieState.solved
+        for position in 0..<8 {
+            let source = transform.cornerPermutation[position]
+            next.cornerPermutation[position] = cornerPermutation[source]
+            next.cornerOrientation[position] = (cornerOrientation[source] + transform.cornerOrientation[position]) % 3
+        }
+        for position in 0..<12 {
+            let source = transform.edgePermutation[position]
+            next.edgePermutation[position] = edgePermutation[source]
+            next.edgeOrientation[position] = (edgeOrientation[source] + transform.edgeOrientation[position]) % 2
+        }
+        return next
+    }
+}
+
+final class Cube3x3MoveTables {
+    static let shared = Cube3x3MoveTables()
+
+    let transforms: [Cube3x3Move: Cube3x3CubieState]
+    private let quarterStickerPermutations: [Character: [Int]]
+
+    private init() {
+        var quarterPermutations: [Character: [Int]] = [:]
+        for face in Array("UDLRFB") {
+            quarterPermutations[face] = Cube3x3MoveTables.makeQuarterStickerPermutation(for: face)
+        }
+        self.quarterStickerPermutations = quarterPermutations
+
+        var built: [Cube3x3Move: Cube3x3CubieState] = [:]
+        for move in Cube3x3Move.allCases {
+            var stickers = CubeState.solved3x3.stickers
+            for _ in 0..<move.quarterTurns {
+                stickers = Cube3x3MoveTables.applyStickerPermutation(quarterPermutations[move.face]!, to: stickers)
+            }
+            built[move] = try! Cube3x3CubieState.from(stickers: stickers).get()
+        }
+        self.transforms = built
+    }
+
+    func apply(_ move: Cube3x3Move, to stickers: [String]) -> [String] {
+        var result = stickers
+        for _ in 0..<move.quarterTurns {
+            result = Self.applyStickerPermutation(quarterStickerPermutations[move.face]!, to: result)
+        }
+        return result
+    }
+
+    private static func applyStickerPermutation(_ permutation: [Int], to stickers: [String]) -> [String] {
+        var result = stickers
+        for newIndex in 0..<stickers.count {
+            result[newIndex] = stickers[permutation[newIndex]]
+        }
+        return result
+    }
+
+    private static func makeQuarterStickerPermutation(for face: Character) -> [Int] {
+        let oldFacelets = (0..<54).map(Self.facelet)
+        var lookup: [Facelet: Int] = [:]
+        for (index, facelet) in oldFacelets.enumerated() { lookup[facelet] = index }
+
+        return oldFacelets.map { destination in
+            let source = rotate(destination, face: face, inverse: true)
+            return lookup[source]!
+        }
+    }
+
+    private static func rotate(_ facelet: Facelet, face: Character, inverse: Bool) -> Facelet {
+        guard isOnLayer(facelet.coordinate, face: face) else { return facelet }
+        let turns = inverse ? 3 : 1
+        var coordinate = facelet.coordinate
+        var normal = facelet.normal
+        for _ in 0..<turns {
+            coordinate = rotateClockwise(coordinate, face: face)
+            normal = rotateClockwise(normal, face: face)
+        }
+        return Facelet(coordinate: coordinate, normal: normal)
+    }
+
+    private static func isOnLayer(_ coordinate: Vec3, face: Character) -> Bool {
+        switch face {
+        case "U": return coordinate.y == 1
+        case "D": return coordinate.y == -1
+        case "R": return coordinate.x == 1
+        case "L": return coordinate.x == -1
+        case "F": return coordinate.z == 1
+        case "B": return coordinate.z == -1
+        default: return false
+        }
+    }
+
+    private static func rotateClockwise(_ v: Vec3, face: Character) -> Vec3 {
+        switch face {
+        case "U": return Vec3(x: v.z, y: v.y, z: -v.x)
+        case "D": return Vec3(x: -v.z, y: v.y, z: v.x)
+        case "R": return Vec3(x: v.x, y: -v.z, z: v.y)
+        case "L": return Vec3(x: v.x, y: v.z, z: -v.y)
+        case "F": return Vec3(x: v.y, y: -v.x, z: v.z)
+        case "B": return Vec3(x: -v.y, y: v.x, z: v.z)
+        default: return v
+        }
+    }
+
+    private static func facelet(_ index: Int) -> Facelet {
+        let face = index / 9
+        let offset = index % 9
+        let row = offset / 3
+        let column = offset % 3
+        switch face {
+        case 0: return Facelet(coordinate: Vec3(x: column - 1, y: 1, z: row - 1), normal: Vec3(x: 0, y: 1, z: 0))
+        case 1: return Facelet(coordinate: Vec3(x: 1, y: 1 - row, z: 1 - column), normal: Vec3(x: 1, y: 0, z: 0))
+        case 2: return Facelet(coordinate: Vec3(x: column - 1, y: 1 - row, z: 1), normal: Vec3(x: 0, y: 0, z: 1))
+        case 3: return Facelet(coordinate: Vec3(x: column - 1, y: -1, z: 1 - row), normal: Vec3(x: 0, y: -1, z: 0))
+        case 4: return Facelet(coordinate: Vec3(x: -1, y: 1 - row, z: column - 1), normal: Vec3(x: -1, y: 0, z: 0))
+        default: return Facelet(coordinate: Vec3(x: 1 - column, y: 1 - row, z: -1), normal: Vec3(x: 0, y: 0, z: -1))
+        }
+    }
+
+    private struct Vec3: Hashable { let x: Int; let y: Int; let z: Int }
+    private struct Facelet: Hashable { let coordinate: Vec3; let normal: Vec3 }
+}
+
+struct Cube3x3PruningTables {
+    static let shared = Cube3x3PruningTables()
+
+    func phase1LowerBound(_ state: Cube3x3CubieState) -> Int {
+        let twistedCorners = state.cornerOrientation.filter { $0 != 0 }.count
+        let flippedEdges = state.edgeOrientation.filter { $0 != 0 }.count
+        let misplacedSliceEdges = state.edgePermutation[8..<12].filter { !(8..<12).contains($0) }.count
+        return max(Int(ceil(Double(twistedCorners) / 4.0)), Int(ceil(Double(flippedEdges) / 4.0)), Int(ceil(Double(misplacedSliceEdges) / 4.0)))
+    }
+
+    func phase2LowerBound(_ state: Cube3x3CubieState) -> Int {
+        let badCorners = zip(state.cornerPermutation, 0..<8).filter { $0.0 != $0.1 }.count
+        let badEdges = zip(state.edgePermutation, 0..<12).filter { $0.0 != $0.1 }.count
+        return max(Int(ceil(Double(badCorners) / 4.0)), Int(ceil(Double(badEdges) / 4.0)))
+    }
+}
+
+final class Cube3x3KociembaSolver {
+    private let moveTables = Cube3x3MoveTables.shared
+    private let pruningTables = Cube3x3PruningTables.shared
+    private let phase1Moves = Cube3x3Move.allCases
+    private let phase2Moves = Cube3x3Move.allCases.filter(\.isPhase2Move)
+
+    struct SearchResult {
+        let status: CubeSolveStatus
+        let moves: [Cube3x3Move]
+        let nodes: Int
+        let reason: String?
+    }
+
+    func solve(_ start: Cube3x3CubieState, options: CubeSolveOptions) -> SearchResult {
+        if start.isSolved { return SearchResult(status: .success, moves: [], nodes: 0, reason: nil) }
+
+        let deadline = Date().addingTimeInterval(max(0.1, options.timeout))
+        let maxNodes = max(1_000, options.maxNodes)
+        let phase1Limit = min(max(7, options.maxDepth), 12)
+        let totalLimit = max(20, options.maxDepth)
+        var nodes = 0
+
+        for depth in 0...phase1Limit {
+            var path: [Cube3x3Move] = []
+            let outcome = searchPhase1(state: start, remainingDepth: depth, previousFace: nil, path: &path, deadline: deadline, maxNodes: maxNodes, nodes: &nodes, totalLimit: totalLimit)
+            if let moves = outcome.moves { return SearchResult(status: .success, moves: moves, nodes: nodes, reason: nil) }
+            if outcome.timedOut { return SearchResult(status: .timeout, moves: [], nodes: nodes, reason: "Timed out during 3×3 two-phase search.") }
+            if outcome.nodeLimited { return SearchResult(status: .failure, moves: [], nodes: nodes, reason: "Stopped at the configured 3×3 search safety limit.") }
+        }
+        return SearchResult(status: .failure, moves: [], nodes: nodes, reason: "No phase-1 reduction was found within the bounded search depth.")
+    }
+
+    private struct Outcome { let moves: [Cube3x3Move]?; let timedOut: Bool; let nodeLimited: Bool }
+
+    private func searchPhase1(state: Cube3x3CubieState, remainingDepth: Int, previousFace: Character?, path: inout [Cube3x3Move], deadline: Date, maxNodes: Int, nodes: inout Int, totalLimit: Int) -> Outcome {
+        if Date() >= deadline { return Outcome(moves: nil, timedOut: true, nodeLimited: false) }
+        if nodes >= maxNodes { return Outcome(moves: nil, timedOut: false, nodeLimited: true) }
+        if pruningTables.phase1LowerBound(state) > remainingDepth { return Outcome(moves: nil, timedOut: false, nodeLimited: false) }
+
+        if remainingDepth == 0 {
+            guard state.isInPhase2Subgroup else { return Outcome(moves: nil, timedOut: false, nodeLimited: false) }
+            let remainingTotal = max(0, totalLimit - path.count)
+            for depth in 0...remainingTotal {
+                var phase2Path: [Cube3x3Move] = []
+                let outcome = searchPhase2(state: state, remainingDepth: depth, previousFace: nil, path: &phase2Path, deadline: deadline, maxNodes: maxNodes, nodes: &nodes)
+                if let suffix = outcome.moves { return Outcome(moves: path + suffix, timedOut: false, nodeLimited: false) }
+                if outcome.timedOut || outcome.nodeLimited { return outcome }
+            }
+            return Outcome(moves: nil, timedOut: false, nodeLimited: false)
+        }
+
+        for move in phase1Moves where shouldTry(move, after: previousFace) {
+            nodes += 1
+            path.append(move)
+            let outcome = searchPhase1(state: state.applying(move, tables: moveTables), remainingDepth: remainingDepth - 1, previousFace: move.face, path: &path, deadline: deadline, maxNodes: maxNodes, nodes: &nodes, totalLimit: totalLimit)
+            if outcome.moves != nil || outcome.timedOut || outcome.nodeLimited { return outcome }
+            path.removeLast()
+        }
+        return Outcome(moves: nil, timedOut: false, nodeLimited: false)
+    }
+
+    private func searchPhase2(state: Cube3x3CubieState, remainingDepth: Int, previousFace: Character?, path: inout [Cube3x3Move], deadline: Date, maxNodes: Int, nodes: inout Int) -> Outcome {
+        if Date() >= deadline { return Outcome(moves: nil, timedOut: true, nodeLimited: false) }
+        if nodes >= maxNodes { return Outcome(moves: nil, timedOut: false, nodeLimited: true) }
+        if state.isSolved { return Outcome(moves: path, timedOut: false, nodeLimited: false) }
+        if remainingDepth == 0 || pruningTables.phase2LowerBound(state) > remainingDepth { return Outcome(moves: nil, timedOut: false, nodeLimited: false) }
+
+        for move in phase2Moves where shouldTry(move, after: previousFace) {
+            nodes += 1
+            path.append(move)
+            let outcome = searchPhase2(state: state.applying(move, tables: moveTables), remainingDepth: remainingDepth - 1, previousFace: move.face, path: &path, deadline: deadline, maxNodes: maxNodes, nodes: &nodes)
+            if outcome.moves != nil || outcome.timedOut || outcome.nodeLimited { return outcome }
+            path.removeLast()
+        }
+        return Outcome(moves: nil, timedOut: false, nodeLimited: false)
+    }
+
+    private func shouldTry(_ move: Cube3x3Move, after previousFace: Character?) -> Bool {
+        guard let previousFace else { return true }
+        if move.face == previousFace { return false }
+        if (previousFace == "U" && move.face == "D") || (previousFace == "D" && move.face == "U") { return false }
+        if (previousFace == "L" && move.face == "R") || (previousFace == "R" && move.face == "L") { return false }
+        if (previousFace == "F" && move.face == "B") || (previousFace == "B" && move.face == "F") { return false }
+        return true
+    }
+}
 
 final class Cube3x3Solver: CubeSolverProtocol {
     let supportedPuzzle: CubePuzzleKind = .threeByThree
+    private let kociembaSolver = Cube3x3KociembaSolver()
 
     func solve(_ state: CubeState, options: CubeSolveOptions) -> CubeSolveResult {
         let start = Date()
-        guard validate(state) else {
-            return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected exactly 54 stickers with nine stickers of each cube color.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        guard state.puzzle == supportedPuzzle else {
+            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "Expected a 3×3 cube state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        }
+        let normalizedOptions = CubeSolveOptions(timeout: options.timeout, maxDepth: max(options.maxDepth, 20), maxNodes: max(options.maxNodes, 250_000), includeStepStates: options.includeStepStates)
+
+        let cubieState: Cube3x3CubieState
+        switch Cube3x3CubieState.from(stickers: state.stickers) {
+        case .success(let converted): cubieState = converted
+        case .failure(let error):
+            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: error.localizedDescription, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
 
-        return CubeSolveResult.unavailable(
-            for: .threeByThree,
-            reason: "3×3 solving is being upgraded. This mode is not available yet. The previous unbounded brute-force path has been disabled until a bounded Kociemba two-phase implementation is connected.",
-            elapsedTime: Date().timeIntervalSince(start),
-            nodesExplored: 0
-        )
+        let search = kociembaSolver.solve(cubieState, options: normalizedOptions)
+        let moveNames = search.moves.map(\.rawValue)
+        return CubeSolveResult(status: search.status, puzzle: supportedPuzzle, moves: moveNames, steps: [], failureReason: search.reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: search.nodes)
     }
 
-    private func validate(_ state: CubeState) -> Bool {
-        guard state.puzzle == supportedPuzzle, state.stickers.count == 54 else { return false }
-        let counts = Dictionary(grouping: state.stickers, by: { $0 }).mapValues(\.count)
-        return counts.count == 6 && counts.values.allSatisfy { $0 == 9 }
+}
+
+extension Cube3x3CubieState {
+    enum ConversionError: LocalizedError {
+        case wrongStickerCount
+        case invalidColorCounts
+        case duplicateCenters
+        case missingCorner(String)
+        case missingEdge(String)
+        case duplicateCubie(String)
+        case invalidOrientation
+        case parityMismatch
+
+        var errorDescription: String? {
+            switch self {
+            case .wrongStickerCount: return "Expected exactly 54 stickers for a 3×3 cube."
+            case .invalidColorCounts: return "Expected exactly nine stickers of each of the six center colors."
+            case .duplicateCenters: return "The six center stickers must be distinct so face colors can be identified."
+            case .missingCorner(let cubie): return "Missing or impossible corner cubie: \(cubie)."
+            case .missingEdge(let cubie): return "Missing or impossible edge cubie: \(cubie)."
+            case .duplicateCubie(let cubie): return "Duplicate cubie detected: \(cubie)."
+            case .invalidOrientation: return "The cube has impossible cubie orientation."
+            case .parityMismatch: return "The cube has impossible permutation parity."
+            }
+        }
+    }
+
+    static func from(stickers: [String]) -> Result<Cube3x3CubieState, ConversionError> {
+        guard stickers.count == 54 else { return .failure(.wrongStickerCount) }
+        let centerIndices = [4, 13, 22, 31, 40, 49]
+        let faceNames = ["U", "R", "F", "D", "L", "B"]
+        let centers = centerIndices.map { stickers[$0] }
+        guard Set(centers).count == 6 else { return .failure(.duplicateCenters) }
+        let counts = Dictionary(grouping: stickers, by: { $0 }).mapValues(\.count)
+        guard centers.allSatisfy({ counts[$0] == 9 }) && counts.count == 6 else { return .failure(.invalidColorCounts) }
+        let colorToFace = Dictionary(uniqueKeysWithValues: zip(centers, faceNames))
+        let normalized = stickers.map { colorToFace[$0] ?? "?" }
+
+        let cornerFacelets = [[8, 9, 20], [6, 18, 38], [0, 36, 47], [2, 45, 11], [29, 26, 15], [27, 44, 24], [33, 53, 42], [35, 17, 51]]
+        let cornerColors = [["U", "R", "F"], ["U", "F", "L"], ["U", "L", "B"], ["U", "B", "R"], ["D", "F", "R"], ["D", "L", "F"], ["D", "B", "L"], ["D", "R", "B"]]
+        let edgeFacelets = [[5, 10], [7, 19], [3, 37], [1, 46], [32, 16], [28, 25], [30, 43], [34, 52], [23, 12], [21, 41], [50, 39], [48, 14]]
+        let edgeColors = [["U", "R"], ["U", "F"], ["U", "L"], ["U", "B"], ["D", "R"], ["D", "F"], ["D", "L"], ["D", "B"], ["F", "R"], ["F", "L"], ["B", "L"], ["B", "R"]]
+        let cornerLookup = Dictionary(uniqueKeysWithValues: cornerColors.enumerated().map { (Set($0.element), $0.offset) })
+        let edgeLookup = Dictionary(uniqueKeysWithValues: edgeColors.enumerated().map { (Set($0.element), $0.offset) })
+
+        var cp = Array(repeating: -1, count: 8)
+        var co = Array(repeating: 0, count: 8)
+        var seenCorners = Set<Int>()
+        for position in 0..<8 {
+            let colors = cornerFacelets[position].map { normalized[$0] }
+            guard let cubie = cornerLookup[Set(colors)] else { return .failure(.missingCorner(colors.joined())) }
+            guard seenCorners.insert(cubie).inserted else { return .failure(.duplicateCubie(colors.joined())) }
+            cp[position] = cubie
+            guard let orientation = colors.firstIndex(where: { $0 == "U" || $0 == "D" }) else { return .failure(.missingCorner(colors.joined())) }
+            co[position] = orientation % 3
+        }
+
+        var ep = Array(repeating: -1, count: 12)
+        var eo = Array(repeating: 0, count: 12)
+        var seenEdges = Set<Int>()
+        for position in 0..<12 {
+            let colors = edgeFacelets[position].map { normalized[$0] }
+            guard let cubie = edgeLookup[Set(colors)] else { return .failure(.missingEdge(colors.joined())) }
+            guard seenEdges.insert(cubie).inserted else { return .failure(.duplicateCubie(colors.joined())) }
+            ep[position] = cubie
+            if colors.contains("U") || colors.contains("D") {
+                eo[position] = (colors[0] == "U" || colors[0] == "D") ? 0 : 1
+            } else {
+                eo[position] = (colors[0] == "F" || colors[0] == "B") ? 0 : 1
+            }
+        }
+
+        guard co.reduce(0, +) % 3 == 0, eo.reduce(0, +) % 2 == 0 else { return .failure(.invalidOrientation) }
+        guard parity(cp) == parity(ep) else { return .failure(.parityMismatch) }
+        return .success(Cube3x3CubieState(cornerPermutation: cp, cornerOrientation: co, edgePermutation: ep, edgeOrientation: eo))
+    }
+
+    private static func parity(_ permutation: [Int]) -> Int {
+        var inversions = 0
+        for i in 0..<permutation.count {
+            for j in (i + 1)..<permutation.count where permutation[i] > permutation[j] { inversions += 1 }
+        }
+        return inversions % 2
     }
 }
 
