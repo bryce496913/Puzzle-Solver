@@ -239,6 +239,37 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.status, .invalidInput)
     }
 
+
+    // MARK: - Shared twisty architecture
+
+    func testTwistyMoveNotationParsesAndFormatsReusableMoves() throws {
+        let parsed = try TwistyMoveNotation.parse("U R' F2", allowedFaces: Set(["U", "R", "F"])).get()
+
+        XCTAssertEqual(parsed.map(\.notation), ["U", "R'", "F2"])
+        XCTAssertEqual(TwistyMoveNotation.format(parsed), "U R' F2")
+        XCTAssertEqual(parsed[1].inverse.notation, "R")
+    }
+
+    func testTwistyMoveNotationRejectsUnsupportedFaces() throws {
+        let parsed = TwistyMoveNotation.parse("B", allowedFaces: Set(["U", "R", "F"]))
+
+        XCTAssertThrowsError(try parsed.get())
+    }
+
+    func testPyraminxAndSkewbPlaceholdersReturnUnavailable() throws {
+        let pyraminx = PyraminxSolver().solve(.solvedPyraminx, options: .default)
+        let skewb = SkewbSolver().solve(.solvedSkewb, options: .default)
+
+        XCTAssertEqual(pyraminx.status, .solverUnavailable)
+        XCTAssertEqual(skewb.status, .solverUnavailable)
+    }
+
+    func testDiagnosticsListsTwistyArchitectures() throws {
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "2×2 Cube" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Pyraminx" && $0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Skewb" && $0.enabled && !$0.solverAvailable })
+    }
+
     // MARK: - Shared state and diagnostics
 
     func testSolveStateContainsEveryRequiredState() throws {

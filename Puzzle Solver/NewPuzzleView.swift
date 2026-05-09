@@ -250,3 +250,239 @@ struct KeypadButton: View {
         }
     }
 }
+
+// MARK: - Reusable twisty puzzle UI
+
+struct TwistyPuzzleInputView: View {
+    @State private var selectedPuzzle: TwistyPuzzleKind = .twoByTwo
+    @State private var scrambleNotation = "U R F"
+    @State private var currentState = CubeState.solved2x2
+    @State private var solveResult: CubeSolveResult?
+    @State private var notationError: String?
+    @State private var isSolving = false
+
+    var body: some View {
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Twisty Puzzles")
+                        .font(.largeTitle)
+                        .foregroundColor(Color(hex: 0xccffff))
+
+                    Picker("Puzzle", selection: $selectedPuzzle) {
+                        ForEach(TwistyPuzzleKind.allCases.filter { [.twoByTwo, .threeByThree, .pyraminx, .skewb].contains($0) }) { puzzle in
+                            Text(puzzle.displayName).tag(puzzle)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: selectedPuzzle) { _ in resetForSelectedPuzzle() }
+
+                    TwistyFaceNetView(state: currentState)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Scramble notation")
+                            .foregroundColor(.white)
+                            .font(.headline)
+                        TextField("Example: U R F", text: $scrambleNotation)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        Text("Supported now: \(TwoByTwoMoveEngine.legalMoveNotation). Other twisty puzzles are wired as placeholders.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+
+                    if let notationError {
+                        Text(notationError)
+                            .foregroundColor(Color(hex: 0xff99cc))
+                    }
+
+                    HStack(spacing: 12) {
+                        Button("Apply Scramble") { applyScramble() }
+                            .twistyActionStyle(color: Color(hex: 0x99ccff))
+
+                        Button("Solve") { solveCurrentPuzzle() }
+                            .twistyActionStyle(color: selectedPuzzle.isSolveEnabled ? Color(hex: 0x99ffcc) : Color.gray)
+                            .disabled(!selectedPuzzle.isSolveEnabled || isSolving)
+                    }
+
+                    if isSolving {
+                        HStack {
+                            ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            Text("Solving off the main thread…")
+                                .foregroundColor(.gray)
+                        }
+                    }
+
+                    if let solveResult {
+                        TwistySolveResultView(result: solveResult)
+                    }
+                }
+                .padding()
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { resetForSelectedPuzzle() }
+    }
+
+    private func resetForSelectedPuzzle() {
+        currentState = CubeState.solved(selectedPuzzle)
+        solveResult = nil
+        notationError = selectedPuzzle == .twoByTwo ? nil : "\(selectedPuzzle.displayName) has a registered placeholder architecture; solving is not implemented yet."
+    }
+
+    private func applyScramble() {
+        notationError = nil
+        solveResult = nil
+        guard selectedPuzzle == .twoByTwo else {
+            currentState = CubeState.solved(selectedPuzzle)
+            notationError = "Scramble replay is currently implemented for 2×2 cubes only."
+            return
+        }
+
+        switch TwistyMoveNotation.parse(scrambleNotation, allowedFaces: Set(["U", "R", "F"])) {
+        case .success(let moves):
+            currentState = TwoByTwoMoveEngine.apply(moves.map(\.notation), to: .solved2x2)
+        case .failure(let error):
+            notationError = error.localizedDescription
+        }
+    }
+
+    private func solveCurrentPuzzle() {
+        notationError = nil
+        isSolving = true
+        SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: .solving, detail: "Twisty solve started.")
+        CubeSolvingService.shared.solve(currentState, options: CubeSolveOptions(timeout: 5, maxDepth: 14, maxNodes: 75_000, includeStepStates: true)) { result in
+            isSolving = false
+            solveResult = result
+            SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: result.status.solveState, detail: result.failureReason ?? result.status.userFacingMessage)
+        }
+    }
+}
+
+struct TwistyFaceNetView: View {
+    let state: TwistyPuzzleState
+
+    private var faceStickerCount: Int { max(1, (state.puzzle.stickerCount ?? state.stickers.count) / max(1, state.puzzle.faces.count)) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(state.puzzle.displayName)
+                .foregroundColor(.white)
+                .font(.headline)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 10)], spacing: 10) {
+                ForEach(Array(state.puzzle.faces.enumerated()), id: \.offset) { index, face in
+                    let start = index * faceStickerCount
+                    let end = min(start + faceStickerCount, state.stickers.count)
+                    TwistyFaceView(faceName: face, stickers: Array(state.stickers[start..<end]))
+                }
+            }
+        }
+    }
+}
+
+struct TwistyFaceView: View {
+    let faceName: String
+    let stickers: [String]
+
+    private var columns: [GridItem] {
+        let side = Int(ceil(sqrt(Double(max(1, stickers.count)))))
+        return Array(repeating: GridItem(.fixed(18), spacing: 3), count: side)
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(faceName)
+                .foregroundColor(.gray)
+                .font(.caption)
+            LazyVGrid(columns: columns, spacing: 3) {
+                ForEach(Array(stickers.enumerated()), id: \.offset) { _, sticker in
+                    TwistyStickerView(label: sticker)
+                }
+            }
+        }
+        .padding(8)
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(10)
+    }
+}
+
+struct TwistyStickerView: View {
+    let label: String
+
+    var body: some View {
+        Text(label)
+            .font(.caption2)
+            .frame(width: 18, height: 18)
+            .background(stickerColor)
+            .foregroundColor(.black)
+            .cornerRadius(4)
+    }
+
+    private var stickerColor: Color {
+        switch label {
+        case "U": return .white
+        case "R": return Color(hex: 0xff9999)
+        case "F": return Color(hex: 0x99ff99)
+        case "D": return Color(hex: 0xffff99)
+        case "L": return Color(hex: 0xffcc99)
+        case "B": return Color(hex: 0x99ccff)
+        default: return Color(hex: 0xccccff)
+        }
+    }
+}
+
+struct TwistyMoveListView: View {
+    let moves: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Moves")
+                .font(.headline)
+                .foregroundColor(.white)
+            if moves.isEmpty {
+                Text("Already solved.")
+                    .foregroundColor(.gray)
+            } else {
+                ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
+                    Text("\(index + 1). \(move)")
+                        .foregroundColor(.white)
+                }
+            }
+        }
+    }
+}
+
+struct TwistySolveResultView: View {
+    let result: CubeSolveResult
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(result.status.userFacingMessage)
+                .font(.title2)
+                .foregroundColor(result.succeeded ? Color(hex: 0xccffcc) : Color(hex: 0xff99cc))
+            Text("Move count: \(result.moveCount) • Nodes checked: \(result.nodesExplored) • Time: \(String(format: "%.2f", result.elapsedTime))s")
+                .font(.caption)
+                .foregroundColor(.gray)
+            if let failureReason = result.failureReason {
+                Text(failureReason)
+                    .foregroundColor(.white)
+            }
+            TwistyMoveListView(moves: result.moves)
+        }
+        .padding()
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(12)
+    }
+}
+
+private extension View {
+    func twistyActionStyle(color: Color) -> some View {
+        self.font(.headline)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(color)
+            .foregroundColor(.black)
+            .cornerRadius(10)
+    }
+}
