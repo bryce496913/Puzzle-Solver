@@ -1500,7 +1500,11 @@ enum PuzzleModeRegistry {
         PuzzleModeDiagnostic(name: "Skewb", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "Megaminx", enabled: true, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Square-1", enabled: true, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Sudoku", enabled: false, solverAvailable: false)
+        PuzzleModeDiagnostic(name: "Sudoku", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "Killer Sudoku", enabled: false, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Nonogram", enabled: false, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Kakuro", enabled: false, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Slitherlink", enabled: false, solverAvailable: false)
     ]
 }
 

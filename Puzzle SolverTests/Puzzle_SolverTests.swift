@@ -364,4 +364,51 @@ final class Puzzle_SolverTests: XCTestCase {
         }
         return CubeState(puzzle: state.puzzle, stickers: stickers)
     }
+    // MARK: - Logic puzzle architecture
+
+    func testSudokuValidatorAcceptsExamplePuzzle() throws {
+        let result = SudokuValidator.validate(.example)
+
+        XCTAssertTrue(result.isValid)
+        XCTAssertTrue(result.canSolve)
+    }
+
+    func testSudokuValidatorFindsDuplicateRowValues() throws {
+        let board = SudokuBoard(values: [
+            [1, 1, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil],
+            [nil, nil, nil, nil, nil, nil, nil, nil, nil]
+        ])
+
+        let result = SudokuValidator.validate(board)
+
+        XCTAssertFalse(result.isValid)
+        XCTAssertTrue(SudokuValidator.conflictingCoordinates(in: board).contains(LogicGridCoordinate(row: 0, column: 0)))
+        XCTAssertTrue(SudokuValidator.conflictingCoordinates(in: board).contains(LogicGridCoordinate(row: 0, column: 1)))
+    }
+
+    func testSudokuSolverSolvesExamplePuzzle() throws {
+        let result = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 100_000, timeout: 2))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertNotNil(result.solvedBoard)
+        XCTAssertTrue(result.solvedBoard?.isComplete ?? false)
+        XCTAssertTrue(SudokuValidator.validate(result.solvedBoard ?? .empty).isValid)
+    }
+
+    func testLogicPuzzleCatalogKeepsPlaceholdersSeparateFromPlayableSudoku() throws {
+        let sudoku = try XCTUnwrap(LogicPuzzleCatalog.descriptors.first { $0.kind == .sudoku })
+        let placeholders = LogicPuzzleCatalog.descriptors.filter { $0.kind != .sudoku }
+
+        XCTAssertTrue(sudoku.enabled)
+        XCTAssertTrue(sudoku.solverAvailable)
+        XCTAssertTrue(placeholders.allSatisfy { !$0.enabled && !$0.solverAvailable })
+    }
+
 }
