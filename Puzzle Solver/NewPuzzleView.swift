@@ -254,8 +254,9 @@ struct KeypadButton: View {
 // MARK: - Reusable twisty puzzle UI
 
 struct TwistyPuzzleInputView: View {
-    @State private var selectedPuzzle: TwistyPuzzleKind = .twoByTwo
-    @State private var scrambleNotation = "U R F"
+    @State private var selectedPuzzle: TwistyPuzzleKind = .threeByThree
+    @State private var scrambleNotation = "R U R' U'"
+    @State private var selectedSticker = "U"
     @State private var currentState = CubeState.solved2x2
     @State private var solveResult: CubeSolveResult?
     @State private var notationError: String?
@@ -279,7 +280,13 @@ struct TwistyPuzzleInputView: View {
                     .pickerStyle(SegmentedPickerStyle())
                     .onChange(of: selectedPuzzle) { _ in resetForSelectedPuzzle() }
 
-                    TwistyFaceNetView(state: currentState)
+                    if selectedPuzzle == .threeByThree {
+                        Cube3x3StickerInputView(state: currentState, selectedSticker: $selectedSticker) { index in
+                            setSticker(at: index)
+                        }
+                    } else {
+                        TwistyFaceNetView(state: currentState)
+                    }
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Scramble notation")
@@ -287,7 +294,7 @@ struct TwistyPuzzleInputView: View {
                             .font(.headline)
                         TextField("Example: U R F", text: $scrambleNotation)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
-                        Text("Supported now: \(TwoByTwoMoveEngine.legalMoveNotation). Other twisty puzzles are wired as placeholders.")
+                        Text("2×2: \(TwoByTwoMoveEngine.legalMoveNotation) • 3×3: \(Cube3x3MoveEngine.legalMoveNotation)")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
@@ -328,34 +335,122 @@ struct TwistyPuzzleInputView: View {
     private func resetForSelectedPuzzle() {
         currentState = CubeState.solved(selectedPuzzle)
         solveResult = nil
-        notationError = selectedPuzzle == .twoByTwo ? nil : "\(selectedPuzzle.displayName) has a registered placeholder architecture; solving is not implemented yet."
+        selectedSticker = "U"
+        notationError = selectedPuzzle.isSolveEnabled ? nil : "\(selectedPuzzle.displayName) has a registered placeholder architecture; solving is not implemented yet."
     }
 
     private func applyScramble() {
         notationError = nil
         solveResult = nil
-        guard selectedPuzzle == .twoByTwo else {
+        switch selectedPuzzle {
+        case .twoByTwo:
+            switch TwistyMoveNotation.parse(scrambleNotation, allowedFaces: Set(["U", "R", "F"])) {
+            case .success(let moves): currentState = TwoByTwoMoveEngine.apply(moves.map(\.notation), to: .solved2x2)
+            case .failure(let error): notationError = error.localizedDescription
+            }
+        case .threeByThree:
+            switch TwistyMoveNotation.parse(scrambleNotation, allowedFaces: Set(["U", "R", "F", "D", "L", "B"])) {
+            case .success(let moves): currentState = Cube3x3MoveEngine.apply(moves.map(\.notation), to: .solved3x3)
+            case .failure(let error): notationError = error.localizedDescription
+            }
+        default:
             currentState = CubeState.solved(selectedPuzzle)
-            notationError = "Scramble replay is currently implemented for 2×2 cubes only."
-            return
+            notationError = "Scramble replay is implemented for 2×2 and 3×3 cubes."
         }
+    }
 
-        switch TwistyMoveNotation.parse(scrambleNotation, allowedFaces: Set(["U", "R", "F"])) {
-        case .success(let moves):
-            currentState = TwoByTwoMoveEngine.apply(moves.map(\.notation), to: .solved2x2)
-        case .failure(let error):
-            notationError = error.localizedDescription
-        }
+
+    private func setSticker(at index: Int) {
+        guard selectedPuzzle == .threeByThree, ![4, 13, 22, 31, 40, 49].contains(index) else { return }
+        var stickers = currentState.stickers
+        guard stickers.indices.contains(index) else { return }
+        stickers[index] = selectedSticker
+        currentState = CubeState(puzzle: .threeByThree, stickers: stickers)
+        solveResult = nil
+        notationError = nil
     }
 
     private func solveCurrentPuzzle() {
         notationError = nil
         isSolving = true
         SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: .solving, detail: "Twisty solve started.")
-        CubeSolvingService.shared.solve(currentState, options: CubeSolveOptions(timeout: 5, maxDepth: 14, maxNodes: 75_000, includeStepStates: true)) { result in
+        CubeSolvingService.shared.solve(currentState, options: CubeSolveOptions(timeout: selectedPuzzle == .threeByThree ? 10 : 5, maxDepth: selectedPuzzle == .threeByThree ? 24 : 14, maxNodes: selectedPuzzle == .threeByThree ? 1_000_000 : 75_000, includeStepStates: false)) { result in
             isSolving = false
             solveResult = result
             SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: result.status.solveState, detail: result.failureReason ?? result.status.userFacingMessage)
+        }
+    }
+}
+
+struct Cube3x3StickerInputView: View {
+    let state: CubeState
+    @Binding var selectedSticker: String
+    let onStickerTap: (Int) -> Void
+
+    private let faces = ["U", "R", "F", "D", "L", "B"]
+    private let centerIndices: Set<Int> = [4, 13, 22, 31, 40, 49]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("3×3 sticker input")
+                .font(.headline)
+                .foregroundColor(.white)
+
+            Text("Choose a color, then tap stickers in the cube net. Centers are fixed and validity is checked before solving.")
+                .font(.caption)
+                .foregroundColor(.gray)
+
+            HStack(spacing: 8) {
+                ForEach(faces, id: \.self) { face in
+                    Button(face) { selectedSticker = face }
+                        .font(.caption.bold())
+                        .frame(width: 34, height: 34)
+                        .background(stickerColor(face))
+                        .foregroundColor(.black)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(selectedSticker == face ? Color(hex: 0xccffff) : Color.clear, lineWidth: 3))
+                        .cornerRadius(8)
+                }
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 10)], spacing: 10) {
+                ForEach(Array(faces.enumerated()), id: \.offset) { faceIndex, face in
+                    VStack(spacing: 6) {
+                        Text(face)
+                            .foregroundColor(.gray)
+                            .font(.caption)
+                        LazyVGrid(columns: Array(repeating: GridItem(.fixed(22), spacing: 4), count: 3), spacing: 4) {
+                            ForEach(0..<9, id: \.self) { offset in
+                                let stickerIndex = faceIndex * 9 + offset
+                                Button(action: { onStickerTap(stickerIndex) }) {
+                                    Text(state.stickers[safe: stickerIndex] ?? "?")
+                                        .font(.caption2.bold())
+                                        .frame(width: 22, height: 22)
+                                        .background(stickerColor(state.stickers[safe: stickerIndex] ?? "?"))
+                                        .foregroundColor(.black)
+                                        .cornerRadius(5)
+                                        .opacity(centerIndices.contains(stickerIndex) ? 0.7 : 1)
+                                }
+                                .disabled(centerIndices.contains(stickerIndex))
+                            }
+                        }
+                    }
+                    .padding(8)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(10)
+                }
+            }
+        }
+    }
+
+    private func stickerColor(_ label: String) -> Color {
+        switch label {
+        case "U": return .white
+        case "R": return Color(hex: 0xff9999)
+        case "F": return Color(hex: 0x99ff99)
+        case "D": return Color(hex: 0xffff99)
+        case "L": return Color(hex: 0xffcc99)
+        case "B": return Color(hex: 0x99ccff)
+        default: return Color(hex: 0xccccff)
         }
     }
 }
