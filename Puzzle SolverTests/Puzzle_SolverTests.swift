@@ -45,6 +45,24 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.state, .unsolvable)
     }
 
+    func testThreeByThreeSlidingPuzzleUsesSuccessfulOrderedPath() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3OneMove)
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(result.path.first, PuzzlePresets.sliding3x3OneMove)
+        XCTAssertEqual(result.path.last, PuzzlePresets.sliding3x3Solved)
+        XCTAssertEqual(result.steps.count, result.path.count)
+    }
+
+    func testThreeByThreeSlidingPuzzleDoesNotReturnFailurePath() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3Unsolvable)
+
+        XCTAssertFalse(result.succeeded)
+        XCTAssertTrue(result.moves.isEmpty)
+        XCTAssertTrue(result.path.isEmpty)
+        XCTAssertTrue(result.steps.isEmpty)
+    }
+
     func testThreeByThreeSlidingPuzzleTimeoutIsBounded() throws {
         let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding3x3Medium, options: SlidingPuzzleSolveOptions(timeout: 0, maxNodes: 100_000))
 
@@ -72,6 +90,15 @@ final class Puzzle_SolverTests: XCTestCase {
 
         XCTAssertEqual(result.state, .solved)
         XCTAssertFalse(result.moves.isEmpty)
+    }
+
+    func testFourByFourSlidingPuzzleUsesIDAStarPath() throws {
+        let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4OneMove)
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(result.path.first, PuzzlePresets.sliding4x4OneMove)
+        XCTAssertEqual(result.path.last, PuzzlePresets.sliding4x4Solved)
+        XCTAssertEqual(result.moves, [SlidingPuzzleMove.right.rawValue])
     }
 
     func testInvalidFourByFourSlidingPuzzleReturnsInvalid() throws {
@@ -220,6 +247,10 @@ final class Puzzle_SolverTests: XCTestCase {
 
     func testDiagnosticsListsEnabledSlidingPuzzleMode() throws {
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "3×3 Sliding Puzzle" && $0.enabled && $0.solverAvailable })
+    }
+
+    func testDiagnosticsListsEnabledFourByFourSlidingPuzzleMode() throws {
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "4×4 Sliding Puzzle" && $0.enabled && $0.solverAvailable })
     }
 
     // MARK: - Helpers

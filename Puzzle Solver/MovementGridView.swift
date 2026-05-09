@@ -9,13 +9,17 @@ import SwiftUI
 
 struct MovementGridView: View {
     let boardState: [[Int?]]
+    var tileSize: CGFloat = 40
+    var spacing: CGFloat = 10
+
+    private var puzzleSize: Int { boardState.count }
 
     var body: some View {
-        VStack(spacing: 10) {
-            ForEach(0..<3, id: \.self) { row in
-                HStack(spacing: 10) {
-                    ForEach(0..<3, id: \.self) { column in
-                        MovementTileView(number: boardState[row][column])
+        VStack(spacing: spacing) {
+            ForEach(0..<puzzleSize, id: \.self) { row in
+                HStack(spacing: spacing) {
+                    ForEach(0..<boardState[row].count, id: \.self) { column in
+                        MovementTileView(number: boardState[row][column], size: tileSize)
                     }
                 }
             }
@@ -25,25 +29,24 @@ struct MovementGridView: View {
 
 struct MovementTileView: View {
     let number: Int?
+    var size: CGFloat = 40
 
     var body: some View {
-        Text(number != nil ? "\(number!)" : " ")
-            .font(.title)
+        Text(number.map(String.init) ?? " ")
+            .font(.system(size: max(14, size * 0.45), weight: .semibold))
             .foregroundColor(.white)
-            .frame(width: 40, height: 40)
+            .frame(width: size, height: size)
             .background(Color.blue)
-            .cornerRadius(8)
+            .cornerRadius(max(6, size * 0.2))
             .padding(2)
     }
 }
 
 struct MovementGridView_Previews: PreviewProvider {
     static var previews: some View {
-        MovementGridView(boardState: [
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, nil]
-        ])
+        VStack {
+            MovementGridView(boardState: PuzzlePresets.sliding3x3Medium.toGrid())
+            MovementGridView(boardState: PuzzlePresets.sliding4x4Medium.toGrid(), tileSize: 32)
+        }
     }
 }
-

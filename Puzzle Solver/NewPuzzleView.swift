@@ -8,49 +8,67 @@
 import SwiftUI
 
 struct NewPuzzleView: View {
+    @State private var selectedKind: SlidingPuzzleKind = .threeByThree
     @State private var selectedTile: Int?
-    @State private var gridNumbers: [[Int?]] = Array(repeating: Array(repeating: nil, count: 3), count: 3)
-    @State private var numbersInGrid: Set<Int> = Set(1...8)
-    @State private var isSolveButtonVisible: Bool = false
-    @State private var initialState: [[Int?]] = Array(repeating: Array(repeating: nil, count: 3), count: 3)
+    @State private var gridNumbers: [[Int?]] = NewPuzzleView.emptyGrid(size: SlidingPuzzleKind.threeByThree.size)
+    @State private var numbersInGrid: Set<Int> = NewPuzzleView.availableNumbers(size: SlidingPuzzleKind.threeByThree.size)
+    @State private var isSolveButtonVisible = false
+    @State private var initialState: [[Int?]] = NewPuzzleView.emptyGrid(size: SlidingPuzzleKind.threeByThree.size)
+
+    private var puzzleSize: Int { selectedKind.size }
+    private var tileSize: CGFloat { selectedKind == .threeByThree ? 60 : 48 }
+    private var keypadColumns: [GridItem] { Array(repeating: GridItem(.fixed(44), spacing: 14), count: selectedKind == .threeByThree ? 3 : 4) }
 
     var body: some View {
         ZStack {
             Color.black
                 .edgesIgnoringSafeArea(.all)
 
-            VStack(spacing: 10) {
+            VStack(spacing: 14) {
                 Spacer()
 
-                ForEach(0..<3, id: \.self) { row in
-                    HStack(spacing: 10) {
-                        ForEach(0..<3, id: \.self) { column in
-                            PuzzleTileSolvedView(
-                                number: gridNumbers[row][column],
-                                backgroundColor: tileBackgroundColor(number: gridNumbers[row][column]),
-                                isSelected: selectedTile == row * 3 + column,
-                                onTap: {
-                                    handleTileSelection(row: row, column: column)
-                                }
-                            )
+                Picker("Puzzle Size", selection: $selectedKind) {
+                    ForEach(SlidingPuzzleKind.allCases, id: \.self) { kind in
+                        Text(kind.displayName).tag(kind)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.horizontal)
+                .onChange(of: selectedKind) { _ in
+                    resetPuzzle()
+                }
+
+                VStack(spacing: 10) {
+                    ForEach(0..<puzzleSize, id: \.self) { row in
+                        HStack(spacing: 10) {
+                            ForEach(0..<puzzleSize, id: \.self) { column in
+                                PuzzleTileSolvedView(
+                                    number: gridNumbers[row][column],
+                                    size: tileSize,
+                                    backgroundColor: tileBackgroundColor(number: gridNumbers[row][column]),
+                                    isSelected: selectedTile == row * puzzleSize + column,
+                                    onTap: {
+                                        handleTileSelection(row: row, column: column)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
 
                 Button(action: loadExample) {
-                    Text("Try Example")
-                        .font(.title2)
-                        .frame(width: 200, height: 44)
+                    Text("Try \(selectedKind.displayName) Example")
+                        .font(.title3)
+                        .frame(width: 260, height: 44)
                         .background(Color(hex: 0xccffff))
                         .foregroundColor(.black)
                         .cornerRadius(10)
                 }
 
-                // Conditionally render KeypadView or SolveButton based on UI state
                 if isSolveButtonVisible {
                     NavigationLink(
                         destination: {
-                            SolvingView(initialState: initialState)
+                            SolvingView(initialState: initialState, puzzleSize: puzzleSize)
                         },
                         label: {
                             Text("Solve")
@@ -62,11 +80,9 @@ struct NewPuzzleView: View {
                         }
                     )
                 } else {
-                    KeypadView(
-                        onTap: { number in
-                            handleKeypadButtonTap(number: number)
-                        }
-                    )
+                    KeypadView(size: puzzleSize, columns: keypadColumns) { number in
+                        handleKeypadButtonTap(number: number)
+                    }
                 }
 
                 Spacer()
@@ -85,17 +101,14 @@ struct NewPuzzleView: View {
                     )
                     .padding(.trailing, 40)
 
-                    NavigationLink(
-                        destination: NewPuzzleView(),
-                        label: {
-                            Text("Reset")
-                                .font(.title)
-                                .frame(width: 100, height: 35)
-                                .background(Color(hex: 0xff99cc))
-                                .foregroundColor(.black)
-                                .cornerRadius(10)
-                        }
-                    )
+                    Button(action: resetPuzzle) {
+                        Text("Reset")
+                            .font(.title)
+                            .frame(width: 100, height: 35)
+                            .background(Color(hex: 0xff99cc))
+                            .foregroundColor(.black)
+                            .cornerRadius(10)
+                    }
                 }
                 .padding(.bottom, 20)
             }
@@ -105,50 +118,55 @@ struct NewPuzzleView: View {
     }
 
     private func handleTileSelection(row: Int, column: Int) {
-        // If the "Solve" button is visible, hide it and show the keypad
         if isSolveButtonVisible {
             isSolveButtonVisible = false
         }
-        self.selectedTile = row * 3 + column
+        selectedTile = row * puzzleSize + column
     }
 
     private func handleKeypadButtonTap(number: Int) {
-        // Handle keypad button tap logic
-        if number == 9 {
-            // 'x' button pressed, remove number
-            if let selectedTile = selectedTile {
-                if let removedNumber = gridNumbers[selectedTile / 3][selectedTile % 3] {
-                    // Reassign the removed number to the set of available numbers
-                    numbersInGrid.insert(removedNumber)
-                }
-                gridNumbers[selectedTile / 3][selectedTile % 3] = nil
+        guard let selectedTile else { return }
+        let row = selectedTile / puzzleSize
+        let column = selectedTile % puzzleSize
+        let clearButton = puzzleSize * puzzleSize
+
+        if number == clearButton {
+            if let removedNumber = gridNumbers[row][column] {
+                numbersInGrid.insert(removedNumber)
             }
+            gridNumbers[row][column] = nil
         } else if numbersInGrid.contains(number) {
-            // Check if the number is available for assignment
-            if let selectedTile = selectedTile {
-                if let existingNumber = gridNumbers[selectedTile / 3][selectedTile % 3] {
-                    numbersInGrid.insert(existingNumber)
-                }
-                gridNumbers[selectedTile / 3][selectedTile % 3] = number
-                numbersInGrid.remove(number)
+            if let existingNumber = gridNumbers[row][column] {
+                numbersInGrid.insert(existingNumber)
             }
+            gridNumbers[row][column] = number
+            numbersInGrid.remove(number)
         }
+
         self.selectedTile = nil
         updateSolveButtonVisibility()
     }
 
     private func loadExample() {
-        gridNumbers = PuzzlePresets.sliding3x3Medium.toGrid()
+        let preset = selectedKind == .threeByThree ? PuzzlePresets.sliding3x3Medium : PuzzlePresets.sliding4x4Medium
+        gridNumbers = preset.toGrid()
         numbersInGrid = []
         initialState = gridNumbers
         selectedTile = nil
         isSolveButtonVisible = true
-        SolverDebugLogger.shared.log("sample preset selected: 3×3 sliding medium")
+        SolverDebugLogger.shared.log("sample preset selected: \(selectedKind.displayName) medium")
+    }
+
+    private func resetPuzzle() {
+        gridNumbers = Self.emptyGrid(size: puzzleSize)
+        numbersInGrid = Self.availableNumbers(size: puzzleSize)
+        initialState = gridNumbers
+        selectedTile = nil
+        isSolveButtonVisible = false
     }
 
     private func updateSolveButtonVisibility() {
         if numbersInGrid.isEmpty {
-            // Save the initial state
             initialState = gridNumbers
             isSolveButtonVisible = true
         } else {
@@ -157,17 +175,17 @@ struct NewPuzzleView: View {
     }
 
     private func tileBackgroundColor(number: Int?) -> Color {
-        switch number {
-        case 1: return Color(hex: 0xffffcc)
-        case 2: return Color(hex: 0xffcc99)
-        case 3: return Color(hex: 0xffcccc)
-        case 4: return Color(hex: 0xffccff)
-        case 5: return Color(hex: 0xcc99ff)
-        case 6: return Color(hex: 0x99ccff)
-        case 7: return Color(hex: 0xccffff)
-        case 8: return Color(hex: 0xccffcc)
-        default: return Color.gray
-        }
+        guard let number else { return Color.gray }
+        let palette = [0xffffcc, 0xffcc99, 0xffcccc, 0xffccff, 0xcc99ff, 0x99ccff, 0xccffff, 0xccffcc]
+        return Color(hex: palette[(number - 1) % palette.count])
+    }
+
+    private static func emptyGrid(size: Int) -> [[Int?]] {
+        Array(repeating: Array(repeating: nil, count: size), count: size)
+    }
+
+    private static func availableNumbers(size: Int) -> Set<Int> {
+        Set(1..<(size * size))
     }
 }
 
@@ -179,18 +197,19 @@ struct NewPuzzleView_Previews: PreviewProvider {
 
 struct PuzzleTileSolvedView: View {
     let number: Int?
+    var size: CGFloat = 60
     let backgroundColor: Color
     let isSelected: Bool
     let onTap: () -> Void
 
     var body: some View {
         Text(number.map(String.init) ?? "")
-            .font(.title)
-            .frame(width: 60, height: 60)
+            .font(.system(size: max(16, size * 0.42), weight: .semibold))
+            .frame(width: size, height: size)
             .background(backgroundColor)
             .border(isSelected ? Color(hex: 0xffcc99) : Color.clear, width: 2)
             .foregroundColor(.black)
-            .cornerRadius(10)
+            .cornerRadius(max(6, size * 0.16))
             .onTapGesture {
                 onTap()
             }
@@ -198,34 +217,34 @@ struct PuzzleTileSolvedView: View {
 }
 
 struct KeypadView: View {
+    let size: Int
+    let columns: [GridItem]
     let onTap: (Int) -> Void
 
     var body: some View {
-        VStack(spacing: 10) {
-            ForEach(0..<3, id: \.self) { row in
-                HStack(spacing: 20) {
-                    ForEach(1...3, id: \.self) { column in
-                        KeypadButton(number: row * 3 + column, onTap: onTap)
-                    }
-                }
+        LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(1...(size * size), id: \.self) { number in
+                KeypadButton(number: number, clearButton: size * size, onTap: onTap)
             }
         }
+        .frame(width: CGFloat(size) * 58)
         .padding()
     }
 }
 
 struct KeypadButton: View {
     let number: Int
+    let clearButton: Int
     let onTap: (Int) -> Void
 
     var body: some View {
         Button(action: {
             onTap(number)
         }) {
-            Text(number == 9 ? "x" : "\(number)")
-                .font(.title)
+            Text(number == clearButton ? "x" : "\(number)")
+                .font(.title3)
                 .frame(width: 40, height: 40)
-                .background(number == 9 ? Color(hex: 0xff99cc) : Color(hex: 0x99ccff))
+                .background(number == clearButton ? Color(hex: 0xff99cc) : Color(hex: 0x99ccff))
                 .foregroundColor(.black)
                 .cornerRadius(20)
         }
