@@ -36,16 +36,20 @@ struct LogicPuzzleMenuRow: View {
     let descriptor: LogicPuzzleDescriptor
 
     var body: some View {
-        Group {
-            if descriptor.kind == .sudoku {
-                NavigationLink(destination: SudokuInputView()) {
-                    rowContent(actionLabel: "Open")
-                }
-            } else {
-                rowContent(actionLabel: "Coming Soon")
-            }
+        NavigationLink(destination: destination) {
+            rowContent(actionLabel: descriptor.enabled ? "Open" : "Coming Soon")
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityHint(descriptor.enabled ? "Opens the puzzle input screen." : "Opens the coming soon information screen.")
+    }
+
+    @ViewBuilder
+    private var destination: some View {
+        if descriptor.kind == .sudoku {
+            SudokuInputView()
+        } else {
+            LogicPuzzleComingSoonView(descriptor: descriptor)
+        }
     }
 
     private func rowContent(actionLabel: String) -> some View {
@@ -57,9 +61,13 @@ struct LogicPuzzleMenuRow: View {
                 Text(descriptor.notes)
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
-                Text(descriptor.solverAvailable ? "Solver available" : "Placeholder architecture")
+                Text(descriptor.solverAvailable ? "Solver available" : "Coming soon")
                     .font(.caption2.bold())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background((descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99)).opacity(0.2))
                     .foregroundColor(descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99))
+                    .cornerRadius(8)
             }
 
             Spacer()
@@ -75,6 +83,48 @@ struct LogicPuzzleMenuRow: View {
         .padding()
         .background(Color.white.opacity(0.08))
         .cornerRadius(14)
+    }
+}
+
+
+struct LogicPuzzleComingSoonView: View {
+    let descriptor: LogicPuzzleDescriptor
+
+    var body: some View {
+        ZStack {
+            AppTheme.backgroundGradient.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 18) {
+                Text(descriptor.kind.displayName)
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundColor(Color(hex: 0xccffff))
+                    .accessibilityAddTraits(.isHeader)
+
+                Text(descriptor.notes)
+                    .font(.body)
+                    .foregroundColor(AppTheme.primaryText)
+                    .lineSpacing(3)
+
+                Text("Planned for a future update")
+                    .font(.headline)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color(hex: 0xffcc99).opacity(0.2))
+                    .foregroundColor(Color(hex: 0xffcc99))
+                    .cornerRadius(12)
+
+                Text("The puzzle card, route, and placeholder model/solver files are in place so this section stays complete while the solver is intentionally unavailable.")
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+                    .lineSpacing(3)
+
+                Spacer()
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .navigationTitle(descriptor.kind.displayName)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

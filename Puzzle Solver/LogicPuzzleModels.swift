@@ -22,10 +22,10 @@ enum LogicPuzzleKind: String, CaseIterable, Identifiable, Hashable {
     var summary: String {
         switch self {
         case .sudoku: return "Place 1–9 so every row, column, and box contains each digit once."
-        case .killerSudoku: return "Sudoku with cage sums. Placeholder architecture is ready for cage models."
-        case .nonogram: return "Paint cells from row and column clues. Placeholder architecture is ready for clue runs."
-        case .kakuro: return "Fill crossword-like sums with non-repeating digits. Placeholder architecture is ready for runs."
-        case .slitherlink: return "Draw one loop around clue cells. Placeholder architecture is ready for edge states."
+        case .killerSudoku: return "Sudoku with cage sums that constrain groups of cells. Planned for a future update."
+        case .nonogram: return "Paint cells using row and column clue runs to reveal a picture. Planned for a future update."
+        case .kakuro: return "Fill crossword-style number runs that add to clue sums without repeats. Planned for a future update."
+        case .slitherlink: return "Draw one continuous loop around numbered clue cells. Planned for a future update."
         }
     }
 
@@ -373,67 +373,4 @@ final class SudokuSolver: LogicPuzzleSolving {
     private func finish(_ state: SolveState, initialBoard: SudokuBoard, solvedBoard: SudokuBoard?, steps: [SudokuSolveStep], reason: String?, start: Date, nodes: Int) -> SudokuSolveResult {
         SudokuSolveResult(state: state, initialBoard: initialBoard, solvedBoard: solvedBoard, steps: steps, failureReason: reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
     }
-}
-
-// MARK: - Placeholder models for future logic puzzles
-
-struct KillerSudokuCage: Identifiable, Hashable {
-    let id = UUID()
-    var targetSum: Int
-    var cells: Set<LogicGridCoordinate>
-}
-
-struct KillerSudokuBoard: LogicPuzzleBoard, Hashable {
-    var cells: [[SudokuCell]]
-    var cages: [KillerSudokuCage]
-
-    var kind: LogicPuzzleKind { .killerSudoku }
-    var size: LogicGridSize { .sudoku }
-}
-
-struct NonogramClueRun: Identifiable, Hashable {
-    let id = UUID()
-    var length: Int
-}
-
-struct NonogramBoard: LogicPuzzleBoard, Hashable {
-    enum Cell: Equatable, Hashable { case unknown, filled, empty }
-
-    var cells: [[Cell]]
-    var rowClues: [[NonogramClueRun]]
-    var columnClues: [[NonogramClueRun]]
-
-    var kind: LogicPuzzleKind { .nonogram }
-    var size: LogicGridSize { LogicGridSize(rows: cells.count, columns: cells.first?.count ?? 0) }
-}
-
-struct KakuroRun: Identifiable, Hashable {
-    enum Direction: Hashable { case across, down }
-
-    let id = UUID()
-    var sum: Int
-    var direction: Direction
-    var cells: [LogicGridCoordinate]
-}
-
-struct KakuroBoard: LogicPuzzleBoard, Hashable {
-    enum Cell: Equatable, Hashable { case block, clue(across: Int?, down: Int?), value(Int?) }
-
-    var cells: [[Cell]]
-    var runs: [KakuroRun]
-
-    var kind: LogicPuzzleKind { .kakuro }
-    var size: LogicGridSize { LogicGridSize(rows: cells.count, columns: cells.first?.count ?? 0) }
-}
-
-struct SlitherlinkBoard: LogicPuzzleBoard, Hashable {
-    enum Cell: Equatable, Hashable { case clue(Int?), blank }
-    enum EdgeState: Hashable { case unknown, line, crossed }
-
-    var cells: [[Cell]]
-    var horizontalEdges: [[EdgeState]]
-    var verticalEdges: [[EdgeState]]
-
-    var kind: LogicPuzzleKind { .slitherlink }
-    var size: LogicGridSize { LogicGridSize(rows: cells.count, columns: cells.first?.count ?? 0) }
 }
