@@ -600,4 +600,32 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertLessThan(result.elapsedTime, 1)
     }
 
+    func testComingSoonPuzzleDescriptorsRouteThroughSharedScreenContract() throws {
+        let logicComingSoon = LogicPuzzleCatalog.descriptors.filter { !$0.enabled }
+        let mechanicalComingSoon = MechanicalPuzzleCatalog.descriptors.filter { !$0.enabled }
+        let experimentalComingSoon = ExperimentalPuzzleCatalog.descriptors.filter { !$0.enabled }
+
+        XCTAssertEqual(Set(logicComingSoon.map(\.kind)), Set([.killerSudoku, .nonogram, .kakuro, .slitherlink]))
+        XCTAssertEqual(Set(mechanicalComingSoon.map(\.kind)), Set([.klotski, .pegSolitaire]))
+        XCTAssertEqual(experimentalComingSoon.map(\.kind), [.jigsawSolver])
+        XCTAssertTrue(logicComingSoon.allSatisfy { !$0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(mechanicalComingSoon.allSatisfy { !$0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(experimentalComingSoon.allSatisfy { !$0.enabled && !$0.solverAvailable })
+    }
+
+    func testActivePuzzleFamiliesSolveOrReturnBoundedFailureStates() throws {
+        let sliding = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4Medium, options: SlidingPuzzleSolveOptions(timeout: 3, maxNodes: 120_000, maxDepth: 60))
+        let sudoku = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 500_000, timeout: 5))
+        let rushHour = RushHourSolver().solve(.example, options: MechanicalPuzzleSolveOptions(timeout: 5, maxNodes: 100_000))
+        let maze = MazeSolver().solve(MazeBoard(lines: ["S..", "##.", "G.."]))
+        let chessBoard = try XCTUnwrap(ChessBoard(fen: "7k/8/5KQ1/8/8/8/8/8 w - - 0 1"))
+        let chess = ChessPuzzleSolver().solveMate(in: 1, board: chessBoard)
+
+        XCTAssertEqual(sliding.state, .solved)
+        XCTAssertEqual(sudoku.state, .solved)
+        XCTAssertEqual(rushHour.state, .solved)
+        XCTAssertEqual(maze.state, .solved)
+        XCTAssertEqual(chess.state, .solved)
+    }
+
 }

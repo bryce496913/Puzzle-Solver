@@ -133,20 +133,34 @@ private struct ExperimentalPuzzleSelectionCard: View {
     }
 
     private var actionTitle: String {
-        descriptor.kind == .jigsawSolver ? "Preview Jigsaw Solver" : "View Mode Status"
+        descriptor.solverAvailable ? "View Mode Status" : "Coming Soon"
     }
 
     private var accessibilityHint: String {
-        descriptor.kind == .jigsawSolver ? "Opens the Jigsaw Solver coming soon screen." : "Opens the experimental mode status screen."
+        descriptor.solverAvailable ? "Opens the experimental mode status screen." : "Opens the shared coming soon screen."
     }
 
     @ViewBuilder
     private func destination(for kind: ExperimentalPuzzleKind) -> some View {
-        switch kind {
-        case .jigsawSolver:
-            JigsawComingSoonView()
-        default:
+        if descriptor.solverAvailable {
             ExperimentalModeStatusView(descriptor: descriptor)
+        } else {
+            ComingSoonView(
+                title: descriptor.kind.displayName,
+                summary: descriptor.notes,
+                plannedItems: [
+                    "Import or capture a puzzle image.",
+                    "Detect individual pieces and estimate edge shapes.",
+                    "Match tabs, blanks, colors, and image continuity before presenting a guided assembly plan."
+                ],
+                architectureNotes: [
+                    "JigsawPuzzle stores board dimensions and piece placement.",
+                    "JigsawPiece stores labels and per-edge shape metadata.",
+                    "JigsawSolver returns an unsupported result until image detection and matching heuristics are implemented."
+                ],
+                symbol: "puzzlepiece.extension.fill",
+                accentColor: AppTheme.pink
+            )
         }
     }
 }
@@ -188,12 +202,14 @@ private struct ExperimentalModeStatusView: View {
     }
 }
 
-struct JigsawComingSoonView: View {
-    private let roadmap = [
-        "Import or capture a puzzle image.",
-        "Detect individual pieces and estimate edge shapes.",
-        "Match tabs, blanks, colors, and image continuity before presenting a guided assembly plan."
-    ]
+
+struct ComingSoonView: View {
+    let title: String
+    let summary: String
+    var plannedItems: [String] = []
+    var architectureNotes: [String] = []
+    var symbol: String = "clock.badge.exclamationmark.fill"
+    var accentColor: Color = AppTheme.amber
 
     var body: some View {
         ZStack {
@@ -201,27 +217,29 @@ struct JigsawComingSoonView: View {
 
             ScrollView {
                 VStack(spacing: 22) {
-                    hero
-                    roadmapCard
-                    architectureCard
+                    heroCard
+                    if !plannedItems.isEmpty { plannedCard }
+                    if !architectureNotes.isEmpty { architectureCard }
                 }
                 .padding()
             }
         }
-        .navigationTitle("Jigsaw Solver")
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var hero: some View {
+    private var heroCard: some View {
         VStack(spacing: 14) {
-            Image(systemName: "puzzlepiece.extension.fill")
-                .font(.system(size: 64, weight: .semibold))
-                .foregroundColor(AppTheme.pink)
+            Image(systemName: symbol)
+                .font(.system(size: 58, weight: .semibold))
+                .foregroundColor(accentColor)
                 .accessibilityHidden(true)
 
-            Text("Jigsaw Solver")
+            Text(title)
                 .font(.largeTitle.weight(.bold))
                 .foregroundColor(AppTheme.primaryText)
                 .multilineTextAlignment(.center)
+                .accessibilityAddTraits(.isHeader)
 
             Text("Coming Soon")
                 .font(.title3.weight(.semibold))
@@ -231,7 +249,7 @@ struct JigsawComingSoonView: View {
                 .background(AppTheme.surface.opacity(0.58))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-            Text("The model layer is in place now so image-based solving can be added without disrupting the existing sliding, logic, mechanical, and experimental solvers.")
+            Text(summary)
                 .font(.body)
                 .foregroundColor(AppTheme.secondaryText)
                 .multilineTextAlignment(.center)
@@ -243,18 +261,18 @@ struct JigsawComingSoonView: View {
         .cornerRadius(26)
     }
 
-    private var roadmapCard: some View {
+    private var plannedCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Planned Image Pipeline")
+            Text("Planned Work")
                 .font(.headline)
                 .foregroundColor(AppTheme.primaryText)
 
-            ForEach(Array(roadmap.enumerated()), id: \.offset) { index, item in
+            ForEach(Array(plannedItems.enumerated()), id: \.offset) { index, item in
                 HStack(alignment: .top, spacing: 10) {
                     Text("\(index + 1)")
                         .font(.caption.weight(.bold))
                         .frame(width: 24, height: 24)
-                        .background(AppTheme.cyan)
+                        .background(accentColor)
                         .foregroundColor(.black)
                         .clipShape(Circle())
 
@@ -277,9 +295,9 @@ struct JigsawComingSoonView: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.primaryText)
 
-            Label("JigsawPuzzle stores board dimensions and piece placement.", systemImage: "square.grid.3x3.fill")
-            Label("JigsawPiece stores labels and per-edge shape metadata.", systemImage: "puzzlepiece.fill")
-            Label("JigsawSolver returns an unsupported result until image detection and matching heuristics are implemented.", systemImage: "wand.and.stars")
+            ForEach(architectureNotes, id: \.self) { note in
+                Label(note, systemImage: "checkmark.seal.fill")
+            }
         }
         .font(.callout)
         .foregroundColor(AppTheme.secondaryText)

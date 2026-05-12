@@ -48,7 +48,21 @@ struct LogicPuzzleMenuRow: View {
         if descriptor.kind == .sudoku {
             SudokuInputView()
         } else {
-            LogicPuzzleComingSoonView(descriptor: descriptor)
+            ComingSoonView(
+                title: descriptor.kind.displayName,
+                summary: descriptor.notes,
+                plannedItems: [
+                    "Define the editable puzzle input grid.",
+                    "Add bounded validation and solving rules.",
+                    "Return ordered steps or an immediate unsupported result."
+                ],
+                architectureNotes: [
+                    "The puzzle catalog route is already registered.",
+                    "Placeholder board and solver models remain isolated from active Sudoku solving."
+                ],
+                symbol: "square.grid.3x3.square",
+                accentColor: AppTheme.cyan
+            )
         }
     }
 
@@ -86,47 +100,6 @@ struct LogicPuzzleMenuRow: View {
     }
 }
 
-
-struct LogicPuzzleComingSoonView: View {
-    let descriptor: LogicPuzzleDescriptor
-
-    var body: some View {
-        ZStack {
-            AppTheme.backgroundGradient.ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 18) {
-                Text(descriptor.kind.displayName)
-                    .font(.largeTitle.weight(.bold))
-                    .foregroundColor(Color(hex: 0xccffff))
-                    .accessibilityAddTraits(.isHeader)
-
-                Text(descriptor.notes)
-                    .font(.body)
-                    .foregroundColor(AppTheme.primaryText)
-                    .lineSpacing(3)
-
-                Text("Planned for a future update")
-                    .font(.headline)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .foregroundColor(AppTheme.text.opacity(0.62))
-                    .background(AppTheme.surface.opacity(0.58))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-                Text("The puzzle card, route, and placeholder model/solver files are in place so this section stays complete while the solver is intentionally unavailable.")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
-                    .lineSpacing(3)
-
-                Spacer()
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .navigationTitle(descriptor.kind.displayName)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
 
 struct LogicGridView<CellContent: View>: View {
     let rows: Int
@@ -318,6 +291,7 @@ struct SudokuResultView: View {
     @State private var solveState: SolveState = .idle
     @State private var result: SudokuSolveResult?
     @State private var isSolving = false
+    @State private var didFinish = false
 
     var body: some View {
         ZStack {
@@ -392,19 +366,41 @@ struct SudokuResultView: View {
 
     private func solveSudoku() {
         guard result == nil else { return }
+        let options = SudokuSolveOptions(maxNodes: 500_000, timeout: 5)
+        let startedAt = Date()
         solveState = .validating
         isSolving = true
         SolverDiagnosticsStore.shared.record(modeName: LogicPuzzleKind.sudoku.displayName, state: .validating, detail: "Validating Sudoku input.")
 
+        DispatchQueue.main.asyncAfter(deadline: .now() + options.timeout + 0.25) {
+            guard !self.didFinish else { return }
+            let timeoutResult = SudokuSolveResult(
+                state: .timedOut,
+                initialBoard: self.initialBoard,
+                solvedBoard: nil,
+                steps: [],
+                failureReason: "Sudoku solver timed out before it could finish.",
+                elapsedTime: Date().timeIntervalSince(startedAt),
+                nodesExplored: 0
+            )
+            self.finish(with: timeoutResult)
+        }
+
         DispatchQueue.global(qos: .userInitiated).async {
-            let solveResult = SudokuSolver().solve(initialBoard, options: SudokuSolveOptions(maxNodes: 500_000, timeout: 5))
+            let solveResult = SudokuSolver().solve(self.initialBoard, options: options)
             DispatchQueue.main.async {
-                result = solveResult
-                solveState = solveResult.state
-                isSolving = false
-                SolverDiagnosticsStore.shared.record(modeName: LogicPuzzleKind.sudoku.displayName, state: solveResult.state, detail: solveResult.failureReason ?? summary(for: solveResult))
+                guard !self.didFinish else { return }
+                self.finish(with: solveResult)
             }
         }
+    }
+
+    private func finish(with solveResult: SudokuSolveResult) {
+        didFinish = true
+        result = solveResult
+        solveState = solveResult.state
+        isSolving = false
+        SolverDiagnosticsStore.shared.record(modeName: LogicPuzzleKind.sudoku.displayName, state: solveResult.state, detail: solveResult.failureReason ?? summary(for: solveResult))
     }
 
     private func summary(for result: SudokuSolveResult) -> String {
