@@ -300,19 +300,23 @@ final class RushHourSolver: MechanicalPuzzleSolving {
 
     func solve(_ board: RushHourBoard, options: MechanicalPuzzleSolveOptions = .default) -> MechanicalPuzzleSolveResult<RushHourBoard> {
         let start = Date()
+        SolverDebugLogger.shared.log("RushHourSolver: validation started")
         guard RushHourBoardAnalyzer.validate(board) else {
+            SolverDebugLogger.shared.log("RushHourSolver: validation failed")
             return finish(.invalid, board: board, reason: "Rush Hour boards need one horizontal target car on row 3 and non-overlapping pieces.", start: start, nodes: 0)
         }
 
+        SolverDebugLogger.shared.log("RushHourSolver: validation passed")
         if board.isSolved {
             return success(moves: [], path: [board], start: start, nodes: 0)
         }
 
-        let deadline = start.addingTimeInterval(max(0.1, options.timeout))
+        let deadline = start.addingTimeInterval(max(0, options.timeout))
         var frontier = [SearchNode(board: board, moves: [], path: [board])]
         var visited: Set<RushHourBoard> = [board]
         var cursor = 0
         var nodes = 0
+        SolverDebugLogger.shared.log("RushHourSolver: solve started")
 
         while cursor < frontier.count {
             if Date() >= deadline {
@@ -331,6 +335,7 @@ final class RushHourSolver: MechanicalPuzzleSolving {
                 let nextMoves = current.moves + [neighbor.move]
                 let nextPath = current.path + [neighbor.board]
                 if neighbor.board.isSolved {
+                    SolverDebugLogger.shared.log("RushHourSolver: solve finished solved in \(nextMoves.count) moves")
                     return success(moves: nextMoves, path: nextPath, start: start, nodes: nodes)
                 }
                 visited.insert(neighbor.board)
@@ -354,7 +359,8 @@ final class RushHourSolver: MechanicalPuzzleSolving {
     }
 
     private func finish(_ state: SolveState, board: RushHourBoard, reason: String, start: Date, nodes: Int) -> MechanicalPuzzleSolveResult<RushHourBoard> {
-        MechanicalPuzzleSolveResult(
+        SolverDebugLogger.shared.log("RushHourSolver: solve finished \(state.rawValue): \(reason)")
+        return MechanicalPuzzleSolveResult(
             kind: .rushHour,
             state: state,
             moves: [],

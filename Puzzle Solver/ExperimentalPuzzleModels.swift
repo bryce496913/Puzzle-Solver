@@ -79,7 +79,7 @@ enum GraphSearch {
         timeout: TimeInterval = 5
     ) -> GraphSearchResult<Node, Move> {
         let startedAt = Date()
-        let deadline = startedAt.addingTimeInterval(max(0.05, timeout))
+        let deadline = startedAt.addingTimeInterval(max(0, timeout))
         var frontier: [Node] = [start]
         var cursor = 0
         var visited: Set<Node> = [start]
@@ -285,15 +285,20 @@ struct MazeSolveOptions {
 final class MazeSolver {
     func solve(_ board: MazeBoard, options: MazeSolveOptions = .default) -> VisualPuzzleResult<MazeBoard, GridDirection> {
         let startedAt = Date()
+        SolverDebugLogger.shared.log("MazeSolver: validation started")
         guard let start = board.start, let goal = board.goal else {
+            SolverDebugLogger.shared.log("MazeSolver: validation failed")
             return VisualPuzzleResult(puzzleName: "Maze", state: .invalid, moves: [], steps: [], failureReason: "Maze requires one S start and one G goal.", nodesExplored: 0, elapsedTime: Date().timeIntervalSince(startedAt))
         }
 
+        SolverDebugLogger.shared.log("MazeSolver: solve started")
         let result = GraphSearch.breadthFirstSearch(from: start, isGoal: { $0 == goal }, neighbors: board.neighbors(of:), maxNodes: options.maxNodes, timeout: options.timeout)
         guard let path = result.path else {
+            SolverDebugLogger.shared.log("MazeSolver: solve finished \(result.state.rawValue)")
             return VisualPuzzleResult(puzzleName: "Maze", state: result.state, moves: [], steps: [VisualPuzzleStep(index: 0, title: "Start", board: board, annotations: [])], failureReason: result.failureReason, nodesExplored: result.nodesExplored, elapsedTime: result.elapsedTime)
         }
 
+        SolverDebugLogger.shared.log("MazeSolver: solve finished solved")
         let solvedBoard = board.overlaying(path: path.nodes)
         let annotation = VisualPuzzleAnnotation(kind: .path, label: "Shortest path", coordinates: path.nodes)
         let steps = [
@@ -561,20 +566,24 @@ final class ChessPuzzleSolver {
 
     func solveMate(in moves: Int, board: ChessBoard, options: ChessSolveOptions = .default) -> ChessPuzzleResult {
         let startedAt = Date()
+        SolverDebugLogger.shared.log("ChessPuzzleSolver: mate search started")
         reset(startedAt: startedAt, timeout: options.timeout, maxNodes: options.maxNodes)
         let attacker = board.sideToMove
         let candidates = board.legalMoves().sorted { $0.uci < $1.uci }
         for move in candidates {
             guard canContinue else { break }
             guard let next = board.applying(move), forcedMate(from: next, attacker: attacker, pliesRemaining: max(0, moves * 2 - 1)) else { continue }
+            SolverDebugLogger.shared.log("ChessPuzzleSolver: mate search solved")
             return ChessPuzzleResult(kind: .mateInN, state: .solved, bestMove: move, principalVariation: [move], failureReason: nil, nodesExplored: nodesExplored, elapsedTime: Date().timeIntervalSince(startedAt))
         }
         let state: SolveState = Date() >= deadline ? .timedOut : (nodesExplored >= maxNodes ? .failed : .unsolvable)
+        SolverDebugLogger.shared.log("ChessPuzzleSolver: mate search finished \(state.rawValue)")
         return ChessPuzzleResult(kind: .mateInN, state: state, bestMove: nil, principalVariation: [], failureReason: "No forced mate in \(moves) was found for \(attacker.rawValue).", nodesExplored: nodesExplored, elapsedTime: Date().timeIntervalSince(startedAt))
     }
 
     func solveBestMove(board: ChessBoard, options: ChessSolveOptions = .default) -> ChessPuzzleResult {
         let startedAt = Date()
+        SolverDebugLogger.shared.log("ChessPuzzleSolver: best-move search started")
         reset(startedAt: startedAt, timeout: options.timeout, maxNodes: options.maxNodes)
         let color = board.sideToMove
         var best: (move: ChessMove, score: Int)?
@@ -586,14 +595,17 @@ final class ChessPuzzleSolver {
             }
         }
         guard let best else {
-            return ChessPuzzleResult(kind: .bestMove, state: .unsolvable, bestMove: nil, principalVariation: [], failureReason: "No legal chess moves are available.", nodesExplored: nodesExplored, elapsedTime: Date().timeIntervalSince(startedAt))
+            let state: SolveState = Date() >= deadline ? .timedOut : (nodesExplored >= maxNodes ? .failed : .unsolvable)
+            SolverDebugLogger.shared.log("ChessPuzzleSolver: best-move search finished \(state.rawValue)")
+            return ChessPuzzleResult(kind: .bestMove, state: state, bestMove: nil, principalVariation: [], failureReason: state == .unsolvable ? "No legal chess moves are available." : state.friendlyMessage, nodesExplored: nodesExplored, elapsedTime: Date().timeIntervalSince(startedAt))
         }
+        SolverDebugLogger.shared.log("ChessPuzzleSolver: best-move search solved")
         return ChessPuzzleResult(kind: .bestMove, state: .solved, bestMove: best.move, principalVariation: [best.move], failureReason: nil, nodesExplored: nodesExplored, elapsedTime: Date().timeIntervalSince(startedAt))
     }
 
     private func reset(startedAt: Date, timeout: TimeInterval, maxNodes: Int) {
         nodesExplored = 0
-        deadline = startedAt.addingTimeInterval(max(0.05, timeout))
+        deadline = startedAt.addingTimeInterval(max(0, timeout))
         self.maxNodes = maxNodes
     }
 
@@ -671,14 +683,16 @@ struct JigsawSolveOptions {
 
 final class JigsawPuzzleSolver {
     func solve(_ board: JigsawBoard, options: JigsawSolveOptions = .default) -> VisualPuzzleResult<JigsawBoard, String> {
-        VisualPuzzleResult(
+        let startedAt = Date()
+        SolverDebugLogger.shared.log("JigsawPuzzleSolver: placeholder returned unsupported")
+        return VisualPuzzleResult(
             puzzleName: "Jigsaw",
             state: .unsupported,
             moves: [],
             steps: [VisualPuzzleStep(index: 0, title: "Jigsaw architecture placeholder", board: board, annotations: [])],
             failureReason: "Jigsaw piece detection, edge matching, and image-comparison heuristics are intentionally modular placeholders.",
             nodesExplored: 0,
-            elapsedTime: 0
+            elapsedTime: Date().timeIntervalSince(startedAt)
         )
     }
 }

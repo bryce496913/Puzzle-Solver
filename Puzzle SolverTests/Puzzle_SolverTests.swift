@@ -494,4 +494,93 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Jigsaw" && !$0.enabled && !$0.solverAvailable })
     }
 
+
+    // MARK: - Production stability additions
+
+    func testExamplePuzzlePresetsCoverActivePuzzleFamilies() throws {
+        let categories = Set(ExamplePuzzlePresets.all.map(\.category))
+
+        XCTAssertTrue(categories.isSuperset(of: ["Sliding", "Twisty", "Logic", "Mechanical", "Experimental"]))
+        XCTAssertGreaterThanOrEqual(ExamplePuzzlePresets.all.count, 10)
+    }
+
+    func testRushHourTimeoutIsBounded() throws {
+        let result = RushHourSolver().solve(RushHourBoard.example, options: MechanicalPuzzleSolveOptions(timeout: 0, maxNodes: 10_000))
+
+        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertTrue(result.moves.isEmpty)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testSudokuTimeoutIsBounded() throws {
+        let result = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 100_000, timeout: 0))
+
+        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testSudokuNodeLimitIsBounded() throws {
+        let result = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 0, timeout: 2))
+
+        XCTAssertEqual(result.state, .failed)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testGraphSearchTimeoutIsBounded() throws {
+        let result = GraphSearch.breadthFirstSearch(
+            from: 0,
+            isGoal: { $0 == 10 },
+            neighbors: { node in [(node: node + 1, move: "+1")] },
+            maxNodes: 100_000,
+            timeout: 0
+        )
+
+        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testMazeInvalidInputIsReported() throws {
+        let result = MazeSolver().solve(MazeBoard(lines: ["..."]))
+
+        XCTAssertEqual(result.state, .invalid)
+        XCTAssertTrue(result.moves.isEmpty)
+    }
+
+    func testMazeTimeoutIsBounded() throws {
+        let board = MazeBoard(lines: [
+            "S..",
+            "...",
+            "..G"
+        ])
+
+        let result = MazeSolver().solve(board, options: MazeSolveOptions(timeout: 0, maxNodes: 100_000))
+
+        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testChessBestMoveNodeLimitIsBounded() throws {
+        let board = try XCTUnwrap(ChessBoard(fen: "7k/8/5KQ1/8/8/8/8/8 w - - 0 1"))
+        let result = ChessPuzzleSolver().solveBestMove(board: board, options: ChessSolveOptions(mateDepth: 1, searchDepth: 3, timeout: 2, maxNodes: 0))
+
+        XCTAssertEqual(result.state, .failed)
+        XCTAssertNil(result.bestMove)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testChessMateTimeoutIsBounded() throws {
+        let board = try XCTUnwrap(ChessBoard(fen: "7k/8/5KQ1/8/8/8/8/8 w - - 0 1"))
+        let result = ChessPuzzleSolver().solveMate(in: 1, board: board, options: ChessSolveOptions(mateDepth: 1, searchDepth: 2, timeout: 0, maxNodes: 100_000))
+
+        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testJigsawPlaceholderReturnsImmediatelyWithUnsupportedState() throws {
+        let result = JigsawPuzzleSolver().solve(.placeholder, options: JigsawSolveOptions(timeout: 0, maxNodes: 0))
+
+        XCTAssertEqual(result.state, .unsupported)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
 }
