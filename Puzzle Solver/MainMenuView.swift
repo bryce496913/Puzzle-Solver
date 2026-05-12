@@ -71,7 +71,6 @@ struct MainMenuView: View {
                     }
                 )
 
-                #if DEBUG
                 Toggle("Debug logging", isOn: $debugLoggingEnabled)
                     .foregroundColor(.white)
                     .frame(width: 200)
@@ -86,7 +85,6 @@ struct MainMenuView: View {
                             .cornerRadius(10)
                     }
                 )
-                #endif
 
                 NavigationLink(
                     destination: HowView(),
@@ -124,7 +122,6 @@ struct MainMenuView_Previews: PreviewProvider {
 }
 
 
-#if DEBUG
 struct DiagnosticsView: View {
     private var lastStatus: SolveStatusSnapshot { SolverDiagnosticsStore.shared.lastSolveStatus }
 
@@ -151,6 +148,17 @@ struct DiagnosticsView: View {
                     }
                 }
 
+                Section(header: Text("Example Presets")) {
+                    ForEach(ExamplePuzzlePresets.all) { preset in
+                        VStack(alignment: .leading) {
+                            Text(preset.title)
+                            Text("\(preset.category): \(preset.detail)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 Section(header: Text("Last Solve")) {
                     Text("Mode: \(lastStatus.modeName)")
                     Text("Status: \(lastStatus.state.rawValue)")
@@ -166,4 +174,3 @@ struct DiagnosticsView: View {
         .navigationTitle("Diagnostics")
     }
 }
-#endif

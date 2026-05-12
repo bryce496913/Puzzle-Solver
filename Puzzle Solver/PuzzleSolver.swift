@@ -1495,7 +1495,7 @@ enum PuzzleModeRegistry {
         PuzzleModeDiagnostic(name: "3×3 Sliding Puzzle", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "4×4 Sliding Puzzle", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "2×2 Cube", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "3×3 Cube", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "3×3 Cube", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "Pyraminx", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "Skewb", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "Megaminx", enabled: true, solverAvailable: false),
@@ -1882,6 +1882,7 @@ private func finish(_ state: SolveState, reason: String, start: Date, nodes: Int
 }
 
 enum PuzzlePresets {
+    // Sliding examples used by the input screen, previews, diagnostics, and unit tests.
     static let sliding3x3Solved = SlidingPuzzleBoard.solved(size: 3)
     static let sliding3x3OneMove = SlidingPuzzleBoard(size: 3, tiles: [1, 2, 3, 4, 5, 6, 7, 0, 8])
     static let sliding3x3Medium = SlidingPuzzleBoard(size: 3, tiles: [1, 2, 3, 5, 0, 6, 4, 7, 8])
@@ -1891,6 +1892,29 @@ enum PuzzlePresets {
     static let sliding4x4OneMove = SlidingPuzzleBoard(size: 4, tiles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15])
     static let sliding4x4Medium = SlidingPuzzleBoard(size: 4, tiles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 14, 15])
 }
+
+struct ExamplePuzzlePreset: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let category: String
+    let detail: String
+}
+
+enum ExamplePuzzlePresets {
+    static let all: [ExamplePuzzlePreset] = [
+        ExamplePuzzlePreset(id: "sliding-3x3-medium", title: "3×3 Sliding Medium", category: "Sliding", detail: "A short A* example that demonstrates ordered move playback."),
+        ExamplePuzzlePreset(id: "sliding-4x4-medium", title: "4×4 Sliding Medium", category: "Sliding", detail: "A bounded IDA* preset that solves within the default safety limits."),
+        ExamplePuzzlePreset(id: "cube-2x2-sexy", title: "2×2 R U R' U'", category: "Twisty", detail: "A compact cube scramble for validating the 2×2 search path."),
+        ExamplePuzzlePreset(id: "cube-3x3-four-move", title: "3×3 R U R' U'", category: "Twisty", detail: "A shallow 3×3 scramble covered by the two-phase solver tests."),
+        ExamplePuzzlePreset(id: "pyraminx-url", title: "Pyraminx U R L'", category: "Twisty", detail: "A small Pyraminx preset using shared twisty notation."),
+        ExamplePuzzlePreset(id: "skewb-rub", title: "Skewb R U B'", category: "Twisty", detail: "A small Skewb preset using the shared iterative solver."),
+        ExamplePuzzlePreset(id: "sudoku-example", title: "Sudoku Example", category: "Logic", detail: "The built-in Sudoku grid used by validation and solver tests."),
+        ExamplePuzzlePreset(id: "rush-hour-example", title: "Rush Hour Example", category: "Mechanical", detail: "A non-overlapping traffic puzzle with ordered playback frames."),
+        ExamplePuzzlePreset(id: "maze-example", title: "Maze Shortest Path", category: "Experimental", detail: "A simple grid graph pathfinding puzzle for BFS diagnostics."),
+        ExamplePuzzlePreset(id: "chess-mate-one", title: "Chess Mate in One", category: "Experimental", detail: "A forced-mate board used to verify bounded chess search." )
+    ]
+}
+
 
 extension CubeSolveStatus {
     var solveState: SolveState {

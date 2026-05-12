@@ -20,7 +20,7 @@ struct HowView: View {
                     .padding(.top, 50)
 
                 ScrollView {
-                    Text("Welcome to Puzzle Solver!\n\nThe solver screen now uses the shared cube-solving service. It always returns a clear status instead of loading forever.\n\nCurrent status:\n1. 2×2 uses a bounded IDA* path with timeout and node limits.\n2. 3×3 solving is being upgraded and is not available yet.\n3. 4×4 and 5×5 are safe reduction-method placeholders.\n\nStatuses include Solving…, Invalid cube, Solver unavailable, Could not solve quickly, and Solved.")
+                    Text("Welcome to Puzzle Solver!\n\nThe solver screen now uses shared bounded solving infrastructure. Every active solver returns a clear state instead of loading forever.\n\nCurrent status:\n1. 2×2, 3×3, Pyraminx, and Skewb use bounded solvers with timeout and node limits.\n2. 4×4, 5×5, Megaminx, and Square-1 are safe placeholders that return unavailable instead of running indefinitely.\n3. Sliding, Sudoku, Rush Hour, Maze, and Chess solvers share solved/invalid/failed/timed-out status reporting.\n\nStatuses include Solving…, Solved, Invalid, Failed, Timed out, and Solver unavailable.")
 
                         .foregroundColor(.white)
                         .padding()
