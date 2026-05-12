@@ -27,4 +27,6 @@ struct NonogramBoard: LogicPuzzleBoard, Hashable {
         rowClues: [],
         columnClues: []
     )
+
+    static let example = placeholder
 }

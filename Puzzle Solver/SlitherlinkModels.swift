@@ -23,4 +23,6 @@ struct SlitherlinkBoard: LogicPuzzleBoard, Hashable {
         horizontalEdges: Array(repeating: Array(repeating: .unknown, count: 5), count: 6),
         verticalEdges: Array(repeating: Array(repeating: .unknown, count: 6), count: 5)
     )
+
+    static let example = placeholder
 }

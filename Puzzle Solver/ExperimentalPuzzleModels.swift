@@ -161,6 +161,8 @@ struct VisualPuzzleStep<Board>: Identifiable {
     let annotations: [VisualPuzzleAnnotation]
 }
 
+typealias VisualPuzzleSolveResult<Board, Move> = VisualPuzzleResult<Board, Move>
+
 struct VisualPuzzleResult<Board, Move> {
     let puzzleName: String
     let state: SolveState
@@ -673,7 +675,21 @@ struct JigsawPuzzle: Hashable {
     let placedPieces: [PuzzleGridPoint: JigsawPiece]
     let unplacedPieces: [JigsawPiece]
 
-    static let placeholder = JigsawPuzzle(rows: 0, columns: 0, placedPieces: [:], unplacedPieces: [])
+    static let placeholder = JigsawPuzzle(rows: 2, columns: 2, placedPieces: [:], unplacedPieces: [
+        JigsawPiece(id: "A", label: "A"),
+        JigsawPiece(id: "B", label: "B"),
+        JigsawPiece(id: "C", label: "C"),
+        JigsawPiece(id: "D", label: "D")
+    ])
+
+    static let example = placeholder
+}
+
+enum JigsawPuzzleValidator {
+    static func validate(_ board: JigsawPuzzle) -> SolveState {
+        guard board.rows > 0, board.columns > 0 else { return .invalid }
+        return .unsupported
+    }
 }
 
 struct JigsawSolveOptions {
@@ -684,16 +700,19 @@ struct JigsawSolveOptions {
 }
 
 final class JigsawSolver {
-    // This placeholder intentionally returns .unsupported while preserving the same VisualPuzzleResult shape used by other image-like puzzles; future work can rank piece placements by edge compatibility, color histograms, and seam-continuity scores.
-    func solve(_ board: JigsawPuzzle, options: JigsawSolveOptions = .default) -> VisualPuzzleResult<JigsawPuzzle, String> {
+    // This placeholder intentionally returns .unsupported while preserving the same VisualPuzzleResult shape used by other image-like puzzles.
+    // Future work should detect pieces, classify edge shapes, rank compatible placements by image
+    // continuity, and then present a guided assembly plan. The current status is intentionally unavailable.
+    func solve(_ board: JigsawPuzzle, options: JigsawSolveOptions = .default) -> VisualPuzzleSolveResult<JigsawPuzzle, String> {
         let startedAt = Date()
+        _ = JigsawPuzzleValidator.validate(board)
         SolverDebugLogger.shared.log("JigsawSolver: placeholder returned unsupported")
         return VisualPuzzleResult(
             puzzleName: "Jigsaw Solver",
             state: .unsupported,
             moves: [],
             steps: [VisualPuzzleStep(index: 0, title: "Jigsaw architecture placeholder", board: board, annotations: [])],
-            failureReason: "Jigsaw piece detection, edge matching, and image-comparison heuristics are intentionally modular placeholders.",
+            failureReason: "This solver is planned for a future update.",
             nodesExplored: 0,
             elapsedTime: Date().timeIntervalSince(startedAt)
         )

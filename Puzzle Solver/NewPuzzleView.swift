@@ -18,8 +18,14 @@ struct NewPuzzleView: View {
     @State private var initialState: [[Int?]] = NewPuzzleView.emptyGrid(size: SlidingPuzzleKind.threeByThree.size)
 
     private var puzzleSize: Int { selectedKind.size }
-    private var tileSize: CGFloat { selectedKind == .threeByThree ? 60 : 48 }
-    private var keypadColumns: [GridItem] { Array(repeating: GridItem(.fixed(72), spacing: 14), count: selectedKind == .threeByThree ? 3 : 4) }
+    private var tileSize: CGFloat {
+        switch selectedKind {
+        case .threeByThree: return 60
+        case .fourByFour: return 48
+        case .fiveByFive: return 40
+        }
+    }
+    private var keypadColumns: [GridItem] { Array(repeating: GridItem(.fixed(58), spacing: 10), count: puzzleSize) }
 
     var body: some View {
         ZStack {
@@ -68,7 +74,17 @@ struct NewPuzzleView: View {
                         .appButtonLabel()
                 }
                 .buttonStyle(AppSecondaryButtonStyle())
-                .accessibilityHint("Loads a valid sample puzzle so you can preview solving.")
+                .accessibilityHint(selectedKind.solverAvailable ? "Loads a valid sample puzzle so you can preview solving." : "Loads a safe placeholder board for the planned solver.")
+
+                if !selectedKind.solverAvailable {
+                    Text("This solver is planned for a future update.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AppTheme.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(AppTheme.cardBackground)
+                        .cornerRadius(12)
+                }
 
                 if isSolveButtonVisible {
                     NavigationLink(
@@ -143,7 +159,15 @@ struct NewPuzzleView: View {
 
     private func loadExample() {
         resetPuzzle(size: puzzleSize)
-        let preset = selectedKind == .threeByThree ? PuzzlePresets.sliding3x3Medium : PuzzlePresets.sliding4x4Medium
+        let preset: SlidingPuzzleBoard
+        switch selectedKind {
+        case .threeByThree:
+            preset = PuzzlePresets.sliding3x3Medium
+        case .fourByFour:
+            preset = PuzzlePresets.sliding4x4Medium
+        case .fiveByFive:
+            preset = PuzzlePresets.sliding5x5Placeholder
+        }
         gridNumbers = preset.toGrid()
         numbersInGrid = []
         initialState = gridNumbers
@@ -238,7 +262,7 @@ struct KeypadView: View {
                 KeypadButton(number: number, clearButton: size * size, onTap: onTap)
             }
         }
-        .frame(width: CGFloat(size) * 86)
+        .frame(maxWidth: CGFloat(size) * 72)
         .padding()
         .accessibilityElement(children: .contain)
     }
@@ -328,7 +352,7 @@ struct TwistyPuzzleInputView: View {
 
                         Button("Solve") { solveCurrentPuzzle() }
                             .buttonStyle(AppPrimaryButtonStyle())
-                            .disabled(!selectedPuzzle.isSolveEnabled || isSolving)
+                            .disabled(isSolving)
                     }
 
                     if isSolving {
@@ -355,7 +379,7 @@ struct TwistyPuzzleInputView: View {
         solveResult = nil
         selectedSticker = selectedPuzzle.faces.first ?? "U"
         scrambleNotation = selectedPuzzle.notation.sampleScramble
-        notationError = selectedPuzzle.isSolveEnabled ? nil : "\(selectedPuzzle.displayName) has a registered placeholder architecture; solving is not implemented yet."
+        notationError = selectedPuzzle.isSolveEnabled ? nil : "This solver is planned for a future update."
     }
 
     private func applyScramble() {

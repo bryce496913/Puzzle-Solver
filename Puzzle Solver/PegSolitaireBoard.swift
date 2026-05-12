@@ -27,5 +27,18 @@ struct PegSolitaireBoard: MechanicalPuzzleBoard, Hashable {
             }
     }
 
-    static let comingSoon = PegSolitaireBoard(occupiedCoordinates: [])
+    static let comingSoon = PegSolitaireBoard(occupiedCoordinates: [
+        MechanicalBoardCoordinate(row: 3, column: 2),
+        MechanicalBoardCoordinate(row: 3, column: 3),
+        MechanicalBoardCoordinate(row: 3, column: 4)
+    ])
+
+    static let example = comingSoon
+}
+
+enum PegSolitaireBoardAnalyzer {
+    static func validate(_ board: PegSolitaireBoard) -> SolveState {
+        guard board.occupiedCoordinates.allSatisfy(board.size.contains) else { return .invalid }
+        return .unsupported
+    }
 }
