@@ -339,7 +339,7 @@ final class Puzzle_SolverTests: XCTestCase {
     // MARK: - Shared state and diagnostics
 
     func testSolveStateContainsEveryRequiredState() throws {
-        XCTAssertEqual(Set(SolveState.allCases.map(\.rawValue)), ["idle", "validating", "solving", "solved", "invalid", "unsolvable", "timedOut", "failed", "unsupported"])
+        XCTAssertEqual(Set(SolveState.allCases.map(\.rawValue)), ["idle", "validating", "solving", "solved", "invalid", "unsolvable", "noSolution", "timedOut", "failed", "unsupported"])
     }
 
     func testDiagnosticsListsEnabledSlidingPuzzleMode() throws {
@@ -348,6 +348,16 @@ final class Puzzle_SolverTests: XCTestCase {
 
     func testDiagnosticsListsEnabledFourByFourSlidingPuzzleMode() throws {
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "4×4 Sliding Puzzle" && $0.enabled && $0.solverAvailable })
+    }
+
+    func testPuzzleModeRegistryCoversEveryCatalogEntry() throws {
+        let registeredNames = Set(PuzzleModeRegistry.diagnostics.map(\.name))
+
+        XCTAssertTrue(Set(SlidingPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
+        XCTAssertTrue(Set(TwistyPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
+        XCTAssertTrue(Set(LogicPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
+        XCTAssertTrue(Set(MechanicalPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
+        XCTAssertTrue(Set(ExperimentalPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
     }
 
     // MARK: - Helpers
@@ -508,7 +518,7 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Maze" && $0.enabled && $0.solverAvailable })
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Mate-in-N" && $0.enabled && $0.solverAvailable })
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Best Move" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Jigsaw Solver" && $0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Jigsaw Solver" && !$0.enabled && !$0.solverAvailable })
     }
 
 
