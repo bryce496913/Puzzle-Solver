@@ -41,8 +41,8 @@ struct NewPuzzleView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.horizontal)
-                .onChange(of: selectedKind) { _ in
-                    resetPuzzle()
+                .onChange(of: selectedKind) { newKind in
+                    resetPuzzle(size: newKind.size)
                 }
 
                 VStack(spacing: 10) {
@@ -50,9 +50,9 @@ struct NewPuzzleView: View {
                         HStack(spacing: 10) {
                             ForEach(0..<puzzleSize, id: \.self) { column in
                                 PuzzleTileSolvedView(
-                                    number: gridNumbers[row][column],
+                                    number: gridValue(row: row, column: column),
                                     size: tileSize,
-                                    backgroundColor: tileBackgroundColor(number: gridNumbers[row][column]),
+                                    backgroundColor: tileBackgroundColor(number: gridValue(row: row, column: column)),
                                     isSelected: selectedTile == row * puzzleSize + column,
                                     onTap: {
                                         handleTileSelection(row: row, column: column)
@@ -119,6 +119,10 @@ struct NewPuzzleView: View {
         let row = selectedTile / puzzleSize
         let column = selectedTile % puzzleSize
         let clearButton = puzzleSize * puzzleSize
+        guard gridNumbers.indices.contains(row), gridNumbers[row].indices.contains(column) else {
+            resetPuzzle(size: puzzleSize)
+            return
+        }
 
         if number == clearButton {
             if let removedNumber = gridNumbers[row][column] {
@@ -138,6 +142,7 @@ struct NewPuzzleView: View {
     }
 
     private func loadExample() {
+        resetPuzzle(size: puzzleSize)
         let preset = selectedKind == .threeByThree ? PuzzlePresets.sliding3x3Medium : PuzzlePresets.sliding4x4Medium
         gridNumbers = preset.toGrid()
         numbersInGrid = []
@@ -147,11 +152,20 @@ struct NewPuzzleView: View {
     }
 
     private func resetPuzzle() {
-        gridNumbers = Self.emptyGrid(size: puzzleSize)
-        numbersInGrid = Self.availableNumbers(size: puzzleSize)
+        resetPuzzle(size: puzzleSize)
+    }
+
+    private func resetPuzzle(size: Int) {
+        gridNumbers = Self.emptyGrid(size: size)
+        numbersInGrid = Self.availableNumbers(size: size)
         initialState = gridNumbers
         selectedTile = nil
         isSolveButtonVisible = false
+    }
+
+    private func gridValue(row: Int, column: Int) -> Int? {
+        guard gridNumbers.indices.contains(row), gridNumbers[row].indices.contains(column) else { return nil }
+        return gridNumbers[row][column]
     }
 
     private func updateSolveButtonVisibility() {
@@ -239,14 +253,14 @@ struct KeypadButton: View {
         Button(action: {
             onTap(number)
         }) {
-            Text(number == clearButton ? "x" : "\(number)")
+            Text(number == clearButton ? "Blank" : "\(number)")
                 .font(.title3)
                 .frame(width: 40, height: 40)
                 .background(number == clearButton ? Color(hex: 0xff99cc) : Color(hex: 0x99ccff))
                 .foregroundColor(.black)
                 .cornerRadius(20)
         }
-        .accessibilityLabel(number == clearButton ? "Clear selected tile" : "Number \(number)")
+        .accessibilityLabel(number == clearButton ? "Blank tile" : "Number \(number)")
     }
 }
 

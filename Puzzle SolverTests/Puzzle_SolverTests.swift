@@ -71,6 +71,23 @@ final class Puzzle_SolverTests: XCTestCase {
 
     // MARK: - 4×4 sliding puzzle solver coverage
 
+
+    func testFourByFourGridRoundTripUsesSixteenCells() throws {
+        let grid = PuzzlePresets.sliding4x4Medium.toGrid()
+
+        XCTAssertEqual(grid.count, 4)
+        XCTAssertTrue(grid.allSatisfy { $0.count == 4 })
+        XCTAssertEqual(grid.flatMap { $0 }.count, 16)
+        XCTAssertEqual(grid.flatMap { $0 }.compactMap { $0 }.sorted(), Array(1...15))
+        XCTAssertNotNil(SlidingPuzzleBoard.fromGrid(grid, size: 4))
+    }
+
+    func testFourByFourSlidingPuzzleRejectsWrongSizedGrid() throws {
+        let threeByThreeGrid = PuzzlePresets.sliding3x3Medium.toGrid()
+
+        XCTAssertNil(SlidingPuzzleBoard.fromGrid(threeByThreeGrid, size: 4))
+    }
+
     func testSolvedFourByFourSlidingPuzzleReturnsSolvedWithoutMoves() throws {
         let result = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4Solved)
 
