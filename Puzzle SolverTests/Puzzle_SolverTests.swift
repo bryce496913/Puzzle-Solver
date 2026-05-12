@@ -488,7 +488,7 @@ final class Puzzle_SolverTests: XCTestCase {
     }
 
     func testJigsawSolverReturnsModularPlaceholder() throws {
-        let result = JigsawPuzzleSolver().solve(.placeholder)
+        let result = JigsawSolver().solve(.placeholder)
 
         XCTAssertEqual(result.state, .unsupported)
         XCTAssertFalse(result.succeeded)
@@ -496,8 +496,8 @@ final class Puzzle_SolverTests: XCTestCase {
     }
 
     func testExperimentalPuzzleCatalogKeepsJigsawPlaceholderSeparate() throws {
-        let jigsaw = try XCTUnwrap(ExperimentalPuzzleCatalog.descriptors.first { $0.kind == .jigsaw })
-        let playable = ExperimentalPuzzleCatalog.descriptors.filter { $0.kind != .jigsaw }
+        let jigsaw = try XCTUnwrap(ExperimentalPuzzleCatalog.descriptors.first { $0.kind == .jigsawSolver })
+        let playable = ExperimentalPuzzleCatalog.descriptors.filter { $0.kind != .jigsawSolver }
 
         XCTAssertFalse(jigsaw.enabled)
         XCTAssertFalse(jigsaw.solverAvailable)
@@ -508,7 +508,7 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Maze" && $0.enabled && $0.solverAvailable })
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Mate-in-N" && $0.enabled && $0.solverAvailable })
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Best Move" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Jigsaw" && !$0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Jigsaw Solver" && $0.enabled && !$0.solverAvailable })
     }
 
 
