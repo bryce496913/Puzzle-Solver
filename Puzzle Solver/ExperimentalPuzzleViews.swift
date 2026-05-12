@@ -204,6 +204,9 @@ private struct ExperimentalModeStatusView: View {
 
 
 struct ComingSoonView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var placeholderStatus: String?
+
     let title: String
     let summary: String
     var plannedItems: [String] = []
@@ -218,6 +221,7 @@ struct ComingSoonView: View {
             ScrollView {
                 VStack(spacing: 22) {
                     heroCard
+                    placeholderActionCard
                     if !plannedItems.isEmpty { plannedCard }
                     if !architectureNotes.isEmpty { architectureCard }
                 }
@@ -259,6 +263,36 @@ struct ComingSoonView: View {
         .frame(maxWidth: .infinity)
         .background(AppTheme.cardBackground)
         .cornerRadius(26)
+    }
+
+
+    private var placeholderActionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Solver Status")
+                .font(.headline)
+                .foregroundColor(AppTheme.primaryText)
+
+            Text(placeholderStatus ?? "This entry screen is safe to open. Solving is intentionally unavailable while this puzzle is being built.")
+                .font(.callout)
+                .foregroundColor(AppTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 12) {
+                Button("Solve") {
+                    placeholderStatus = "This solver is planned for a future update."
+                    SolverDiagnosticsStore.shared.record(modeName: title, state: .unsupported, detail: "This solver is planned for a future update.")
+                }
+                .buttonStyle(AppSecondaryButtonStyle())
+                .accessibilityHint("Shows the placeholder solver status.")
+
+                Button("Back") { dismiss() }
+                    .buttonStyle(AppPrimaryButtonStyle())
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.cardBackground)
+        .cornerRadius(20)
     }
 
     private var plannedCard: some View {

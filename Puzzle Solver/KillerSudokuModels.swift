@@ -24,4 +24,6 @@ struct KillerSudokuBoard: LogicPuzzleBoard, Hashable {
         cells: SudokuBoard.empty.cells,
         cages: []
     )
+
+    static let example = placeholder
 }

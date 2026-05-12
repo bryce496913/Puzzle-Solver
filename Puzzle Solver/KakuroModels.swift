@@ -29,4 +29,6 @@ struct KakuroBoard: LogicPuzzleBoard, Hashable {
         cells: Array(repeating: Array(repeating: .block, count: 5), count: 5),
         runs: []
     )
+
+    static let example = placeholder
 }

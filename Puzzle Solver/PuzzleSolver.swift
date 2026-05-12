@@ -1356,7 +1356,9 @@ final class MegaminxSolver: CubeSolverProtocol {
         guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.megaminx.stickerCount else {
             return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 132 stickers for a Megaminx state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-        return CubeSolveResult.unavailable(for: .megaminx, reason: "Megaminx placeholder architecture is registered with \(architecture.phases.count) planned phases; search tables are not implemented yet.", elapsedTime: Date().timeIntervalSince(start))
+        // Future Megaminx work should model dodecahedral piece coordinates and pruning tables;
+        // this placeholder intentionally returns immediately so the UI never starts an unsafe search.
+        return CubeSolveResult.unavailable(for: .megaminx, reason: "This solver is planned for a future update.", elapsedTime: Date().timeIntervalSince(start))
     }
 }
 
@@ -1369,7 +1371,9 @@ final class SquareOneSolver: CubeSolverProtocol {
         guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.squareOne.stickerCount else {
             return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 24 stickers for a Square-1 state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-        return CubeSolveResult.unavailable(for: .squareOne, reason: "Square-1 placeholder architecture is registered with \(architecture.phases.count) planned phases; tuple-turn shape search is not implemented yet.", elapsedTime: Date().timeIntervalSince(start))
+        // Future Square-1 work should solve shape tuples, slash transitions, and permutation/parity;
+        // this placeholder intentionally returns immediately so the UI never starts an unsafe search.
+        return CubeSolveResult.unavailable(for: .squareOne, reason: "This solver is planned for a future update.", elapsedTime: Date().timeIntervalSince(start))
     }
 }
 
@@ -1383,7 +1387,7 @@ final class Cube4x4Solver: CubeSolverProtocol {
         guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.fourByFour.stickerCount else {
             return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 96 stickers for a 4×4 cube state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-        return CubeSolveResult.unavailable(for: .fourByFour, reason: "4×4 reduction-method solver placeholder only; naive full-state solving is intentionally disabled.", elapsedTime: Date().timeIntervalSince(start))
+        return CubeSolveResult.unavailable(for: .fourByFour, reason: "This solver is planned for a future update.", elapsedTime: Date().timeIntervalSince(start))
     }
 }
 
@@ -1395,7 +1399,7 @@ final class Cube5x5Solver: CubeSolverProtocol {
         guard state.puzzle == supportedPuzzle, state.stickers.count == CubePuzzleKind.fiveByFive.stickerCount else {
             return CubeSolveResult(status: .invalidInput, puzzle: state.puzzle, moves: [], steps: [], failureReason: "Expected 150 stickers for a 5×5 cube state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-        return CubeSolveResult.unavailable(for: .fiveByFive, reason: "5×5 reduction-method solver placeholder only; naive full-state solving is intentionally disabled.", elapsedTime: Date().timeIntervalSince(start))
+        return CubeSolveResult.unavailable(for: .fiveByFive, reason: "This solver is planned for a future update.", elapsedTime: Date().timeIntervalSince(start))
     }
 }
 
@@ -1486,6 +1490,7 @@ enum PuzzleModeRegistry {
     static let diagnostics: [PuzzleModeDiagnostic] = [
         PuzzleModeDiagnostic(name: "3×3 Sliding Puzzle", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "4×4 Sliding Puzzle", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "5×5 Sliding Puzzle", enabled: true, solverAvailable: false),
         PuzzleModeDiagnostic(name: "2×2 Cube", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "3×3 Cube", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "Pyraminx", enabled: true, solverAvailable: true),
@@ -1512,9 +1517,30 @@ enum PuzzleModeRegistry {
 enum SlidingPuzzleKind: Int, CaseIterable, Equatable {
     case threeByThree = 3
     case fourByFour = 4
+    case fiveByFive = 5
 
     var size: Int { rawValue }
     var displayName: String { "\(size)×\(size) Sliding Puzzle" }
+    var solverAvailable: Bool { self != .fiveByFive }
+}
+
+struct SlidingPuzzleValidationResult: Equatable {
+    let state: SolveState
+    let message: String
+
+    var canSolve: Bool { state == .solved }
+}
+
+enum SlidingPuzzlePlaceholderValidator {
+    static func validate(_ board: SlidingPuzzleBoard) -> SlidingPuzzleValidationResult {
+        guard SlidingPuzzleAnalyzer.validate(board) else {
+            return SlidingPuzzleValidationResult(state: .invalid, message: "Please use each tile once.")
+        }
+        guard board.kind != .fiveByFive else {
+            return SlidingPuzzleValidationResult(state: .unsupported, message: "This solver is planned for a future update.")
+        }
+        return SlidingPuzzleValidationResult(state: .solved, message: "Ready to solve.")
+    }
 }
 
 enum SlidingPuzzleMove: String, CaseIterable, Equatable {
@@ -1687,7 +1713,7 @@ enum SlidingPuzzleAnalyzer {
 final class SlidingPuzzleSolver {
     private let solvers: [SlidingPuzzleKind: SlidingPuzzleSolving]
 
-    init(solvers: [SlidingPuzzleSolving] = [SlidingPuzzleAStarSolver(), SlidingPuzzleIDAStarSolver()]) {
+    init(solvers: [SlidingPuzzleSolving] = [SlidingPuzzleAStarSolver(), SlidingPuzzleIDAStarSolver(), SlidingPuzzle5x5PlaceholderSolver()]) {
         self.solvers = Dictionary(uniqueKeysWithValues: solvers.map { ($0.supportedKind, $0) })
     }
 
@@ -1724,6 +1750,26 @@ final class SlidingPuzzleSolver {
 
     private func finish(_ state: SolveState, reason: String, start: Date, nodes: Int) -> SlidingPuzzleSolveResult {
         SlidingPuzzleSolveResult(state: state, moves: [], path: [], failureReason: reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+    }
+}
+
+
+final class SlidingPuzzle5x5PlaceholderSolver: SlidingPuzzleSolving {
+    let supportedKind: SlidingPuzzleKind = .fiveByFive
+    let algorithmName = "5×5 placeholder"
+
+    func solve(_ board: SlidingPuzzleBoard, options: SlidingPuzzleSolveOptions, start: Date) -> SlidingPuzzleSolveResult {
+        // Future implementation should use a bounded 24-puzzle strategy such as pattern databases, IDA*,
+        // or staged row/column solving. It is intentionally unavailable today so opening or solving a
+        // 5×5 puzzle returns visible UI feedback instead of attempting an unbounded search.
+        SlidingPuzzleSolveResult(
+            state: .unsupported,
+            moves: [],
+            path: [board],
+            failureReason: "This solver is planned for a future update.",
+            elapsedTime: Date().timeIntervalSince(start),
+            nodesExplored: 0
+        )
     }
 }
 
@@ -1883,6 +1929,9 @@ enum PuzzlePresets {
     static let sliding4x4Solved = SlidingPuzzleBoard.solved(size: 4)
     static let sliding4x4OneMove = SlidingPuzzleBoard(size: 4, tiles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 15])
     static let sliding4x4Medium = SlidingPuzzleBoard(size: 4, tiles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 14, 15])
+
+    static let sliding5x5Solved = SlidingPuzzleBoard.solved(size: 5)
+    static let sliding5x5Placeholder = SlidingPuzzleBoard(size: 5, tiles: Array(1..<25) + [0])
 }
 
 struct ExamplePuzzlePreset: Identifiable, Hashable {
