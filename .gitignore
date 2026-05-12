@@ -1,0 +1,21 @@
+# macOS metadata
+.DS_Store
+._*
+
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+
+# Xcode build products
+DerivedData/
+build/
+*.xcarchive
+*.ipa
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods / Carthage generated dependencies
+Pods/
+Carthage/Build/
