@@ -300,6 +300,7 @@ struct TwistyPuzzleInputView: View {
     @State private var selectedPuzzle: TwistyPuzzleKind = .threeByThree
     @State private var scrambleNotation = "R U R' U'"
     @State private var selectedSticker = "U"
+    @State private var selectedStickerIndex: Int?
     @State private var currentState = CubeState.solved3x3
     @State private var solveResult: CubeSolveResult?
     @State private var notationError: String?
@@ -323,7 +324,7 @@ struct TwistyPuzzleInputView: View {
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: selectedPuzzle) { _ in resetForSelectedPuzzle() }
 
-                    TwistyStickerInputGrid(state: currentState, selectedSticker: $selectedSticker) { index in
+                    TwistyStickerInputGrid(state: currentState, selectedSticker: $selectedSticker, selectedStickerIndex: $selectedStickerIndex) { index in
                         setSticker(at: index)
                     }
 
@@ -378,6 +379,7 @@ struct TwistyPuzzleInputView: View {
         currentState = CubeState.solved(selectedPuzzle)
         solveResult = nil
         selectedSticker = selectedPuzzle.faces.first ?? "U"
+        selectedStickerIndex = nil
         scrambleNotation = selectedPuzzle.notation.sampleScramble
         notationError = selectedPuzzle.isSolveEnabled ? nil : "This solver is planned for a future update."
     }
@@ -446,19 +448,20 @@ struct TwistyPuzzleInputView: View {
 struct TwistyStickerInputGrid: View {
     let state: CubeState
     @Binding var selectedSticker: String
+    @Binding var selectedStickerIndex: Int?
     let onStickerTap: (Int) -> Void
 
     private var faces: [String] { state.puzzle.faces }
     private var centerIndices: Set<Int> { state.puzzle == .threeByThree ? [4, 13, 22, 31, 40, 49] : [] }
     private var perFace: Int { max(1, (state.puzzle.stickerCount ?? state.stickers.count) / max(1, faces.count)) }
-    private var faceEntries: [(offset: Int, element: String)] { Array(faces.enumerated()) }
-    private var faceGridColumns: [GridItem] { [GridItem(.adaptive(minimum: 96), spacing: 10)] }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             header
-            stickerPicker
-            stickerInputGrid
+            CubeOrientationGuideView(puzzle: state.puzzle)
+            CubeColorLegendView(selectedSticker: $selectedSticker, availableStickers: faces)
+            SelectedStickerInfoView(state: state, selectedStickerIndex: selectedStickerIndex)
+            puzzleInputLayout
         }
     }
 
@@ -468,91 +471,467 @@ struct TwistyStickerInputGrid: View {
                 .font(.headline)
                 .foregroundColor(AppTheme.primaryText)
 
-            Text("Choose a face label, then tap stickers in the reusable puzzle net. Fixed centers are locked when the puzzle requires them.")
+            Text("Choose a color, then tap stickers in the labeled net. Fixed centers are dimmed when the puzzle requires them.")
                 .font(.caption)
                 .foregroundColor(AppTheme.secondaryText)
         }
     }
 
-    private var stickerPicker: some View {
-        HStack(spacing: 8) {
-            ForEach(faces, id: \.self) { face in
-                stickerPickerButton(for: face)
-            }
+    @ViewBuilder
+    private var puzzleInputLayout: some View {
+        switch state.puzzle {
+        case .twoByTwo, .threeByThree, .skewb, .fourByFour, .fiveByFive:
+            cubeNetLayout
+        case .pyraminx:
+            pyraminxLayout
+        default:
+            placeholderLayout
         }
     }
 
-    private func stickerPickerButton(for face: String) -> some View {
-        Button(face) { selectedSticker = face }
-            .font(.caption.bold())
-            .frame(width: 34, height: 34)
-            .background(stickerColor(face))
-            .foregroundColor(.black)
-            .overlay(selectionOverlay(for: face))
-            .cornerRadius(8)
-    }
+    private var cubeNetLayout: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    netSpacer
+                    faceGroup(for: "U", helperText: "Top face")
+                    netSpacer
+                    netSpacer
+                }
 
-    private func selectionOverlay(for face: String) -> some View {
-        let strokeColor = selectedSticker == face ? Color(hex: 0xccffff) : Color.clear
-        return RoundedRectangle(cornerRadius: 8).stroke(strokeColor, lineWidth: 3)
-    }
+                HStack(alignment: .top, spacing: 12) {
+                    faceGroup(for: "L", helperText: "Left side")
+                    faceGroup(for: "F", helperText: "Facing you")
+                    faceGroup(for: "R", helperText: "Right side")
+                    faceGroup(for: "B", helperText: "Back face")
+                }
 
-    private var stickerInputGrid: some View {
-        LazyVGrid(columns: faceGridColumns, spacing: 10) {
-            ForEach(faceEntries, id: \.offset) { entry in
-                faceInputView(faceIndex: entry.offset, face: entry.element)
+                HStack(spacing: 12) {
+                    netSpacer
+                    faceGroup(for: "D", helperText: "Bottom face")
+                    netSpacer
+                    netSpacer
+                }
             }
+            .padding(.vertical, 4)
         }
+        .accessibilityLabel("Cube net ordered Up, Left, Front, Right, Back, Down")
     }
 
-    private func faceInputView(faceIndex: Int, face: String) -> some View {
-        VStack(spacing: 6) {
-            Text(face)
-                .foregroundColor(AppTheme.secondaryText)
+    private var pyraminxLayout: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Pyraminx faces are shown as separated triangular sections. Hold one face toward you as Front, then rotate the puzzle to enter the remaining labeled faces exactly as seen.")
                 .font(.caption)
+                .foregroundColor(AppTheme.secondaryText)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppTheme.surface.opacity(0.9))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(AppTheme.accent.opacity(0.55), lineWidth: 1.5)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            LazyVGrid(columns: faceColumns, spacing: 4) {
-                ForEach(0..<perFace, id: \.self) { offset in
-                    stickerButton(stickerIndex: faceIndex * perFace + offset)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 142), spacing: 12)], spacing: 12) {
+                ForEach(Array(faces.enumerated()), id: \.offset) { entry in
+                    faceGroup(faceIndex: entry.offset, face: entry.element, helperText: pyraminxHelper(for: entry.element), triangular: true)
                 }
             }
         }
-        .padding(8)
-        .background(Color.white.opacity(0.08))
-        .cornerRadius(10)
     }
 
-    private func stickerButton(stickerIndex: Int) -> some View {
-        let sticker = state.stickers.indices.contains(stickerIndex) ? state.stickers[stickerIndex] : "?"
-        let isCenterSticker = centerIndices.contains(stickerIndex)
+    private var placeholderLayout: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 12)], spacing: 12) {
+            ForEach(Array(faces.enumerated()), id: \.offset) { entry in
+                faceGroup(faceIndex: entry.offset, face: entry.element, helperText: placeholderHelper(for: entry.element), triangular: false)
+            }
+        }
+    }
 
+    private var netSpacer: some View {
+        Color.clear
+            .frame(width: CubeFaceGroupView.groupWidth(for: perFace), height: 1)
+            .accessibilityHidden(true)
+    }
+
+    private func faceGroup(for face: String, helperText: String) -> some View {
+        guard let faceIndex = faces.firstIndex(of: face) else {
+            return AnyView(netSpacer)
+        }
+        return AnyView(faceGroup(faceIndex: faceIndex, face: face, helperText: helperText, triangular: false))
+    }
+
+    private func faceGroup(faceIndex: Int, face: String, helperText: String, triangular: Bool) -> some View {
+        let start = faceIndex * perFace
+        let stickers = (0..<perFace).map { offset -> String in
+            let index = start + offset
+            return state.stickers.indices.contains(index) ? state.stickers[index] : "?"
+        }
+
+        return CubeFaceGroupView(
+            face: face,
+            stickers: stickers,
+            perFace: perFace,
+            faceIndex: faceIndex,
+            helperText: helperText,
+            selectedStickerIndex: selectedStickerIndex,
+            fixedStickerIndices: centerIndices,
+            isTriangular: triangular,
+            onStickerTap: selectSticker
+        )
+    }
+
+    private func selectSticker(_ stickerIndex: Int) {
+        selectedStickerIndex = stickerIndex
+        guard !centerIndices.contains(stickerIndex) else { return }
+        onStickerTap(stickerIndex)
+    }
+
+    private func pyraminxHelper(for face: String) -> String {
+        switch face {
+        case "U": return "Upper triangle"
+        case "L": return "Left triangle"
+        case "R": return "Right triangle"
+        case "B": return "Back triangle"
+        default: return "Triangular face"
+        }
+    }
+
+    private func placeholderHelper(for face: String) -> String {
+        switch face {
+        case "U": return "Upper layer"
+        case "D": return "Lower layer"
+        case "M": return "Middle slice"
+        default: return "Face reference"
+        }
+    }
+}
+
+struct CubeFaceLabelView: View {
+    let abbreviation: String
+    let fullName: String
+    let helperText: String?
+
+    init(abbreviation: String, fullName: String? = nil, helperText: String? = nil) {
+        self.abbreviation = abbreviation
+        self.fullName = fullName ?? TwistyVisualMetadata.fullName(for: abbreviation)
+        self.helperText = helperText
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(abbreviation)
+                    .font(.headline.weight(.black))
+                    .foregroundColor(AppTheme.highlight)
+                Text(fullName)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AppTheme.primaryText)
+            }
+            if let helperText = helperText {
+                Text(helperText)
+                    .font(.caption2)
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct CubeOrientationGuideView: View {
+    let puzzle: TwistyPuzzleKind
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Orientation guide", systemImage: "cube.transparent")
+                .font(.headline)
+                .foregroundColor(AppTheme.primaryText)
+
+            ForEach(guideLines, id: \.self) { line in
+                HStack(alignment: .top, spacing: 8) {
+                    Circle()
+                        .fill(AppTheme.highlight)
+                        .frame(width: 6, height: 6)
+                        .padding(.top, 5)
+                    Text(line)
+                        .font(.caption)
+                        .foregroundColor(AppTheme.secondaryText)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.surface.opacity(0.94))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AppTheme.accent.opacity(0.65), lineWidth: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var guideLines: [String] {
+        switch puzzle {
+        case .pyraminx:
+            return [
+                "Hold the Pyraminx with one triangular face pointing toward you.",
+                "Enter each triangular face exactly as you see it before rotating to the next face.",
+                "Use matching tip and center colors as the face reference when available."
+            ]
+        default:
+            return [
+                "Hold the cube with the front face facing you.",
+                "Enter each face exactly as you see it.",
+                "Use the center color as the face reference when available."
+            ]
+        }
+    }
+}
+
+struct CubeColorLegendView: View {
+    @Binding var selectedSticker: String
+    let availableStickers: [String]
+
+    private var legendFaces: [String] {
+        ["U", "D", "F", "B", "R", "L"].filter { availableStickers.contains($0) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Color legend")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
+                Spacer()
+                selectedColorSummary
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 94), spacing: 8)], spacing: 8) {
+                ForEach(legendFaces, id: \.self) { face in
+                    Button(action: { selectedSticker = face }) {
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(TwistyVisualMetadata.color(for: face))
+                                .frame(width: 18, height: 18)
+                                .overlay(Circle().stroke(Color.black.opacity(0.35), lineWidth: 1))
+                            Text(TwistyVisualMetadata.colorName(for: face))
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(AppTheme.primaryText)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 7)
+                        .background(selectedSticker == face ? AppTheme.highlight.opacity(0.28) : AppTheme.surface.opacity(0.88))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(selectedSticker == face ? AppTheme.highlight : AppTheme.accent.opacity(0.38), lineWidth: selectedSticker == face ? 2.5 : 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(12)
+        .background(AppTheme.surface.opacity(0.74))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var selectedColorSummary: some View {
+        HStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(TwistyVisualMetadata.color(for: selectedSticker))
+                .frame(width: 24, height: 18)
+                .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(AppTheme.text, lineWidth: 1))
+            Text("Selected: \(TwistyVisualMetadata.colorName(for: selectedSticker))")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppTheme.primaryText)
+        }
+    }
+}
+
+struct CubeFaceGroupView: View {
+    let face: String
+    let stickers: [String]
+    let perFace: Int
+    let faceIndex: Int
+    let helperText: String
+    let selectedStickerIndex: Int?
+    let fixedStickerIndices: Set<Int>
+    let isTriangular: Bool
+    let onStickerTap: (Int) -> Void
+
+    private var side: Int { max(1, Int(ceil(sqrt(Double(perFace))))) }
+    private var columns: [GridItem] { Array(repeating: GridItem(.fixed(30), spacing: 5), count: side) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            CubeFaceLabelView(abbreviation: face, helperText: helperText)
+
+            if isTriangular {
+                triangularStickerGrid
+            } else {
+                squareStickerGrid
+            }
+        }
+        .padding(10)
+        .frame(width: Self.groupWidth(for: perFace), alignment: .topLeading)
+        .background(AppTheme.surface.opacity(0.92))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AppTheme.accent.opacity(0.8), lineWidth: 1.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var squareStickerGrid: some View {
+        LazyVGrid(columns: columns, spacing: 5) {
+            ForEach(Array(stickers.enumerated()), id: \.offset) { entry in
+                stickerButton(offset: entry.offset, sticker: entry.element)
+            }
+        }
+    }
+
+    private var triangularStickerGrid: some View {
+        VStack(spacing: 5) {
+            ForEach(triangularRows.indices, id: \.self) { rowIndex in
+                HStack(spacing: 5) {
+                    ForEach(triangularRows[rowIndex], id: \.self) { offset in
+                        if stickers.indices.contains(offset) {
+                            stickerButton(offset: offset, sticker: stickers[offset])
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private var triangularRows: [[Int]] {
+        let preferred = [[0], [1, 2], [3, 4, 5], [6, 7, 8]]
+        let visible = preferred.map { $0.filter { $0 < stickers.count } }.filter { !$0.isEmpty }
+        if visible.flatMap({ $0 }).count == stickers.count { return visible }
+        return stride(from: 0, to: stickers.count, by: 3).map { start in
+            Array(start..<min(start + 3, stickers.count))
+        }
+    }
+
+    private func stickerButton(offset: Int, sticker: String) -> some View {
+        let stickerIndex = faceIndex * perFace + offset
+        let isSelected = selectedStickerIndex == stickerIndex
+        let isFixed = fixedStickerIndices.contains(stickerIndex)
         return Button(action: { onStickerTap(stickerIndex) }) {
             Text(sticker)
-                .font(.caption2.bold())
-                .frame(width: 22, height: 22)
-                .background(stickerColor(sticker))
+                .font(.caption2.weight(.black))
+                .minimumScaleFactor(0.6)
                 .foregroundColor(.black)
-                .cornerRadius(5)
-                .opacity(isCenterSticker ? 0.7 : 1)
+                .frame(width: 30, height: 30)
+                .background(TwistyVisualMetadata.color(for: sticker))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(isSelected ? AppTheme.highlight : Color.black.opacity(0.65), lineWidth: isSelected ? 3 : 1.5)
+                )
+                .overlay(alignment: .topTrailing) {
+                    if isFixed {
+                        Circle()
+                            .fill(AppTheme.text.opacity(0.82))
+                            .frame(width: 6, height: 6)
+                            .padding(3)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .shadow(color: isSelected ? AppTheme.highlight.opacity(0.75) : .clear, radius: 5)
+                .opacity(isFixed ? 0.72 : 1)
         }
-        .disabled(isCenterSticker)
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(TwistyVisualMetadata.fullName(for: face)) face row \(offset / side + 1) column \(offset % side + 1)")
     }
 
-    private var faceColumns: [GridItem] {
-        let side = Int(ceil(sqrt(Double(perFace))))
-        return Array(repeating: GridItem(.fixed(22), spacing: 4), count: side)
+    static func groupWidth(for perFace: Int) -> CGFloat {
+        let side = max(1, Int(ceil(sqrt(Double(perFace)))))
+        return CGFloat(side * 30 + max(0, side - 1) * 5 + 20)
+    }
+}
+
+struct SelectedStickerInfoView: View {
+    let state: CubeState
+    let selectedStickerIndex: Int?
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "scope")
+                .foregroundColor(AppTheme.highlight)
+            Text(selectionText)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppTheme.primaryText)
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(AppTheme.surface.opacity(0.86))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(AppTheme.highlight.opacity(0.62), lineWidth: 1.25)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func stickerColor(_ label: String) -> Color {
-        switch label {
+    private var selectionText: String {
+        guard let selectedStickerIndex,
+              let stickerCount = state.puzzle.stickerCount,
+              stickerCount > 0,
+              selectedStickerIndex < state.stickers.count else {
+            return "Selected: tap a sticker to see its face, row, and column."
+        }
+        let perFace = max(1, stickerCount / max(1, state.puzzle.faces.count))
+        let faceIndex = selectedStickerIndex / perFace
+        let offset = selectedStickerIndex % perFace
+        let side = max(1, Int(ceil(sqrt(Double(perFace)))))
+        let face = state.puzzle.faces.indices.contains(faceIndex) ? state.puzzle.faces[faceIndex] : "?"
+        return "Selected: \(TwistyVisualMetadata.fullName(for: face)) face, row \(offset / side + 1), column \(offset % side + 1)"
+    }
+}
+
+private enum TwistyVisualMetadata {
+    static func fullName(for face: String) -> String {
+        switch face {
+        case "U": return "Up"
+        case "F": return "Front"
+        case "R": return "Right"
+        case "L": return "Left"
+        case "B": return "Back"
+        case "D": return "Down"
+        case "M": return "Middle"
+        case "uR": return "Upper Right"
+        case "uL": return "Upper Left"
+        case "dR": return "Lower Right"
+        case "dL": return "Lower Left"
+        case "bR": return "Back Right"
+        case "bL": return "Back Left"
+        default: return face
+        }
+    }
+
+    static func colorName(for face: String) -> String {
+        switch face {
+        case "U": return "White"
+        case "D": return "Yellow"
+        case "F": return "Green"
+        case "B": return "Blue"
+        case "R": return "Red"
+        case "L": return "Orange"
+        default: return "Unassigned"
+        }
+    }
+
+    static func color(for face: String) -> Color {
+        switch face {
         case "U": return .white
-        case "R": return Color(hex: 0xff9999)
-        case "F": return Color(hex: 0x99ff99)
-        case "D": return Color(hex: 0xffff99)
-        case "L": return Color(hex: 0xffcc99)
-        case "B": return Color(hex: 0x99ccff)
-        case "uR", "uL", "dR", "dL", "bR", "bL", "M": return Color(hex: 0xccccff)
-        default: return Color(hex: 0xccccff)
+        case "D": return Color(hex: 0xffe45c)
+        case "F": return Color(hex: 0x42d66b)
+        case "B": return Color(hex: 0x4aa3ff)
+        case "R": return Color(hex: 0xff5b5b)
+        case "L": return Color(hex: 0xffa23a)
+        case "?", "": return Color.black.opacity(0.78)
+        default: return Color(hex: 0xcfc7ff)
         }
     }
 }
