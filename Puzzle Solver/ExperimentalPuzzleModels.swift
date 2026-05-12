@@ -14,12 +14,12 @@ enum ExperimentalPuzzleKind: String, CaseIterable, Identifiable, Hashable {
     case maze = "Maze"
     case chessMateInN = "Chess Mate-in-N"
     case chessBestMove = "Chess Best Move"
-    case jigsaw = "Jigsaw"
+    case jigsawSolver = "Jigsaw Solver"
 
     var id: String { rawValue }
     var displayName: String { rawValue }
-    var isPlayable: Bool { self != .jigsaw }
-    var solverAvailable: Bool { self != .jigsaw }
+    var isPlayable: Bool { self != .jigsawSolver }
+    var solverAvailable: Bool { self != .jigsawSolver }
 
     var summary: String {
         switch self {
@@ -29,7 +29,7 @@ enum ExperimentalPuzzleKind: String, CaseIterable, Identifiable, Hashable {
             return "Search legal chess moves for a forced checkmate in a bounded number of moves."
         case .chessBestMove:
             return "Evaluate legal chess moves with a lightweight tactical search."
-        case .jigsaw:
+        case .jigsawSolver:
             return "Placeholder architecture for future visual piece detection and edge matching."
         }
     }
@@ -656,6 +656,7 @@ enum JigsawEdgeKind: String, Hashable {
 struct JigsawPiece: Identifiable, Hashable {
     let id: String
     let label: String
+    // Future image-based solving can populate this from contour analysis: each side will be classified as flat, tab, blank, or unknown before color/texture matching runs.
     let edges: [GridDirection: JigsawEdgeKind]
 
     init(id: String, label: String, edges: [GridDirection: JigsawEdgeKind] = [:]) {
@@ -665,13 +666,14 @@ struct JigsawPiece: Identifiable, Hashable {
     }
 }
 
-struct JigsawBoard: Hashable {
+struct JigsawPuzzle: Hashable {
     let rows: Int
     let columns: Int
+    // The eventual vision pipeline should convert detected piece centers into grid coordinates, then keep unmatched detections in unplacedPieces until the solver chooses a placement.
     let placedPieces: [PuzzleGridPoint: JigsawPiece]
     let unplacedPieces: [JigsawPiece]
 
-    static let placeholder = JigsawBoard(rows: 0, columns: 0, placedPieces: [:], unplacedPieces: [])
+    static let placeholder = JigsawPuzzle(rows: 0, columns: 0, placedPieces: [:], unplacedPieces: [])
 }
 
 struct JigsawSolveOptions {
@@ -681,12 +683,13 @@ struct JigsawSolveOptions {
     static let `default` = JigsawSolveOptions(timeout: 5, maxNodes: 100_000)
 }
 
-final class JigsawPuzzleSolver {
-    func solve(_ board: JigsawBoard, options: JigsawSolveOptions = .default) -> VisualPuzzleResult<JigsawBoard, String> {
+final class JigsawSolver {
+    // This placeholder intentionally returns .unsupported while preserving the same VisualPuzzleResult shape used by other image-like puzzles; future work can rank piece placements by edge compatibility, color histograms, and seam-continuity scores.
+    func solve(_ board: JigsawPuzzle, options: JigsawSolveOptions = .default) -> VisualPuzzleResult<JigsawPuzzle, String> {
         let startedAt = Date()
-        SolverDebugLogger.shared.log("JigsawPuzzleSolver: placeholder returned unsupported")
+        SolverDebugLogger.shared.log("JigsawSolver: placeholder returned unsupported")
         return VisualPuzzleResult(
-            puzzleName: "Jigsaw",
+            puzzleName: "Jigsaw Solver",
             state: .unsupported,
             moves: [],
             steps: [VisualPuzzleStep(index: 0, title: "Jigsaw architecture placeholder", board: board, annotations: [])],

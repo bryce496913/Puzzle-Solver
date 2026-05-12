@@ -15,6 +15,7 @@ struct MainMenuView: View {
         MainMenuItem(title: "Twisty Puzzles", subtitle: "Enter cube-style scrambles and sticker states.", symbol: "cube.fill", color: AppTheme.green, destination: AnyView(TwistyPuzzleInputView())),
         MainMenuItem(title: "Logic Puzzles", subtitle: "Try Sudoku and other logic-grid solvers.", symbol: "brain.head.profile", color: AppTheme.cyan, destination: AnyView(LogicPuzzleMenuView())),
         MainMenuItem(title: "Mechanical Puzzles", subtitle: "Explore movement-based mechanical puzzles.", symbol: "car.fill", color: AppTheme.amber, destination: AnyView(MechanicalPuzzleMenuView())),
+        MainMenuItem(title: "Visual / Experimental", subtitle: "Preview visual, graph, maze, chess, and jigsaw modes.", symbol: "puzzlepiece.extension.fill", color: AppTheme.pink, destination: AnyView(ExperimentalPuzzleMenuView())),
         MainMenuItem(title: "How It Works", subtitle: "Learn what Version 1 can solve safely.", symbol: "questionmark.circle.fill", color: AppTheme.lavender, destination: AnyView(HowView()))
     ]
 
