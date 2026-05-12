@@ -114,6 +114,28 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.state, .timedOut)
     }
 
+    // MARK: - Rush Hour mechanical puzzle solver coverage
+
+    func testRushHourExampleSolvesWithOrderedPlayback() throws {
+        let result = RushHourSolver().solve(RushHourBoard.example, options: MechanicalPuzzleSolveOptions(timeout: 2, maxNodes: 10_000))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertFalse(result.moves.isEmpty)
+        XCTAssertEqual(result.playbackFrames.count, result.moves.count + 1)
+        XCTAssertEqual(result.playbackFrames.first?.order, 0)
+        XCTAssertTrue(result.playbackFrames.last?.board.isSolved ?? false)
+    }
+
+    func testInvalidRushHourBoardReturnsInvalid() throws {
+        let invalid = RushHourBoard(pieces: [])
+
+        let result = RushHourSolver().solve(invalid, options: MechanicalPuzzleSolveOptions(timeout: 1, maxNodes: 100))
+
+        XCTAssertEqual(result.state, .invalid)
+        XCTAssertTrue(result.moves.isEmpty)
+        XCTAssertEqual(result.playbackFrames.count, 1)
+    }
+
     // MARK: - 2×2 cube solver coverage
 
     func testSolvedTwoByTwoReturnsSuccessWithoutMoves() throws {
