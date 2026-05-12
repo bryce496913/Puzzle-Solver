@@ -10,7 +10,7 @@ import SwiftUI
 struct LogicPuzzleMenuView: View {
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -19,7 +19,7 @@ struct LogicPuzzleMenuView: View {
                         .foregroundColor(Color(hex: 0xccffff))
 
                     Text("Logic-grid puzzles use a separate architecture from the twisty and sliding puzzle systems.")
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.secondaryText)
 
                     ForEach(LogicPuzzleCatalog.descriptors) { descriptor in
                         LogicPuzzleMenuRow(descriptor: descriptor)
@@ -53,10 +53,10 @@ struct LogicPuzzleMenuRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(descriptor.kind.displayName)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.primaryText)
                 Text(descriptor.notes)
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                 Text(descriptor.solverAvailable ? "Solver available" : "Placeholder architecture")
                     .font(.caption2.bold())
                     .foregroundColor(descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99))
@@ -120,7 +120,7 @@ struct SudokuInputView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 18) {
@@ -130,7 +130,7 @@ struct SudokuInputView: View {
                             .foregroundColor(Color(hex: 0xccffff))
                         Text("Enter givens, validate the board, then solve using the reusable logic puzzle solver.")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
                             .multilineTextAlignment(.center)
                     }
 
@@ -178,7 +178,7 @@ struct SudokuInputView: View {
                 .foregroundColor(validation.isValid ? Color(hex: 0x99ffcc) : Color(hex: 0xff99cc))
             Text(validation.summary)
                 .font(.caption)
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()
@@ -274,7 +274,7 @@ struct SudokuResultView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -291,11 +291,11 @@ struct SudokuResultView: View {
                     if let result {
                         Text(summary(for: result))
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
 
                         if let failureReason = result.failureReason {
                             Text(failureReason)
-                                .foregroundColor(.white)
+                                .foregroundColor(AppTheme.primaryText)
                         }
 
                         SudokuGridView(
@@ -308,24 +308,24 @@ struct SudokuResultView: View {
                         if result.isSolved {
                             Text("Filled \(result.steps.count) cells")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(AppTheme.primaryText)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 ForEach(result.steps.prefix(20)) { step in
                                     Text("R\(step.coordinate.row + 1)C\(step.coordinate.column + 1) = \(step.value)")
-                                        .foregroundColor(.white)
+                                        .foregroundColor(AppTheme.primaryText)
                                         .font(.caption)
                                 }
                                 if result.steps.count > 20 {
                                     Text("…and \(result.steps.count - 20) more placements")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(AppTheme.secondaryText)
                                         .font(.caption)
                                 }
                             }
                         }
                     } else {
                         Text("Preparing Sudoku solver…")
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
                     }
                 }
                 .padding()

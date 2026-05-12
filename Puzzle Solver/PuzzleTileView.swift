@@ -20,6 +20,7 @@ struct PuzzleTileView: View {
             .background(backgroundColor)
             .foregroundColor(foregroundColor)
             .cornerRadius(max(6, size * 0.16))
+            .accessibilityLabel(number.map { "Tile \($0)" } ?? "Empty tile")
     }
 }
 

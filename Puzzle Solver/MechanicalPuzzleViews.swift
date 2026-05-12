@@ -10,7 +10,7 @@ import SwiftUI
 struct MechanicalPuzzleMenuView: View {
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
 
             VStack(spacing: 18) {
                 Text("Mechanical Puzzles")
@@ -88,7 +88,7 @@ struct RushHourInputView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 18) {
@@ -98,7 +98,7 @@ struct RushHourInputView: View {
 
                     Text("Start with the sample board, then solve to produce ordered move playback data.")
                         .font(.subheadline)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.primaryText)
                         .multilineTextAlignment(.center)
 
                     RushHourBoardView(board: board, tileSize: 44, showExit: true)
@@ -106,7 +106,7 @@ struct RushHourInputView: View {
 
                     Text("Input editing architecture is backed by reusable board and piece models. The sample layout is loaded until drag/drop editing is added.")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.secondaryText)
                         .multilineTextAlignment(.center)
 
                     HStack(spacing: 16) {
@@ -161,7 +161,7 @@ struct RushHourResultView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 16) {
@@ -177,7 +177,7 @@ struct RushHourResultView: View {
                     RushHourBoardView(board: selectedFrame.board, tileSize: 44, showExit: true)
 
                     Text(selectedFrame.caption)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.primaryText)
 
                     playbackControls
 
@@ -209,7 +209,7 @@ struct RushHourResultView: View {
             .disabled(selectedFrameIndex == 0)
 
             Text("\(selectedFrameIndex + 1) / \(frames.count)")
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.primaryText)
                 .frame(width: 70)
 
             Button(action: { selectedFrameIndex = min(frames.count - 1, selectedFrameIndex + 1) }) {
@@ -236,21 +236,21 @@ struct RushHourResultView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Move List")
                 .font(.title3.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.primaryText)
 
             if result.formattedMoves.isEmpty {
                 Text(result.succeeded ? "Already solved." : "No moves available.")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
             } else {
                 ForEach(result.formattedMoves, id: \.self) { move in
                     Text(move)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.primaryText)
                 }
             }
 
             Text("Nodes checked: \(result.nodesExplored) • Time: \(String(format: "%.2f", result.elapsedTime))s")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(AppTheme.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -334,17 +334,17 @@ struct MechanicalPlaceholderView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
             VStack(spacing: 18) {
                 Text(kind.displayName)
                     .font(.system(size: 40, weight: .semibold))
                     .foregroundColor(Color(hex: 0xffcc99))
                 Text(kind.summary)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.primaryText)
                     .multilineTextAlignment(.center)
                 Text("Reusable board/result protocols are in place; puzzle-specific movement rules and solver registration are reserved for a future implementation.")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 NavigationLink(destination: MechanicalPuzzleMenuView()) {

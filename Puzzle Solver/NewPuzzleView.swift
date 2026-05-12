@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct NewPuzzleView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedKind: SlidingPuzzleKind = .threeByThree
     @State private var selectedTile: Int?
     @State private var gridNumbers: [[Int?]] = NewPuzzleView.emptyGrid(size: SlidingPuzzleKind.threeByThree.size)
@@ -21,11 +23,16 @@ struct NewPuzzleView: View {
 
     var body: some View {
         ZStack {
-            Color.black
-                .edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient
+                .ignoresSafeArea()
 
-            VStack(spacing: 14) {
-                Spacer()
+            ScrollView {
+                VStack(spacing: 14) {
+                    Text("Sliding Puzzle")
+                        .font(.largeTitle.weight(.bold))
+                        .foregroundColor(AppTheme.cyan)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityAddTraits(.isHeader)
 
                 Picker("Puzzle Size", selection: $selectedKind) {
                     ForEach(SlidingPuzzleKind.allCases, id: \.self) { kind in
@@ -58,12 +65,10 @@ struct NewPuzzleView: View {
 
                 Button(action: loadExample) {
                     Text("Try \(selectedKind.displayName) Example")
-                        .font(.title3)
-                        .frame(width: 260, height: 44)
-                        .background(Color(hex: 0xccffff))
-                        .foregroundColor(.black)
-                        .cornerRadius(10)
+                        .appButtonLabel()
                 }
+                .buttonStyle(AppButtonStyle(color: AppTheme.cyan))
+                .accessibilityHint("Loads a valid sample puzzle so you can preview solving.")
 
                 if isSolveButtonVisible {
                     NavigationLink(
@@ -72,13 +77,11 @@ struct NewPuzzleView: View {
                         },
                         label: {
                             Text("Solve")
-                                .font(.title)
-                                .frame(width: 200, height: 50)
-                                .background(Color(hex: 0x99ffcc))
-                                .foregroundColor(.black)
-                                .cornerRadius(10)
+                                .appButtonLabel()
                         }
                     )
+                    .buttonStyle(AppButtonStyle(color: AppTheme.green))
+                    .transition(.opacity.combined(with: .scale(scale: reduceMotion ? 1 : 0.96)))
                 } else {
                     KeypadView(size: puzzleSize, columns: keypadColumns) { number in
                         handleKeypadButtonTap(number: number)
@@ -87,34 +90,21 @@ struct NewPuzzleView: View {
 
                 Spacer()
 
-                HStack {
-                    NavigationLink(
-                        destination: MainMenuView(),
-                        label: {
-                            Text("Back")
-                                .font(.title)
-                                .frame(width: 100, height: 35)
-                                .background(Color(hex: 0xccccff))
-                                .foregroundColor(.black)
-                                .cornerRadius(10)
-                        }
-                    )
-                    .padding(.trailing, 40)
+                    HStack(spacing: 16) {
+                        Button("Back") { dismiss() }
+                            .buttonStyle(AppButtonStyle(color: AppTheme.lavender))
 
-                    Button(action: resetPuzzle) {
-                        Text("Reset")
-                            .font(.title)
-                            .frame(width: 100, height: 35)
-                            .background(Color(hex: 0xff99cc))
-                            .foregroundColor(.black)
-                            .cornerRadius(10)
+                        Button("Reset", action: resetPuzzle)
+                            .buttonStyle(AppButtonStyle(color: AppTheme.pink))
                     }
+                    .font(.headline.weight(.semibold))
+                    .padding(.bottom, 20)
                 }
-                .padding(.bottom, 20)
+                .padding()
             }
-            .padding()
         }
-        .navigationBarHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isSolveButtonVisible)
     }
 
     private func handleTileSelection(row: Int, column: Int) {
@@ -154,7 +144,6 @@ struct NewPuzzleView: View {
         initialState = gridNumbers
         selectedTile = nil
         isSolveButtonVisible = true
-        SolverDebugLogger.shared.log("sample preset selected: \(selectedKind.displayName) medium")
     }
 
     private func resetPuzzle() {
@@ -210,6 +199,14 @@ struct PuzzleTileSolvedView: View {
             .border(isSelected ? Color(hex: 0xffcc99) : Color.clear, width: 2)
             .foregroundColor(.black)
             .cornerRadius(max(6, size * 0.16))
+            .overlay(
+                RoundedRectangle(cornerRadius: max(6, size * 0.16))
+                    .stroke(isSelected ? AppTheme.amber : Color.clear, lineWidth: 3)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: max(6, size * 0.16)))
+            .accessibilityLabel(number.map { "Tile \($0)" } ?? "Empty tile")
+            .accessibilityValue(isSelected ? "Selected" : "Not selected")
+            .accessibilityAddTraits(.isButton)
             .onTapGesture {
                 onTap()
             }
@@ -229,6 +226,7 @@ struct KeypadView: View {
         }
         .frame(width: CGFloat(size) * 58)
         .padding()
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -248,6 +246,7 @@ struct KeypadButton: View {
                 .foregroundColor(.black)
                 .cornerRadius(20)
         }
+        .accessibilityLabel(number == clearButton ? "Clear selected tile" : "Number \(number)")
     }
 }
 
@@ -264,7 +263,7 @@ struct TwistyPuzzleInputView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -286,16 +285,16 @@ struct TwistyPuzzleInputView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Scramble notation")
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.primaryText)
                             .font(.headline)
                         TextField("Example: U R F", text: $scrambleNotation)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                         Text(selectedPuzzle.notation.helpText)
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
                         Text("Supported: \(selectedPuzzle.notation.supportedMovesText)")
                             .font(.caption2)
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
                     }
 
                     if let notationError {
@@ -316,7 +315,7 @@ struct TwistyPuzzleInputView: View {
                         HStack {
                             ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                             Text("Solving off the main thread…")
-                                .foregroundColor(.gray)
+                                .foregroundColor(AppTheme.secondaryText)
                         }
                     }
 
@@ -413,11 +412,11 @@ struct TwistyStickerInputGrid: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Twisty sticker input")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.primaryText)
 
             Text("Choose a face label, then tap stickers in the reusable puzzle net. Fixed centers are locked when the puzzle requires them.")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(AppTheme.secondaryText)
 
             HStack(spacing: 8) {
                 ForEach(faces, id: \.self) { face in
@@ -435,7 +434,7 @@ struct TwistyStickerInputGrid: View {
                 ForEach(Array(faces.enumerated()), id: \.offset) { faceIndex, face in
                     VStack(spacing: 6) {
                         Text(face)
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.secondaryText)
                             .font(.caption)
                         LazyVGrid(columns: faceColumns, spacing: 4) {
                             ForEach(0..<perFace, id: \.self) { offset in
@@ -488,7 +487,7 @@ struct TwistyFaceNetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(state.puzzle.displayName)
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.primaryText)
                 .font(.headline)
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 10)], spacing: 10) {
@@ -514,7 +513,7 @@ struct TwistyFaceView: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(faceName)
-                .foregroundColor(.gray)
+                .foregroundColor(AppTheme.secondaryText)
                 .font(.caption)
             LazyVGrid(columns: columns, spacing: 3) {
                 ForEach(Array(stickers.enumerated()), id: \.offset) { _, sticker in
@@ -560,14 +559,14 @@ struct TwistyMoveListView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Moves")
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(AppTheme.primaryText)
             if moves.isEmpty {
                 Text("Already solved.")
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
             } else {
                 ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
                     Text("\(index + 1). \(move)")
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.primaryText)
                 }
             }
         }
@@ -584,10 +583,10 @@ struct TwistySolveResultView: View {
                 .foregroundColor(result.succeeded ? Color(hex: 0xccffcc) : Color(hex: 0xff99cc))
             Text("Move count: \(result.moveCount) • Nodes checked: \(result.nodesExplored) • Time: \(String(format: "%.2f", result.elapsedTime))s")
                 .font(.caption)
-                .foregroundColor(.gray)
+                .foregroundColor(AppTheme.secondaryText)
             if let failureReason = result.failureReason {
                 Text(failureReason)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.primaryText)
             }
             TwistyMoveListView(moves: result.moves)
         }
