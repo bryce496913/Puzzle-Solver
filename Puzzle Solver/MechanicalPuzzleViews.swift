@@ -44,7 +44,21 @@ struct MechanicalPuzzleMenuView: View {
         case .rushHour:
             RushHourInputView()
         case .klotski, .pegSolitaire:
-            MechanicalPlaceholderView(kind: kind)
+            ComingSoonView(
+                title: kind.displayName,
+                summary: kind.summary,
+                plannedItems: [
+                    "Finish the movement-rule validator.",
+                    "Add an input editor for custom board states.",
+                    "Enable a bounded solver with ordered move playback."
+                ],
+                architectureNotes: [
+                    "Placeholder board, move/piece, and solver files are already organized.",
+                    "The puzzle card routes here until solving is intentionally enabled."
+                ],
+                symbol: kind == .klotski ? "rectangle.grid.2x2.fill" : "circle.grid.cross.fill",
+                accentColor: AppTheme.amber
+            )
         }
     }
 }
@@ -141,9 +155,10 @@ struct RushHourResultView: View {
     @State private var result: MechanicalPuzzleSolveResult<RushHourBoard>?
     @State private var selectedFrameIndex = 0
     @State private var isSolving = false
+    @State private var didFinish = false
 
     private var frames: [OrderedMovePlaybackFrame<RushHourBoard>] {
-        result?.playbackFrames ?? [OrderedMovePlaybackFrame(order: 0, move: nil, board: initialBoard, caption: "Start")]
+        result?.playbackFrames ?? [OrderedMovePlaybackFrame(order: 0, move: nil, board: self.initialBoard, caption: "Start")]
     }
 
     private var selectedFrame: OrderedMovePlaybackFrame<RushHourBoard> {
@@ -193,6 +208,7 @@ struct RushHourResultView: View {
         HStack(spacing: 12) {
             Button(action: { selectedFrameIndex = max(0, selectedFrameIndex - 1) }) {
                 Text("Previous")
+                    .appButtonLabel()
             }
             .disabled(selectedFrameIndex == 0)
 
@@ -202,6 +218,7 @@ struct RushHourResultView: View {
 
             Button(action: { selectedFrameIndex = min(frames.count - 1, selectedFrameIndex + 1) }) {
                 Text("Next")
+                    .appButtonLabel()
             }
             .disabled(selectedFrameIndex >= frames.count - 1)
         }
@@ -248,18 +265,40 @@ struct RushHourResultView: View {
 
     private func solve() {
         guard result == nil, !isSolving else { return }
+        let options = MechanicalPuzzleSolveOptions.default
+        let startedAt = Date()
         isSolving = true
         SolverDiagnosticsStore.shared.record(modeName: "Rush Hour", state: .solving, detail: SolveState.solving.friendlyMessage)
 
+        DispatchQueue.main.asyncAfter(deadline: .now() + options.timeout + 0.25) {
+            guard !self.didFinish else { return }
+            let timeoutResult = MechanicalPuzzleSolveResult(
+                kind: .rushHour,
+                state: .timedOut,
+                moves: [],
+                playbackFrames: [OrderedMovePlaybackFrame(order: 0, move: nil, board: self.initialBoard, caption: "Start")],
+                failureReason: "Rush Hour solver timed out before it could finish.",
+                elapsedTime: Date().timeIntervalSince(startedAt),
+                nodesExplored: 0
+            )
+            self.finish(with: timeoutResult)
+        }
+
         DispatchQueue.global(qos: .userInitiated).async {
-            let solved = RushHourSolver().solve(self.initialBoard, options: .default)
+            let solved = RushHourSolver().solve(self.initialBoard, options: options)
             DispatchQueue.main.async {
-                self.result = solved
-                self.selectedFrameIndex = 0
-                self.isSolving = false
-                SolverDiagnosticsStore.shared.record(modeName: "Rush Hour", state: solved.state, detail: solved.failureReason ?? self.statusText)
+                guard !self.didFinish else { return }
+                self.finish(with: solved)
             }
         }
+    }
+
+    private func finish(with solved: MechanicalPuzzleSolveResult<RushHourBoard>) {
+        didFinish = true
+        result = solved
+        selectedFrameIndex = 0
+        isSolving = false
+        SolverDiagnosticsStore.shared.record(modeName: "Rush Hour", state: solved.state, detail: solved.failureReason ?? statusText)
     }
 }
 
@@ -302,43 +341,6 @@ private struct RushHourBoardView: View {
         }
         .frame(width: CGFloat(board.size.columns) * tileSize + CGFloat(board.size.columns - 1) * 2,
                height: CGFloat(board.size.rows) * tileSize + CGFloat(board.size.rows - 1) * 2)
-    }
-}
-
-struct MechanicalPlaceholderView: View {
-    let kind: MechanicalPuzzleKind
-
-    var body: some View {
-        ZStack {
-            AppTheme.backgroundGradient.ignoresSafeArea()
-            VStack(spacing: 18) {
-                Text(kind.displayName)
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundColor(Color(hex: 0xffcc99))
-                Text("Coming Soon")
-                    .font(.title2.weight(.bold))
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 8)
-                    .foregroundColor(AppTheme.text.opacity(0.62))
-                    .background(AppTheme.surface.opacity(0.58))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                Text(kind.summary)
-                    .foregroundColor(AppTheme.primaryText)
-                    .multilineTextAlignment(.center)
-                Text("This puzzle intentionally routes here until its movement rules, input editor, and solver are ready. Placeholder board, move/piece, and solver files are already in place so the section stays organized.")
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                NavigationLink(destination: MechanicalPuzzleMenuView()) {
-                    Text("Back")
-                        .appButtonLabel()
-                }
-                .buttonStyle(AppSecondaryButtonStyle())
-            }
-            .padding()
-        }
-        .navigationBarHidden(true)
     }
 }
 

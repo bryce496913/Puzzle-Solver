@@ -219,11 +219,6 @@ struct SolvingView: View {
     }
 }
 
-private extension Array {
-    subscript(safe index: Index) -> Element? {
-        indices.contains(index) ? self[index] : nil
-    }
-}
 
 struct SolvingView_Previews: PreviewProvider {
     static var previews: some View {
