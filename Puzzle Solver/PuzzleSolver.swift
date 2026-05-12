@@ -1470,16 +1470,8 @@ final class SolverDiagnosticsStore {
 final class SolverDebugLogger {
     static let shared = SolverDebugLogger()
 
-    var isEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: "SolverDebugLoggingEnabled") }
-        set { UserDefaults.standard.set(newValue, forKey: "SolverDebugLoggingEnabled") }
-    }
-
     func log(_ message: String) {
-        #if DEBUG
-        guard isEnabled else { return }
-        print("[SolverDebug] \(message)")
-        #endif
+        _ = message
     }
 }
 

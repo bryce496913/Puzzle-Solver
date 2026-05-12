@@ -18,6 +18,13 @@ struct SolvingView: View {
     @State private var solutionSteps: [SlidingPuzzleStep] = []
     @State private var isSolving = false
     @State private var didFinish = false
+    @State private var didStart = false
+    @AppStorage("UseCompactSolutionPreviews") private var useCompactSolutionPreviews = true
+
+    private var displayedSolutionSteps: [SlidingPuzzleStep] {
+        guard useCompactSolutionPreviews, solutionSteps.count > 18 else { return solutionSteps }
+        return Array(solutionSteps.prefix(18))
+    }
 
     init(initialState: [[Int?]], cubePuzzle: CubePuzzleKind = .threeByThree) {
         self.initialState = initialState
@@ -31,8 +38,8 @@ struct SolvingView: View {
 
     var body: some View {
         ZStack {
-            Color.black
-                .edgesIgnoringSafeArea(.all)
+            AppTheme.backgroundGradient
+                .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
@@ -41,36 +48,38 @@ struct SolvingView: View {
                         .foregroundColor(statusColor)
 
                     if isSolving {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        ProgressView("Working")
+                            .labelsHidden()
+                            .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.cyan))
+                            .accessibilityLabel("Solver is working")
                     }
                 }
                 .padding(.top)
 
                 Text(progressText)
-                    .foregroundColor(.gray)
+                    .foregroundColor(AppTheme.secondaryText)
                     .font(.subheadline)
 
                 if let failureDetail {
                     Text(failureDetail)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppTheme.primaryText)
                         .font(.body)
                 }
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
+                    LazyVStack(alignment: .leading, spacing: 8) {
                         Text("Movement List:")
                             .font(.title2)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.primaryText)
                             .padding(.bottom)
 
                         if movementList.isEmpty {
                             Text(emptyMovementMessage)
-                                .foregroundColor(.gray)
+                                .foregroundColor(AppTheme.secondaryText)
                         } else {
                             ForEach(Array(movementList.enumerated()), id: \.offset) { _, movement in
                                 Text(movement)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AppTheme.primaryText)
                             }
                         }
                     }
@@ -81,15 +90,20 @@ struct SolvingView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Solution Path:")
                                 .font(.title2)
-                                .foregroundColor(.white)
+                                .foregroundColor(AppTheme.primaryText)
 
-                            ForEach(Array(solutionSteps.enumerated()), id: \.offset) { index, step in
+                            ForEach(Array(displayedSolutionSteps.enumerated()), id: \.offset) { index, step in
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(index == 0 ? "Start" : "Step \(index): \(step.move?.rawValue ?? "Move")")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(AppTheme.secondaryText)
                                         .font(.caption)
                                     MovementGridView(boardState: step.board.toGrid(), tileSize: puzzleSize == 4 ? 30 : 36, spacing: 4)
                                 }
+                            }
+                            if useCompactSolutionPreviews && solutionSteps.count > displayedSolutionSteps.count {
+                                Text("Showing first \(displayedSolutionSteps.count) of \(solutionSteps.count) board previews to keep scrolling smooth.")
+                                    .font(.caption)
+                                    .foregroundColor(AppTheme.secondaryText)
                             }
                         }
                         .padding(.bottom)
@@ -102,6 +116,8 @@ struct SolvingView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            guard !didStart else { return }
+            didStart = true
             solvePuzzle()
         }
     }
@@ -110,7 +126,7 @@ struct SolvingView: View {
         switch solveState {
         case .solved: return Color(hex: 0xccffcc)
         case .validating, .solving: return Color(hex: 0xccffff)
-        case .idle: return Color.gray
+        case .idle: return AppTheme.secondaryText
         default: return Color(hex: 0xff99cc)
         }
     }
@@ -148,7 +164,6 @@ struct SolvingView: View {
         progressText = detail
         isSolving = state == .validating || state == .solving
         SolverDiagnosticsStore.shared.record(modeName: "\(puzzleSize)×\(puzzleSize) Sliding Puzzle", state: state, detail: detail)
-        SolverDebugLogger.shared.log("solve state: \(state.rawValue)")
     }
 
     private func complete(state: SolveState, moves: [String], steps: [SlidingPuzzleStep], reason: String?, elapsedTime: TimeInterval, nodes: Int) {
@@ -160,8 +175,6 @@ struct SolvingView: View {
         movementList = format(state: state, moves: moves)
         progressText = progressSummary(state: state, moveCount: moves.count, elapsedTime: elapsedTime, nodes: nodes)
         SolverDiagnosticsStore.shared.record(modeName: "\(puzzleSize)×\(puzzleSize) Sliding Puzzle", state: state, detail: failureDetail ?? progressText)
-        SolverDebugLogger.shared.log("solve finished: \(state.rawValue)")
-        if let reason { SolverDebugLogger.shared.log("failure reason: \(reason)") }
     }
 
     private func userFacingDetail(for state: SolveState, reason: String?) -> String? {
