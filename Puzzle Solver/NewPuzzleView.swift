@@ -19,7 +19,7 @@ struct NewPuzzleView: View {
 
     private var puzzleSize: Int { selectedKind.size }
     private var tileSize: CGFloat { selectedKind == .threeByThree ? 60 : 48 }
-    private var keypadColumns: [GridItem] { Array(repeating: GridItem(.fixed(44), spacing: 14), count: selectedKind == .threeByThree ? 3 : 4) }
+    private var keypadColumns: [GridItem] { Array(repeating: GridItem(.fixed(72), spacing: 14), count: selectedKind == .threeByThree ? 3 : 4) }
 
     var body: some View {
         ZStack {
@@ -67,7 +67,7 @@ struct NewPuzzleView: View {
                     Text("Try \(selectedKind.displayName) Example")
                         .appButtonLabel()
                 }
-                .buttonStyle(AppButtonStyle(color: AppTheme.cyan))
+                .buttonStyle(AppSecondaryButtonStyle())
                 .accessibilityHint("Loads a valid sample puzzle so you can preview solving.")
 
                 if isSolveButtonVisible {
@@ -80,7 +80,7 @@ struct NewPuzzleView: View {
                                 .appButtonLabel()
                         }
                     )
-                    .buttonStyle(AppButtonStyle(color: AppTheme.green))
+                    .buttonStyle(AppPrimaryButtonStyle())
                     .transition(.opacity.combined(with: .scale(scale: reduceMotion ? 1 : 0.96)))
                 } else {
                     KeypadView(size: puzzleSize, columns: keypadColumns) { number in
@@ -92,10 +92,10 @@ struct NewPuzzleView: View {
 
                     HStack(spacing: 16) {
                         Button("Back") { dismiss() }
-                            .buttonStyle(AppButtonStyle(color: AppTheme.lavender))
+                            .buttonStyle(AppSecondaryButtonStyle())
 
                         Button("Reset", action: resetPuzzle)
-                            .buttonStyle(AppButtonStyle(color: AppTheme.pink))
+                            .buttonStyle(AppDangerButtonStyle())
                     }
                     .font(.headline.weight(.semibold))
                     .padding(.bottom, 20)
@@ -238,7 +238,7 @@ struct KeypadView: View {
                 KeypadButton(number: number, clearButton: size * size, onTap: onTap)
             }
         }
-        .frame(width: CGFloat(size) * 58)
+        .frame(width: CGFloat(size) * 86)
         .padding()
         .accessibilityElement(children: .contain)
     }
@@ -250,17 +250,23 @@ struct KeypadButton: View {
     let onTap: (Int) -> Void
 
     var body: some View {
-        Button(action: {
-            onTap(number)
-        }) {
-            Text(number == clearButton ? "Blank" : "\(number)")
-                .font(.title3)
-                .frame(width: 40, height: 40)
-                .background(number == clearButton ? Color(hex: 0xff99cc) : Color(hex: 0x99ccff))
-                .foregroundColor(.black)
-                .cornerRadius(20)
+        if number == clearButton {
+            Button(action: { onTap(number) }) {
+                Text("Blank")
+                    .font(.title3.weight(.semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(AppDangerButtonStyle())
+            .accessibilityLabel("Blank tile")
+        } else {
+            Button(action: { onTap(number) }) {
+                Text("\(number)")
+                    .font(.title3.weight(.semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(AppSecondaryButtonStyle())
+            .accessibilityLabel("Number \(number)")
         }
-        .accessibilityLabel(number == clearButton ? "Blank tile" : "Number \(number)")
     }
 }
 
@@ -318,10 +324,10 @@ struct TwistyPuzzleInputView: View {
 
                     HStack(spacing: 12) {
                         Button("Apply Scramble") { applyScramble() }
-                            .twistyActionStyle(color: Color(hex: 0x99ccff))
+                            .buttonStyle(AppSecondaryButtonStyle())
 
                         Button("Solve") { solveCurrentPuzzle() }
-                            .twistyActionStyle(color: selectedPuzzle.isSolveEnabled ? Color(hex: 0x99ffcc) : Color.gray)
+                            .buttonStyle(AppPrimaryButtonStyle())
                             .disabled(!selectedPuzzle.isSolveEnabled || isSolving)
                     }
 
@@ -641,15 +647,5 @@ struct TwistySolveResultView: View {
         .padding()
         .background(Color.white.opacity(0.08))
         .cornerRadius(12)
-    }
-}
-
-private extension View {
-    func twistyActionStyle(color: Color) -> some View {
-        self.font(.headline)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(color)
-            .foregroundColor(.black)
-            .cornerRadius(10)
     }
 }

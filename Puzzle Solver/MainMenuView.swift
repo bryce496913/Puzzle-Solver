@@ -42,7 +42,7 @@ struct MainMenuView: View {
                             .font(.headline.weight(.semibold))
                             .frame(maxWidth: .infinity, minHeight: 50)
                     }
-                    .buttonStyle(AppButtonStyle(color: AppTheme.pink))
+                    .buttonStyle(AppSecondaryButtonStyle())
                     .accessibilityHint("Opens app appearance, onboarding, and TestFlight readiness settings.")
                 }
                 .padding()
@@ -144,6 +144,7 @@ struct SettingsView: View {
                 Button("Show onboarding again") {
                     hasCompletedOnboarding = false
                 }
+                .buttonStyle(AppSecondaryButtonStyle())
                 .accessibilityHint("Returns to the Version 1 onboarding flow.")
             }
 

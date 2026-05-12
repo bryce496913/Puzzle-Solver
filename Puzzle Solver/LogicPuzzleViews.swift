@@ -76,9 +76,9 @@ struct LogicPuzzleMenuRow: View {
                 .font(.caption.bold())
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(descriptor.enabled ? Color(hex: 0x99ccff) : Color.gray)
-                .foregroundColor(.black)
-                .cornerRadius(10)
+                .background(descriptor.enabled ? AppTheme.accent : AppTheme.surface.opacity(0.58))
+                .foregroundColor(descriptor.enabled ? AppTheme.text : AppTheme.text.opacity(0.62))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .padding()
         .background(Color.white.opacity(0.08))
@@ -109,9 +109,9 @@ struct LogicPuzzleComingSoonView: View {
                     .font(.headline)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(Color(hex: 0xffcc99).opacity(0.2))
-                    .foregroundColor(Color(hex: 0xffcc99))
-                    .cornerRadius(12)
+                    .foregroundColor(AppTheme.text.opacity(0.62))
+                    .background(AppTheme.surface.opacity(0.58))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 Text("The puzzle card, route, and placeholder model/solver files are in place so this section stays complete while the solver is intentionally unavailable.")
                     .font(.caption)
@@ -196,23 +196,20 @@ struct SudokuInputView: View {
 
                     HStack(spacing: 12) {
                         Button("Example") { loadExample() }
-                            .logicPuzzleActionStyle(color: Color(hex: 0xccffff))
+                            .buttonStyle(AppSecondaryButtonStyle())
                         Button("Validate") { refreshValidation() }
-                            .logicPuzzleActionStyle(color: Color(hex: 0xffcc99))
+                            .buttonStyle(AppSecondaryButtonStyle())
                     }
 
                     NavigationLink(destination: SudokuResultView(initialBoard: board)) {
                         Text("Solve Sudoku")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, minHeight: 48)
-                            .background(validation.canSolve ? Color(hex: 0x99ffcc) : Color.gray)
-                            .foregroundColor(.black)
-                            .cornerRadius(12)
+                            .appButtonLabel()
                     }
+                    .buttonStyle(AppPrimaryButtonStyle())
                     .disabled(!validation.canSolve)
 
                     Button("Reset") { reset() }
-                        .logicPuzzleActionStyle(color: Color(hex: 0xff99cc))
+                        .buttonStyle(AppDangerButtonStyle())
                 }
                 .padding()
             }
@@ -304,13 +301,13 @@ struct SudokuKeypadView: View {
     let onSelect: (Int?) -> Void
 
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.fixed(42), spacing: 8), count: 5), spacing: 8) {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 8), count: 5), spacing: 8) {
             ForEach(1...9, id: \.self) { value in
                 Button("\(value)") { onSelect(value) }
-                    .sudokuKeyStyle(color: Color(hex: 0x99ccff))
+                    .buttonStyle(AppSecondaryButtonStyle())
             }
             Button("x") { onSelect(nil) }
-                .sudokuKeyStyle(color: Color(hex: 0xff99cc))
+                .buttonStyle(AppDangerButtonStyle())
         }
     }
 }
@@ -416,24 +413,6 @@ struct SudokuResultView: View {
             return "Nodes checked: \(result.nodesExplored) • Time: \(elapsed)s"
         }
         return result.state.friendlyMessage
-    }
-}
-
-private extension View {
-    func logicPuzzleActionStyle(color: Color) -> some View {
-        self.font(.headline)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(color)
-            .foregroundColor(.black)
-            .cornerRadius(12)
-    }
-
-    func sudokuKeyStyle(color: Color) -> some View {
-        self.font(.headline)
-            .frame(width: 42, height: 42)
-            .background(color)
-            .foregroundColor(.black)
-            .cornerRadius(21)
     }
 }
 

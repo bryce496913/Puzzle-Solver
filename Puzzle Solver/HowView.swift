@@ -31,7 +31,7 @@ struct HowView: View {
                     HowCard(title: "Placeholders are safe", detail: "4×4, 5×5, Megaminx, Square-1, and future catalogs describe planned support without starting indefinite work.", symbol: "pause.circle.fill", color: AppTheme.amber)
 
                     Button("Back") { dismiss() }
-                        .buttonStyle(AppButtonStyle(color: AppTheme.pink))
+                        .buttonStyle(AppSecondaryButtonStyle())
                         .font(.headline.weight(.semibold))
                         .padding(.top)
                 }

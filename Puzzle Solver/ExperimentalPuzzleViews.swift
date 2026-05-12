@@ -97,7 +97,7 @@ private struct ExperimentalPuzzleSelectionCard: View {
                 Text(actionTitle)
                     .appButtonLabel()
             }
-            .buttonStyle(AppButtonStyle(color: accentColor))
+            .buttonStyle(AppPrimaryButtonStyle(isDisabledAppearance: !descriptor.solverAvailable))
             .accessibilityHint(accessibilityHint)
         }
         .padding()
@@ -227,9 +227,9 @@ struct JigsawComingSoonView: View {
                 .font(.title3.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(AppTheme.amber.opacity(0.9))
-                .foregroundColor(.black)
-                .cornerRadius(12)
+                .foregroundColor(AppTheme.text.opacity(0.62))
+                .background(AppTheme.surface.opacity(0.58))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Text("The model layer is in place now so image-based solving can be added without disrupting the existing sliding, logic, mechanical, and experimental solvers.")
                 .font(.body)
