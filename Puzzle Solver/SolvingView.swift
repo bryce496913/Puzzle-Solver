@@ -144,19 +144,31 @@ struct SolvingView: View {
         }
 
         transition(to: .solving, detail: SolveState.solving.friendlyMessage)
-        let timeout: TimeInterval = 5
+        let timeout = solverTimeout
+        let options = solverOptions
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
             guard !self.didFinish else { return }
             self.complete(state: .timedOut, moves: [], steps: [], reason: "Solver took too long.", elapsedTime: timeout, nodes: 0)
         }
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let result = SlidingPuzzleSolver().solve(board, options: SlidingPuzzleSolveOptions(timeout: timeout, maxNodes: 250_000))
+            let result = SlidingPuzzleSolver().solve(board, options: options)
             DispatchQueue.main.async {
                 guard !self.didFinish else { return }
                 self.complete(state: result.state, moves: result.moves, steps: result.steps, reason: result.failureReason, elapsedTime: result.elapsedTime, nodes: result.nodesExplored)
             }
         }
+    }
+
+    private var solverTimeout: TimeInterval {
+        puzzleSize == 4 ? 3 : 5
+    }
+
+    private var solverOptions: SlidingPuzzleSolveOptions {
+        if puzzleSize == 4 {
+            return SlidingPuzzleSolveOptions(timeout: solverTimeout, maxNodes: 120_000, maxDepth: 60)
+        }
+        return SlidingPuzzleSolveOptions(timeout: solverTimeout, maxNodes: 250_000)
     }
 
     private func transition(to state: SolveState, detail: String) {
@@ -180,7 +192,9 @@ struct SolvingView: View {
     private func userFacingDetail(for state: SolveState, reason: String?) -> String? {
         switch state {
         case .solved: return nil
-        case .invalid, .unsolvable, .timedOut, .failed, .unsupported: return reason ?? state.friendlyMessage
+        case .invalid, .unsolvable, .timedOut, .failed: return reason ?? state.friendlyMessage
+        case .unsupported:
+            return reason ?? "This solver is unavailable right now. You can still edit the board or try the easier example."
         default: return nil
         }
     }
