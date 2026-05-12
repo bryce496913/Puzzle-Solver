@@ -479,7 +479,7 @@ struct TwistyStickerInputGrid: View {
     }
 
     private func stickerButton(stickerIndex: Int) -> some View {
-        let sticker = state.stickers[safe: stickerIndex] ?? "?"
+        let sticker = state.stickers.indices.contains(stickerIndex) ? state.stickers[stickerIndex] : "?"
         let isCenterSticker = centerIndices.contains(stickerIndex)
 
         return Button(action: { onStickerTap(stickerIndex) }) {
