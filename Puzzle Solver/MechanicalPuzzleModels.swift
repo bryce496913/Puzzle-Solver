@@ -22,14 +22,16 @@ enum MechanicalPuzzleKind: String, CaseIterable, Identifiable, Hashable {
         case .rushHour:
             return "Slide blocking cars until the red car reaches the exit."
         case .klotski:
-            return "Placeholder board architecture for sliding block escape puzzles."
+            return "Coming soon: sliding block escape puzzles with polished board and solver placeholders ready for future rules."
         case .pegSolitaire:
-            return "Placeholder board architecture for jump-and-remove peg puzzles."
+            return "Coming soon: jump-and-remove peg puzzles with polished board and solver placeholders ready for future rules."
         }
     }
 
     var isPlayable: Bool { self == .rushHour }
     var solverAvailable: Bool { self == .rushHour }
+    var statusLabel: String { isPlayable ? "Active" : "Coming Soon" }
+    var statusDetail: String { isPlayable ? "Solver ready" : "Routes to preview screen" }
 }
 
 struct MechanicalPuzzleDescriptor: Identifiable, Hashable {
@@ -37,6 +39,8 @@ struct MechanicalPuzzleDescriptor: Identifiable, Hashable {
     let boardSize: MechanicalBoardSize?
     let enabled: Bool
     let solverAvailable: Bool
+    let statusLabel: String
+    let statusDetail: String
     let notes: String
 
     var id: MechanicalPuzzleKind { kind }
@@ -49,6 +53,8 @@ enum MechanicalPuzzleCatalog {
             boardSize: kind == .rushHour ? .rushHour : nil,
             enabled: kind.isPlayable,
             solverAvailable: kind.solverAvailable,
+            statusLabel: kind.statusLabel,
+            statusDetail: kind.statusDetail,
             notes: kind.summary
         )
     }
@@ -379,22 +385,3 @@ final class RushHourSolver: MechanicalPuzzleSolving {
     }
 }
 
-// MARK: - Placeholder mechanical puzzle boards
-
-struct KlotskiBoard: MechanicalPuzzleBoard, Hashable {
-    let pieces: [MechanicalPuzzlePiece]
-
-    var kind: MechanicalPuzzleKind { .klotski }
-    var size: MechanicalBoardSize { .klotski }
-
-    static let empty = KlotskiBoard(pieces: [])
-}
-
-struct PegSolitaireBoard: MechanicalPuzzleBoard, Hashable {
-    let pieces: [MechanicalPuzzlePiece]
-
-    var kind: MechanicalPuzzleKind { .pegSolitaire }
-    var size: MechanicalBoardSize { .pegSolitaire }
-
-    static let englishPlaceholder = PegSolitaireBoard(pieces: [])
-}

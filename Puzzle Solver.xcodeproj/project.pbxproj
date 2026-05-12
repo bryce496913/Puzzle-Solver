@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AC0000012B00000100000001 /* KlotskiBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000022B00000100000001 /* KlotskiBoard.swift */; };
+		AC0000032B00000100000001 /* KlotskiPiece.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000042B00000100000001 /* KlotskiPiece.swift */; };
+		AC0000052B00000100000001 /* KlotskiSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000062B00000100000001 /* KlotskiSolver.swift */; };
+		AC0000072B00000100000001 /* PegSolitaireBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000082B00000100000001 /* PegSolitaireBoard.swift */; };
+		AC0000092B00000100000001 /* PegSolitaireMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC00000A2B00000100000001 /* PegSolitaireMove.swift */; };
+		AC00000B2B00000100000001 /* PegSolitaireSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC00000C2B00000100000001 /* PegSolitaireSolver.swift */; };
 		AB0000012B00000100000001 /* KillerSudokuModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000022B00000100000001 /* KillerSudokuModels.swift */; };
 		AB0000032B00000100000001 /* KillerSudokuSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000042B00000100000001 /* KillerSudokuSolver.swift */; };
 		AB0000052B00000100000001 /* NonogramModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000062B00000100000001 /* NonogramModels.swift */; };
@@ -57,6 +63,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AC0000022B00000100000001 /* KlotskiBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiBoard.swift; sourceTree = "<group>"; };
+		AC0000042B00000100000001 /* KlotskiPiece.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiPiece.swift; sourceTree = "<group>"; };
+		AC0000062B00000100000001 /* KlotskiSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiSolver.swift; sourceTree = "<group>"; };
+		AC0000082B00000100000001 /* PegSolitaireBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireBoard.swift; sourceTree = "<group>"; };
+		AC00000A2B00000100000001 /* PegSolitaireMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireMove.swift; sourceTree = "<group>"; };
+		AC00000C2B00000100000001 /* PegSolitaireSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireSolver.swift; sourceTree = "<group>"; };
 		AB0000022B00000100000001 /* KillerSudokuModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuModels.swift; sourceTree = "<group>"; };
 		AB0000042B00000100000001 /* KillerSudokuSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuSolver.swift; sourceTree = "<group>"; };
 		AB0000062B00000100000001 /* NonogramModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramModels.swift; sourceTree = "<group>"; };
@@ -158,6 +170,12 @@
 				AB00000E2B00000100000001 /* SlitherlinkModels.swift */,
 				AB0000102B00000100000001 /* SlitherlinkSolver.swift */,
 				AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */,
+				AC0000022B00000100000001 /* KlotskiBoard.swift */,
+				AC0000042B00000100000001 /* KlotskiPiece.swift */,
+				AC0000062B00000100000001 /* KlotskiSolver.swift */,
+				AC0000082B00000100000001 /* PegSolitaireBoard.swift */,
+				AC00000A2B00000100000001 /* PegSolitaireMove.swift */,
+				AC00000C2B00000100000001 /* PegSolitaireSolver.swift */,
 				AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */,
 				AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */,
 				AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */,
@@ -338,6 +356,12 @@
 				AB00000D2B00000100000001 /* SlitherlinkModels.swift in Sources */,
 				AB00000F2B00000100000001 /* SlitherlinkSolver.swift in Sources */,
 				AA0000052B00000100000001 /* MechanicalPuzzleModels.swift in Sources */,
+				AC0000012B00000100000001 /* KlotskiBoard.swift in Sources */,
+				AC0000032B00000100000001 /* KlotskiPiece.swift in Sources */,
+				AC0000052B00000100000001 /* KlotskiSolver.swift in Sources */,
+				AC0000072B00000100000001 /* PegSolitaireBoard.swift in Sources */,
+				AC0000092B00000100000001 /* PegSolitaireMove.swift in Sources */,
+				AC00000B2B00000100000001 /* PegSolitaireSolver.swift in Sources */,
 				AA0000072B00000100000001 /* MechanicalPuzzleViews.swift in Sources */,
 				AA0000092B00000100000001 /* ExperimentalPuzzleModels.swift in Sources */,
 				AA00000B2B00000100000001 /* ExperimentalPuzzleViews.swift in Sources */,
