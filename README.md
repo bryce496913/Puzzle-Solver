@@ -31,3 +31,13 @@ Puzzle Solver is a Swift application with a shared cube-solving service layer fo
 ## Contributing
 
 Contributions to improve pruning-table coverage, add more twisty-puzzle solvers, or add reduction-method solvers for larger cubes are welcome.
+
+## Experimental Puzzle Architecture
+
+The experimental layer keeps new puzzle families modular and separate from the established cube, sliding, logic, and mechanical systems.
+
+- `GraphSearch` and `GraphPath` provide reusable breadth-first pathfinding for unweighted puzzle state spaces.
+- `VisualPuzzleResult`, `VisualPuzzleStep`, and `VisualPuzzleAnnotation` provide shared result/playback models for grid- and image-oriented solvers.
+- `MazeSolver` solves `MazeBoard` layouts with `S` start, `G` goal, `#` walls, and `.` open cells using the shared graph utilities.
+- `ChessPuzzleSolver` supports legal-move chess puzzle searches for mate-in-N and material/checkmate-oriented best-move puzzles from `ChessBoard` FEN input.
+- `JigsawPuzzleSolver` defines placeholder board, piece, and edge models while returning an unsupported result until image detection and piece-matching heuristics are added.

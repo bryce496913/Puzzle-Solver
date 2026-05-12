@@ -433,4 +433,65 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertTrue(placeholders.allSatisfy { !$0.enabled && !$0.solverAvailable })
     }
 
+
+    // MARK: - Experimental puzzle architecture
+
+    func testGraphSearchFindsShortestPath() throws {
+        let result = GraphSearch.breadthFirstSearch(
+            from: 0,
+            isGoal: { $0 == 3 },
+            neighbors: { node in node < 3 ? [(node: node + 1, move: "+1")] : [] }
+        )
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.path?.nodes, [0, 1, 2, 3])
+        XCTAssertEqual(result.path?.moves, ["+1", "+1", "+1"])
+    }
+
+    func testMazeSolverUsesGraphUtilitiesForShortestPath() throws {
+        let board = MazeBoard(lines: [
+            "S..",
+            "##.",
+            "G.."
+        ])
+
+        let result = MazeSolver().solve(board)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.moves.count, 6)
+        XCTAssertTrue(result.steps.last?.annotations.contains { $0.kind == .path } ?? false)
+    }
+
+    func testChessSolverFindsMateInOne() throws {
+        let board = try XCTUnwrap(ChessBoard(fen: "7k/8/5KQ1/8/8/8/8/8 w - - 0 1"))
+        let result = ChessPuzzleSolver().solveMate(in: 1, board: board)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertNotNil(result.bestMove)
+    }
+
+    func testJigsawSolverReturnsModularPlaceholder() throws {
+        let result = JigsawPuzzleSolver().solve(.placeholder)
+
+        XCTAssertEqual(result.state, .unsupported)
+        XCTAssertFalse(result.succeeded)
+        XCTAssertEqual(result.steps.count, 1)
+    }
+
+    func testExperimentalPuzzleCatalogKeepsJigsawPlaceholderSeparate() throws {
+        let jigsaw = try XCTUnwrap(ExperimentalPuzzleCatalog.descriptors.first { $0.kind == .jigsaw })
+        let playable = ExperimentalPuzzleCatalog.descriptors.filter { $0.kind != .jigsaw }
+
+        XCTAssertFalse(jigsaw.enabled)
+        XCTAssertFalse(jigsaw.solverAvailable)
+        XCTAssertTrue(playable.allSatisfy { $0.enabled && $0.solverAvailable })
+    }
+
+    func testDiagnosticsListsExperimentalPuzzleModes() throws {
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Maze" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Mate-in-N" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Best Move" && $0.enabled && $0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Jigsaw" && !$0.enabled && !$0.solverAvailable })
+    }
+
 }
