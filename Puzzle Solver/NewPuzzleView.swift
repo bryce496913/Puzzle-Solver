@@ -494,59 +494,9 @@ struct TwistyStickerInputGrid: View {
         .disabled(isCenterSticker)
     }
 
-    private var faceGridColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 96), spacing: 10)]
-    }
-
     private var faceColumns: [GridItem] {
         let side = Int(ceil(sqrt(Double(perFace))))
         return Array(repeating: GridItem(.fixed(22), spacing: 4), count: side)
-    }
-
-    private func stickerPickerButton(for face: String) -> some View {
-        let strokeColor = selectedSticker == face ? Color(hex: 0xccffff) : Color.clear
-
-        return Button(face) { selectedSticker = face }
-            .font(.caption.bold())
-            .frame(width: 34, height: 34)
-            .background(stickerColor(face))
-            .foregroundColor(.black)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(strokeColor, lineWidth: 3))
-            .cornerRadius(8)
-    }
-
-    private func faceCard(faceIndex: Int, face: String) -> some View {
-        VStack(spacing: 6) {
-            Text(face)
-                .foregroundColor(AppTheme.secondaryText)
-                .font(.caption)
-
-            LazyVGrid(columns: faceColumns, spacing: 4) {
-                ForEach(0..<perFace, id: \.self) { offset in
-                    let stickerIndex = faceIndex * perFace + offset
-                    stickerButton(at: stickerIndex)
-                }
-            }
-        }
-        .padding(8)
-        .background(Color.white.opacity(0.08))
-        .cornerRadius(10)
-    }
-
-    private func stickerButton(at index: Int) -> some View {
-        let stickerLabel = state.stickers[safe: index] ?? "?"
-        let isCenter = centerIndices.contains(index)
-
-        return Button(action: { onStickerTap(index) }) {
-            Text(stickerLabel)
-                .font(.caption2.bold())
-                .frame(width: 22, height: 22)
-                .background(stickerColor(stickerLabel))
-                .foregroundColor(.black)
-                .cornerRadius(5)
-                .opacity(isCenter ? 0.7 : 1)
-        }
-        .disabled(isCenter)
     }
 
     private func stickerColor(_ label: String) -> Color {
