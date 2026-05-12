@@ -1507,7 +1507,11 @@ enum PuzzleModeRegistry {
         PuzzleModeDiagnostic(name: "Slitherlink", enabled: false, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Rush Hour", enabled: true, solverAvailable: true),
         PuzzleModeDiagnostic(name: "Klotski", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Peg Solitaire", enabled: false, solverAvailable: false)
+        PuzzleModeDiagnostic(name: "Peg Solitaire", enabled: false, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Maze", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "Chess Mate-in-N", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "Chess Best Move", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "Jigsaw", enabled: false, solverAvailable: false)
     ]
 }
 
