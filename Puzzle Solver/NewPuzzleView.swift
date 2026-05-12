@@ -407,17 +407,19 @@ struct TwistyStickerInputGrid: View {
     private var faces: [String] { state.puzzle.faces }
     private var centerIndices: Set<Int> { state.puzzle == .threeByThree ? [4, 13, 22, 31, 40, 49] : [] }
     private var perFace: Int { max(1, (state.puzzle.stickerCount ?? state.stickers.count) / max(1, faces.count)) }
+    private var faceEntries: [(offset: Int, element: String)] { Array(faces.enumerated()) }
+    private var faceGridColumns: [GridItem] { [GridItem(.adaptive(minimum: 96), spacing: 10)] }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
             stickerPicker
-            faceGrid
+            stickerInputGrid
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Twisty sticker input")
                 .font(.headline)
                 .foregroundColor(AppTheme.primaryText)
@@ -436,12 +438,60 @@ struct TwistyStickerInputGrid: View {
         }
     }
 
-    private var faceGrid: some View {
+    private func stickerPickerButton(for face: String) -> some View {
+        Button(face) { selectedSticker = face }
+            .font(.caption.bold())
+            .frame(width: 34, height: 34)
+            .background(stickerColor(face))
+            .foregroundColor(.black)
+            .overlay(selectionOverlay(for: face))
+            .cornerRadius(8)
+    }
+
+    private func selectionOverlay(for face: String) -> some View {
+        let strokeColor = selectedSticker == face ? Color(hex: 0xccffff) : Color.clear
+        return RoundedRectangle(cornerRadius: 8).stroke(strokeColor, lineWidth: 3)
+    }
+
+    private var stickerInputGrid: some View {
         LazyVGrid(columns: faceGridColumns, spacing: 10) {
-            ForEach(Array(faces.enumerated()), id: \.offset) { faceIndex, face in
-                faceCard(faceIndex: faceIndex, face: face)
+            ForEach(faceEntries, id: \.offset) { entry in
+                faceInputView(faceIndex: entry.offset, face: entry.element)
             }
         }
+    }
+
+    private func faceInputView(faceIndex: Int, face: String) -> some View {
+        VStack(spacing: 6) {
+            Text(face)
+                .foregroundColor(AppTheme.secondaryText)
+                .font(.caption)
+
+            LazyVGrid(columns: faceColumns, spacing: 4) {
+                ForEach(0..<perFace, id: \.self) { offset in
+                    stickerButton(stickerIndex: faceIndex * perFace + offset)
+                }
+            }
+        }
+        .padding(8)
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(10)
+    }
+
+    private func stickerButton(stickerIndex: Int) -> some View {
+        let sticker = state.stickers[safe: stickerIndex] ?? "?"
+        let isCenterSticker = centerIndices.contains(stickerIndex)
+
+        return Button(action: { onStickerTap(stickerIndex) }) {
+            Text(sticker)
+                .font(.caption2.bold())
+                .frame(width: 22, height: 22)
+                .background(stickerColor(sticker))
+                .foregroundColor(.black)
+                .cornerRadius(5)
+                .opacity(isCenterSticker ? 0.7 : 1)
+        }
+        .disabled(isCenterSticker)
     }
 
     private var faceGridColumns: [GridItem] {
