@@ -19,14 +19,10 @@ struct MechanicalPuzzleMenuView: View {
                     .multilineTextAlignment(.center)
 
                 ForEach(MechanicalPuzzleCatalog.descriptors) { descriptor in
-                    if descriptor.enabled {
-                        NavigationLink(destination: destination(for: descriptor.kind)) {
-                            MechanicalPuzzleMenuCard(descriptor: descriptor)
-                        }
-                    } else {
+                    NavigationLink(destination: destination(for: descriptor.kind)) {
                         MechanicalPuzzleMenuCard(descriptor: descriptor)
-                            .opacity(0.55)
                     }
+                    .accessibilityHint(descriptor.enabled ? "Opens the active solver." : "Opens the coming soon screen.")
                 }
 
                 Spacer()
@@ -65,20 +61,26 @@ private struct MechanicalPuzzleMenuCard: View {
                 Text(descriptor.kind.displayName)
                     .font(.title3.weight(.semibold))
                 Spacer()
-                Text(descriptor.solverAvailable ? "Solver" : "Planned")
+                Text(descriptor.statusLabel)
                     .font(.caption.weight(.bold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99))
+                    .background(descriptor.enabled ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99))
                     .cornerRadius(6)
             }
+            Text(descriptor.statusDetail)
+                .font(.caption.weight(.semibold))
             Text(descriptor.notes)
                 .font(.caption)
         }
         .foregroundColor(.black)
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: 0xccffff))
+        .background(descriptor.enabled ? Color(hex: 0xccffff) : Color(hex: 0xfff0cc))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(descriptor.enabled ? Color.clear : Color(hex: 0xffcc99), lineWidth: 2)
+        )
         .cornerRadius(12)
     }
 }
@@ -339,10 +341,17 @@ struct MechanicalPlaceholderView: View {
                 Text(kind.displayName)
                     .font(.system(size: 40, weight: .semibold))
                     .foregroundColor(Color(hex: 0xffcc99))
+                Text("Coming Soon")
+                    .font(.title2.weight(.bold))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 8)
+                    .background(Color(hex: 0xffcc99))
+                    .foregroundColor(.black)
+                    .cornerRadius(12)
                 Text(kind.summary)
                     .foregroundColor(AppTheme.primaryText)
                     .multilineTextAlignment(.center)
-                Text("Reusable board/result protocols are in place; puzzle-specific movement rules and solver registration are reserved for a future implementation.")
+                Text("This puzzle intentionally routes here until its movement rules, input editor, and solver are ready. Placeholder board, move/piece, and solver files are already in place so the section stays organized.")
                     .font(.caption)
                     .foregroundColor(AppTheme.secondaryText)
                     .multilineTextAlignment(.center)
