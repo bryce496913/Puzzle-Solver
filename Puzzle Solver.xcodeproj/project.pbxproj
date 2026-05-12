@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB0000012B00000100000001 /* KillerSudokuModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000022B00000100000001 /* KillerSudokuModels.swift */; };
+		AB0000032B00000100000001 /* KillerSudokuSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000042B00000100000001 /* KillerSudokuSolver.swift */; };
+		AB0000052B00000100000001 /* NonogramModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000062B00000100000001 /* NonogramModels.swift */; };
+		AB0000072B00000100000001 /* NonogramSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000082B00000100000001 /* NonogramSolver.swift */; };
+		AB0000092B00000100000001 /* KakuroModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000A2B00000100000001 /* KakuroModels.swift */; };
+		AB00000B2B00000100000001 /* KakuroSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000C2B00000100000001 /* KakuroSolver.swift */; };
+		AB00000D2B00000100000001 /* SlitherlinkModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000E2B00000100000001 /* SlitherlinkModels.swift */; };
+		AB00000F2B00000100000001 /* SlitherlinkSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000102B00000100000001 /* SlitherlinkSolver.swift */; };
 		AA00000B2B00000100000001 /* ExperimentalPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */; };
 		AA0000092B00000100000001 /* ExperimentalPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */; };
 		AA0000052B00000100000001 /* MechanicalPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */; };
@@ -49,6 +57,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AB0000022B00000100000001 /* KillerSudokuModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuModels.swift; sourceTree = "<group>"; };
+		AB0000042B00000100000001 /* KillerSudokuSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuSolver.swift; sourceTree = "<group>"; };
+		AB0000062B00000100000001 /* NonogramModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramModels.swift; sourceTree = "<group>"; };
+		AB0000082B00000100000001 /* NonogramSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramSolver.swift; sourceTree = "<group>"; };
+		AB00000A2B00000100000001 /* KakuroModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroModels.swift; sourceTree = "<group>"; };
+		AB00000C2B00000100000001 /* KakuroSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroSolver.swift; sourceTree = "<group>"; };
+		AB00000E2B00000100000001 /* SlitherlinkModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlitherlinkModels.swift; sourceTree = "<group>"; };
+		AB0000102B00000100000001 /* SlitherlinkSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlitherlinkSolver.swift; sourceTree = "<group>"; };
 		AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalPuzzleViews.swift; sourceTree = "<group>"; };
 		AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalPuzzleModels.swift; sourceTree = "<group>"; };
 		AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleModels.swift; sourceTree = "<group>"; };
@@ -133,6 +149,14 @@
 				EE18DB772B939DD000B3843E /* PuzzleSolver.swift */,
 				AA0000022B00000100000001 /* LogicPuzzleModels.swift */,
 				AA0000042B00000100000001 /* LogicPuzzleViews.swift */,
+				AB0000022B00000100000001 /* KillerSudokuModels.swift */,
+				AB0000042B00000100000001 /* KillerSudokuSolver.swift */,
+				AB0000062B00000100000001 /* NonogramModels.swift */,
+				AB0000082B00000100000001 /* NonogramSolver.swift */,
+				AB00000A2B00000100000001 /* KakuroModels.swift */,
+				AB00000C2B00000100000001 /* KakuroSolver.swift */,
+				AB00000E2B00000100000001 /* SlitherlinkModels.swift */,
+				AB0000102B00000100000001 /* SlitherlinkSolver.swift */,
 				AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */,
 				AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */,
 				AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */,
@@ -305,6 +329,14 @@
 				EE18DB782B939DD000B3843E /* PuzzleSolver.swift in Sources */,
 				AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */,
 				AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */,
+				AB0000012B00000100000001 /* KillerSudokuModels.swift in Sources */,
+				AB0000032B00000100000001 /* KillerSudokuSolver.swift in Sources */,
+				AB0000052B00000100000001 /* NonogramModels.swift in Sources */,
+				AB0000072B00000100000001 /* NonogramSolver.swift in Sources */,
+				AB0000092B00000100000001 /* KakuroModels.swift in Sources */,
+				AB00000B2B00000100000001 /* KakuroSolver.swift in Sources */,
+				AB00000D2B00000100000001 /* SlitherlinkModels.swift in Sources */,
+				AB00000F2B00000100000001 /* SlitherlinkSolver.swift in Sources */,
 				AA0000052B00000100000001 /* MechanicalPuzzleModels.swift in Sources */,
 				AA0000072B00000100000001 /* MechanicalPuzzleViews.swift in Sources */,
 				AA0000092B00000100000001 /* ExperimentalPuzzleModels.swift in Sources */,
