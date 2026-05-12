@@ -22,10 +22,10 @@ enum LogicPuzzleKind: String, CaseIterable, Identifiable, Hashable {
     var summary: String {
         switch self {
         case .sudoku: return "Place 1–9 so every row, column, and box contains each digit once."
-        case .killerSudoku: return "Sudoku with cage sums that constrain groups of cells. Planned for a future update."
-        case .nonogram: return "Paint cells using row and column clue runs to reveal a picture. Planned for a future update."
-        case .kakuro: return "Fill crossword-style number runs that add to clue sums without repeats. Planned for a future update."
-        case .slitherlink: return "Draw one continuous loop around numbered clue cells. Planned for a future update."
+        case .killerSudoku: return "Sudoku with cage sums that constrain groups of cells."
+        case .nonogram: return "Paint cells using row and column clue runs to reveal a picture."
+        case .kakuro: return "Fill crossword-style number runs that add to clue sums without repeats."
+        case .slitherlink: return "Draw one continuous loop around numbered clue cells. Validator available; full solver unavailable."
         }
     }
 

@@ -1412,6 +1412,7 @@ enum SolveState: String, CaseIterable, Equatable {
     case solved
     case invalid
     case unsolvable
+    case noSolution
     case timedOut
     case failed
     case unsupported
@@ -1423,7 +1424,7 @@ enum SolveState: String, CaseIterable, Equatable {
         case .solving: return "Solving…"
         case .solved: return "Solved"
         case .invalid: return "Check your puzzle"
-        case .unsolvable: return "This puzzle cannot be solved"
+        case .unsolvable, .noSolution: return "This puzzle cannot be solved"
         case .timedOut: return "Solver took too long"
         case .failed: return "Could not solve this one"
         case .unsupported: return "Solver unavailable"
@@ -1437,7 +1438,7 @@ enum SolveState: String, CaseIterable, Equatable {
         case .solving: return "Looking for a safe solution."
         case .solved: return "Solution ready."
         case .invalid: return "Please check the puzzle and try again."
-        case .unsolvable: return "This layout is not solvable."
+        case .unsolvable, .noSolution: return "This layout is not solvable."
         case .timedOut: return "Try a simpler scramble or raise the limit."
         case .failed: return "Please try another puzzle."
         case .unsupported: return "This mode is not supported yet."

@@ -692,6 +692,8 @@ enum JigsawPuzzleValidator {
     }
 }
 
+typealias JigsawSolveResult = VisualPuzzleSolveResult<JigsawPuzzle, String>
+
 struct JigsawSolveOptions {
     let timeout: TimeInterval
     let maxNodes: Int
@@ -701,9 +703,10 @@ struct JigsawSolveOptions {
 
 final class JigsawSolver {
     // This placeholder intentionally returns .unsupported while preserving the same VisualPuzzleResult shape used by other image-like puzzles.
-    // Future work should detect pieces, classify edge shapes, rank compatible placements by image
-    // continuity, and then present a guided assembly plan. The current status is intentionally unavailable.
-    func solve(_ board: JigsawPuzzle, options: JigsawSolveOptions = .default) -> VisualPuzzleSolveResult<JigsawPuzzle, String> {
+    // Future approach: image segmentation to isolate pieces, edge detection to classify contours,
+    // shape matching for tabs/blanks, color/texture matching along candidate seams, and placement
+    // optimization to choose a globally consistent assembly plan. The current status is intentionally unavailable.
+    func solve(_ board: JigsawPuzzle, options: JigsawSolveOptions = .default) -> JigsawSolveResult {
         let startedAt = Date()
         _ = JigsawPuzzleValidator.validate(board)
         SolverDebugLogger.shared.log("JigsawSolver: placeholder returned unsupported")
@@ -718,3 +721,6 @@ final class JigsawSolver {
         )
     }
 }
+
+
+typealias JigsawPuzzleSolver = JigsawSolver

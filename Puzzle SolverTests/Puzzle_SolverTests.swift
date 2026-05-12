@@ -628,4 +628,78 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(chess.state, .solved)
     }
 
+
+    // MARK: - Newly implemented placeholder-mode solver coverage
+
+    func testKillerSudokuSolvedBoardSatisfiesCages() throws {
+        let solved = SudokuBoard(values: [
+            [5, 3, 4, 6, 7, 8, 9, 1, 2],
+            [6, 7, 2, 1, 9, 5, 3, 4, 8],
+            [1, 9, 8, 3, 4, 2, 5, 6, 7],
+            [8, 5, 9, 7, 6, 1, 4, 2, 3],
+            [4, 2, 6, 8, 5, 3, 7, 9, 1],
+            [7, 1, 3, 9, 2, 4, 8, 5, 6],
+            [9, 6, 1, 5, 3, 7, 2, 8, 4],
+            [2, 8, 7, 4, 1, 9, 6, 3, 5],
+            [3, 4, 5, 2, 8, 6, 1, 7, 9]
+        ])
+        let board = KillerSudokuBoard(cells: solved.cells, cages: [KillerSudokuCage(targetSum: 8, cells: [LogicGridCoordinate(row: 0, column: 0), LogicGridCoordinate(row: 0, column: 1)])])
+
+        let result = KillerSudokuSolver().solve(board, options: KillerSudokuSolveOptions(maxNodes: 100, timeout: 1))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertNotNil(result.solvedBoard)
+    }
+
+    func testNonogramSimpleCrossSolves() throws {
+        let board = NonogramBoard(
+            cells: Array(repeating: Array(repeating: .unknown, count: 3), count: 3),
+            rowClues: [[1], [3], [1]].map { $0.map { NonogramClueRun(length: $0) } },
+            columnClues: [[1], [3], [1]].map { $0.map { NonogramClueRun(length: $0) } }
+        )
+
+        let result = NonogramSolver().solve(board, options: NonogramSolveOptions(maxNodes: 100, timeout: 1))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.solvedBoard?.cells[1], [.filled, .filled, .filled])
+    }
+
+    func testKakuroSingleAcrossRunSolves() throws {
+        let runCells = [LogicGridCoordinate(row: 0, column: 0), LogicGridCoordinate(row: 0, column: 1)]
+        let board = KakuroBoard(cells: [[.value(nil), .value(nil)]], runs: [KakuroRun(sum: 3, direction: .across, cells: runCells)])
+
+        let result = KakuroSolver().solve(board, options: KakuroSolveOptions(maxNodes: 100, timeout: 1))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(Set(runCells.compactMap { coord -> Int? in
+            if case .value(let value) = result.solvedBoard?.cells[coord.row][coord.column] { return value }
+            return nil
+        }), Set([1, 2]))
+    }
+
+    func testSlitherlinkValidatorReturnsUnsupportedSafely() throws {
+        let result = SlitherlinkSolver().solve(.placeholder, options: SlitherlinkSolveOptions(timeout: 0, maxNodes: 0))
+
+        XCTAssertEqual(result.state, .unsupported)
+        XCTAssertLessThan(result.elapsedTime, 1)
+    }
+
+    func testKlotskiAlreadySolvedReturnsSolvedPathOnly() throws {
+        let result = KlotskiSolver().solve(.example, options: MechanicalPuzzleSolveOptions(timeout: 1, maxNodes: 100))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertTrue(result.moves.isEmpty)
+        XCTAssertEqual(result.playbackFrames.count, 1)
+    }
+
+    func testPegSolitaireTinyBoardSolvesOneJump() throws {
+        let board = PegSolitaireBoard(cells: [[.peg, .peg, .empty]])
+
+        let result = PegSolitaireSolver().solve(board, options: MechanicalPuzzleSolveOptions(timeout: 1, maxNodes: 100))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.moves.count, 1)
+        XCTAssertEqual(result.playbackFrames.count, 2)
+    }
+
 }

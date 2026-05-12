@@ -22,9 +22,9 @@ enum MechanicalPuzzleKind: String, CaseIterable, Identifiable, Hashable {
         case .rushHour:
             return "Slide blocking cars until the red car reaches the exit."
         case .klotski:
-            return "Coming soon: sliding block escape puzzles with polished board and solver placeholders ready for future rules."
+            return "Slide blocks until the goal block reaches its exit."
         case .pegSolitaire:
-            return "Coming soon: jump-and-remove peg puzzles with polished board and solver placeholders ready for future rules."
+            return "Jump pegs over adjacent pegs into empty cells until one peg remains."
         }
     }
 
