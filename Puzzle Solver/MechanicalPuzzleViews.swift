@@ -29,12 +29,9 @@ struct MechanicalPuzzleMenuView: View {
 
                 NavigationLink(destination: MainMenuView()) {
                     Text("Back")
-                        .font(.title3)
-                        .frame(width: 120, height: 40)
-                        .background(Color(hex: 0xccccff))
-                        .foregroundColor(.black)
-                        .cornerRadius(10)
+                        .appButtonLabel()
                 }
+                .buttonStyle(AppSecondaryButtonStyle())
             }
             .padding()
         }
@@ -114,30 +111,22 @@ struct RushHourInputView: View {
                     HStack(spacing: 16) {
                         Button(action: { board = .example }) {
                             Text("Load Example")
-                                .frame(width: 140, height: 42)
-                                .background(Color(hex: 0xccffff))
-                                .foregroundColor(.black)
-                                .cornerRadius(10)
+                                .appButtonLabel()
                         }
+                        .buttonStyle(AppSecondaryButtonStyle())
 
                         NavigationLink(destination: RushHourResultView(initialBoard: board)) {
                             Text("Solve")
-                                .font(.title3.weight(.semibold))
-                                .frame(width: 140, height: 42)
-                                .background(Color(hex: 0x99ffcc))
-                                .foregroundColor(.black)
-                                .cornerRadius(10)
+                                .appButtonLabel()
                         }
+                        .buttonStyle(AppPrimaryButtonStyle())
                     }
 
                     NavigationLink(destination: MechanicalPuzzleMenuView()) {
                         Text("Back")
-                            .font(.title3)
-                            .frame(width: 110, height: 38)
-                            .background(Color(hex: 0xccccff))
-                            .foregroundColor(.black)
-                            .cornerRadius(10)
+                            .appButtonLabel()
                     }
+                    .buttonStyle(AppSecondaryButtonStyle())
                 }
                 .padding()
             }
@@ -189,12 +178,9 @@ struct RushHourResultView: View {
 
                     NavigationLink(destination: RushHourInputView()) {
                         Text("Back")
-                            .font(.title3)
-                            .frame(width: 110, height: 38)
-                            .background(Color(hex: 0xccccff))
-                            .foregroundColor(.black)
-                            .cornerRadius(10)
+                            .appButtonLabel()
                     }
+                    .buttonStyle(AppSecondaryButtonStyle())
                 }
                 .padding()
             }
@@ -219,7 +205,7 @@ struct RushHourResultView: View {
             }
             .disabled(selectedFrameIndex >= frames.count - 1)
         }
-        .buttonStyle(PlaybackButtonStyle())
+        .buttonStyle(AppSecondaryButtonStyle())
     }
 
     private var statusText: String {
@@ -319,18 +305,6 @@ private struct RushHourBoardView: View {
     }
 }
 
-private struct PlaybackButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(configuration.isPressed ? Color(hex: 0xffcc99) : Color(hex: 0xccffff))
-            .foregroundColor(.black)
-            .cornerRadius(8)
-    }
-}
-
 struct MechanicalPlaceholderView: View {
     let kind: MechanicalPuzzleKind
 
@@ -345,9 +319,9 @@ struct MechanicalPlaceholderView: View {
                     .font(.title2.weight(.bold))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 8)
-                    .background(Color(hex: 0xffcc99))
-                    .foregroundColor(.black)
-                    .cornerRadius(12)
+                    .foregroundColor(AppTheme.text.opacity(0.62))
+                    .background(AppTheme.surface.opacity(0.58))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 Text(kind.summary)
                     .foregroundColor(AppTheme.primaryText)
                     .multilineTextAlignment(.center)
@@ -358,12 +332,9 @@ struct MechanicalPlaceholderView: View {
                     .padding(.horizontal)
                 NavigationLink(destination: MechanicalPuzzleMenuView()) {
                     Text("Back")
-                        .font(.title3)
-                        .frame(width: 110, height: 38)
-                        .background(Color(hex: 0xccccff))
-                        .foregroundColor(.black)
-                        .cornerRadius(10)
+                        .appButtonLabel()
                 }
+                .buttonStyle(AppSecondaryButtonStyle())
             }
             .padding()
         }

@@ -98,14 +98,13 @@ struct OnboardingView: View {
                     Text(selectedPage == pages.count - 1 ? "Start Solving" : "Continue")
                         .appButtonLabel()
                 }
-                .buttonStyle(AppButtonStyle(color: selectedPage == pages.count - 1 ? AppTheme.green : AppTheme.blue))
+                .buttonStyle(AppPrimaryButtonStyle())
                 .accessibilityHint(selectedPage == pages.count - 1 ? "Opens the main puzzle menu." : "Shows the next onboarding page.")
 
                 Button("Skip") {
                     completeOnboarding()
                 }
-                .font(.callout.weight(.semibold))
-                .foregroundColor(AppTheme.secondaryText)
+                .buttonStyle(AppSecondaryButtonStyle())
                 .accessibilityHint("Skips onboarding and opens the main puzzle menu.")
                 .padding(.bottom, 16)
             }
