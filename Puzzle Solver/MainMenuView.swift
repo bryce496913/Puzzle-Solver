@@ -60,6 +60,17 @@ struct MainMenuView: View {
                     }
                 )
 
+                NavigationLink(
+                    destination: MechanicalPuzzleMenuView(),
+                    label: {
+                        Text("Mechanical Puzzles")
+                            .foregroundColor(.black)
+                            .frame(width: 200, height: 50)
+                            .background(Color(hex: 0xffcc99))
+                            .cornerRadius(10)
+                    }
+                )
+
                 #if DEBUG
                 Toggle("Debug logging", isOn: $debugLoggingEnabled)
                     .foregroundColor(.white)

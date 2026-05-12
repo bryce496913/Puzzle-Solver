@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA0000052B00000100000001 /* MechanicalPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */; };
+		AA0000072B00000100000001 /* MechanicalPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */; };
 		AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000022B00000100000001 /* LogicPuzzleModels.swift */; };
 		AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000042B00000100000001 /* LogicPuzzleViews.swift */; };
 		EE18DB782B939DD000B3843E /* PuzzleSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE18DB772B939DD000B3843E /* PuzzleSolver.swift */; };
@@ -45,6 +47,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleModels.swift; sourceTree = "<group>"; };
+		AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleViews.swift; sourceTree = "<group>"; };
 		AA0000022B00000100000001 /* LogicPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleModels.swift; sourceTree = "<group>"; };
 		AA0000042B00000100000001 /* LogicPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleViews.swift; sourceTree = "<group>"; };
 		EE18DB772B939DD000B3843E /* PuzzleSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleSolver.swift; sourceTree = "<group>"; };
@@ -125,6 +129,8 @@
 				EE18DB772B939DD000B3843E /* PuzzleSolver.swift */,
 				AA0000022B00000100000001 /* LogicPuzzleModels.swift */,
 				AA0000042B00000100000001 /* LogicPuzzleViews.swift */,
+				AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */,
+				AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */,
 				EE82B69C2B69CE2800B2BC49 /* PuzzleGridView.swift */,
 				EE38313C2B950E3E00D96988 /* MovementGridView.swift */,
 				EE82B69E2B69CE4100B2BC49 /* PuzzleTileView.swift */,
@@ -293,6 +299,8 @@
 				EE18DB782B939DD000B3843E /* PuzzleSolver.swift in Sources */,
 				AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */,
 				AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */,
+				AA0000052B00000100000001 /* MechanicalPuzzleModels.swift in Sources */,
+				AA0000072B00000100000001 /* MechanicalPuzzleViews.swift in Sources */,
 				EE82B6912B69973D00B2BC49 /* MainMenuView.swift in Sources */,
 				EE82B69F2B69CE4100B2BC49 /* PuzzleTileView.swift in Sources */,
 				EE82B69B2B69B41400B2BC49 /* SolvingView.swift in Sources */,

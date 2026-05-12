@@ -1504,7 +1504,10 @@ enum PuzzleModeRegistry {
         PuzzleModeDiagnostic(name: "Killer Sudoku", enabled: false, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Nonogram", enabled: false, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Kakuro", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Slitherlink", enabled: false, solverAvailable: false)
+        PuzzleModeDiagnostic(name: "Slitherlink", enabled: false, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Rush Hour", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "Klotski", enabled: false, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Peg Solitaire", enabled: false, solverAvailable: false)
     ]
 }
 
