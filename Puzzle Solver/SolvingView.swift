@@ -19,6 +19,7 @@ struct SolvingView: View {
     @State private var isSolving = false
     @State private var didFinish = false
     @State private var didStart = false
+    @State private var playbackStepIndex = 0
     @AppStorage("UseCompactSolutionPreviews") private var useCompactSolutionPreviews = true
 
     private var displayedSolutionSteps: [SlidingPuzzleStep] {
@@ -85,6 +86,15 @@ struct SolvingView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical)
+
+                    if puzzleSize == 3, solveState == .solved, !solutionSteps.isEmpty {
+                        SlidingPuzzlePlaybackView(
+                            steps: solutionSteps,
+                            moves: movementList.filter { $0.contains(". ") },
+                            activeStepIndex: $playbackStepIndex
+                        )
+                        .padding(.bottom)
+                    }
 
                     if !solutionSteps.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -184,6 +194,7 @@ struct SolvingView: View {
         solveState = state
         failureDetail = userFacingDetail(for: state, reason: reason)
         solutionSteps = state == .solved ? steps : []
+        playbackStepIndex = 0
         movementList = format(state: state, moves: moves)
         progressText = progressSummary(state: state, moveCount: moves.count, elapsedTime: elapsedTime, nodes: nodes)
         SolverDiagnosticsStore.shared.record(modeName: "\(puzzleSize)×\(puzzleSize) Sliding Puzzle", state: state, detail: failureDetail ?? progressText)
@@ -216,6 +227,171 @@ struct SolvingView: View {
             lines.append("\(index + 1). \(move)")
         }
         return lines
+    }
+}
+
+struct SlidingPuzzlePlaybackView: View {
+    let steps: [SlidingPuzzleStep]
+    let moves: [String]
+    @Binding var activeStepIndex: Int
+
+    @State private var currentStepIndex = 0
+    @State private var isPlaying = false
+    @State private var playbackSpeed = 0.7
+    @State private var playbackTimer: Timer?
+
+    private var totalSteps: Int { max(steps.count - 1, 0) }
+    private var currentStep: SlidingPuzzleStep? { steps.indices.contains(currentStepIndex) ? steps[currentStepIndex] : nil }
+    private var currentMoveLabel: String {
+        guard currentStepIndex > 0, currentStepIndex - 1 < moves.count else { return "Start" }
+        return moves[currentStepIndex - 1]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("3×3 Sliding Puzzle")
+                .font(.title2)
+                .foregroundColor(AppTheme.primaryText)
+
+            if let currentStep {
+                SlidingPuzzleAnimatedBoardView(board: currentStep.board)
+                    .frame(maxWidth: .infinity)
+                    .padding(12)
+                    .background(AppTheme.surface.opacity(0.78))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+
+            Text(currentStepStatus)
+                .foregroundColor(AppTheme.secondaryText)
+                .font(.subheadline)
+
+            HStack(spacing: 8) {
+                playbackButton("Previous", action: previousStep, style: AppSecondaryButtonStyle(), enabled: currentStepIndex > 0)
+                playbackButton("Next", action: nextStep, style: AppSecondaryButtonStyle(), enabled: currentStepIndex < totalSteps)
+            }
+
+            HStack(spacing: 8) {
+                playbackButton("Play", action: startPlayback, style: AppPrimaryButtonStyle(), enabled: !isPlaying && currentStepIndex < totalSteps)
+                playbackButton("Pause", action: pausePlayback, style: AppSecondaryButtonStyle(), enabled: isPlaying)
+                playbackButton("Restart", action: restartPlayback, style: AppSecondaryButtonStyle(), enabled: !steps.isEmpty)
+            }
+
+            if !moves.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Successful Moves")
+                        .foregroundColor(AppTheme.primaryText)
+                        .font(.headline)
+                    ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
+                        Text(move)
+                            .foregroundColor(index + 1 == currentStepIndex ? AppTheme.highlight : AppTheme.primaryText)
+                            .fontWeight(index + 1 == currentStepIndex ? .semibold : .regular)
+                    }
+                }
+            } else {
+                Text("Already solved.")
+                    .foregroundColor(AppTheme.secondaryText)
+            }
+        }
+        .padding()
+        .background(AppTheme.surface.opacity(0.52))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onAppear {
+            currentStepIndex = 0
+            activeStepIndex = 0
+        }
+        .onDisappear {
+            pausePlayback()
+        }
+    }
+
+    private var currentStepStatus: String {
+        "Step \(currentStepIndex) of \(totalSteps) • Current move: \(currentMoveLabel) • Move count: \(totalSteps)"
+    }
+
+    @ViewBuilder
+    private func playbackButton<S: ButtonStyle>(_ title: String, action: @escaping () -> Void, style: S, enabled: Bool) -> some View {
+        Button(title, action: action)
+            .buttonStyle(style)
+            .disabled(!enabled)
+    }
+
+    private func startPlayback() {
+        guard !isPlaying, currentStepIndex < totalSteps else { return }
+        isPlaying = true
+        playbackTimer?.invalidate()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: playbackSpeed, repeats: true) { _ in
+            DispatchQueue.main.async {
+                if currentStepIndex < totalSteps {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        currentStepIndex += 1
+                        activeStepIndex = currentStepIndex
+                    }
+                } else {
+                    pausePlayback()
+                }
+            }
+        }
+    }
+
+    private func pausePlayback() {
+        isPlaying = false
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+    }
+
+    private func restartPlayback() {
+        pausePlayback()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            currentStepIndex = 0
+            activeStepIndex = 0
+        }
+    }
+
+    private func nextStep() {
+        pausePlayback()
+        guard currentStepIndex < totalSteps else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            currentStepIndex += 1
+            activeStepIndex = currentStepIndex
+        }
+    }
+
+    private func previousStep() {
+        pausePlayback()
+        guard currentStepIndex > 0 else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            currentStepIndex -= 1
+            activeStepIndex = currentStepIndex
+        }
+    }
+}
+
+struct SlidingPuzzleAnimatedBoardView: View {
+    let board: SlidingPuzzleBoard
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 8) {
+            ForEach(Array(board.tiles.enumerated()), id: \.offset) { _, tile in
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(tile == 0 ? AppTheme.background.opacity(0.75) : AppTheme.accent.opacity(0.9))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(tile == 0 ? AppTheme.highlight.opacity(0.45) : AppTheme.highlight, lineWidth: 1.25)
+                        )
+                    if tile != 0 {
+                        Text("\(tile)")
+                            .foregroundColor(AppTheme.text)
+                            .font(.headline.weight(.bold))
+                    }
+                }
+                .frame(height: 56)
+                .id(tile)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: board.tiles)
     }
 }
 
