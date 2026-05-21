@@ -25,7 +25,7 @@ struct NewPuzzleView: View {
         case .fiveByFive: return 40
         }
     }
-    private var keypadColumns: [GridItem] { Array(repeating: GridItem(.fixed(58), spacing: 10), count: puzzleSize) }
+    private var keypadColumns: [GridItem] { Array(repeating: GridItem(.flexible(minimum: 62, maximum: 96), spacing: 12), count: min(puzzleSize, 4)) }
 
     var body: some View {
         ZStack {
@@ -34,7 +34,7 @@ struct NewPuzzleView: View {
 
             ScrollView {
                 VStack(spacing: 14) {
-                    Text("Sliding Puzzle")
+                    Text("Sliding Puzzles")
                         .font(.largeTitle.weight(.bold))
                         .foregroundColor(AppTheme.cyan)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -262,8 +262,9 @@ struct KeypadView: View {
                 KeypadButton(number: number, clearButton: size * size, onTap: onTap)
             }
         }
-        .frame(maxWidth: CGFloat(size) * 72)
-        .padding()
+        .frame(maxWidth: 420)
+         .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .accessibilityElement(children: .contain)
     }
 }
@@ -278,7 +279,7 @@ struct KeypadButton: View {
             Button(action: { onTap(number) }) {
                 Text("Blank")
                     .font(.title3.weight(.semibold))
-                    .frame(width: 44, height: 44)
+                    .frame(maxWidth: .infinity, minHeight: 48)
             }
             .buttonStyle(AppDangerButtonStyle())
             .accessibilityLabel("Blank tile")
@@ -286,7 +287,7 @@ struct KeypadButton: View {
             Button(action: { onTap(number) }) {
                 Text("\(number)")
                     .font(.title3.weight(.semibold))
-                    .frame(width: 44, height: 44)
+                    .frame(maxWidth: .infinity, minHeight: 48)
             }
             .buttonStyle(AppSecondaryButtonStyle())
             .accessibilityLabel("Number \(number)")
@@ -346,6 +347,8 @@ struct TwistyPuzzleInputView: View {
                         Text(notationError)
                             .foregroundColor(Color(hex: 0xff99cc))
                     }
+
+                    CubeValidationPanel(state: currentState, selectedPuzzle: selectedPuzzle)
 
                     HStack(spacing: 12) {
                         Button("Apply Scramble") { applyScramble() }
@@ -437,10 +440,28 @@ struct TwistyPuzzleInputView: View {
         notationError = nil
         isSolving = true
         SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: .solving, detail: "Twisty solve started.")
+
+        let solveStartedAt = Date()
         CubeSolvingService.shared.solve(currentState, options: solveOptions) { result in
+            guard isSolving else { return }
             isSolving = false
             solveResult = result
             SolverDiagnosticsStore.shared.record(modeName: selectedPuzzle.displayName, state: result.status.solveState, detail: result.failureReason ?? result.status.userFacingMessage)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + solveOptions.timeout + 0.6) {
+            guard isSolving else { return }
+            isSolving = false
+            solveResult = CubeSolveResult(
+                puzzle: selectedPuzzle,
+                status: .unsupported,
+                moves: [],
+                moveCount: 0,
+                elapsedTime: Date().timeIntervalSince(solveStartedAt),
+                nodesExplored: 0,
+                failureReason: "Solver timed out. Please try a simpler scramble or try again.",
+                stepStates: []
+            )
         }
     }
 }
@@ -933,6 +954,47 @@ private enum TwistyVisualMetadata {
         case "?", "": return Color.black.opacity(0.78)
         default: return Color(hex: 0xcfc7ff)
         }
+    }
+}
+
+struct CubeValidationPanel: View {
+    let state: CubeState
+    let selectedPuzzle: TwistyPuzzleKind
+
+    private var issues: [String] {
+        guard selectedPuzzle == .twoByTwo || selectedPuzzle == .threeByThree else { return [] }
+        let unknown = state.stickers.filter { $0 == "?" || $0.isEmpty }.count
+        var messages: [String] = []
+        if unknown > 0 { messages.append("Missing stickers: \(unknown) sticker(s) are still unassigned.") }
+        for face in ["U","D","F","B","R","L"] {
+            let count = state.stickers.filter { $0 == face }.count
+            let expected = selectedPuzzle == .twoByTwo ? 4 : 9
+            if count != expected { messages.append("Incorrect color count for \(TwistyVisualMetadata.fullName(for: face)): expected \(expected), found \(count).") }
+        }
+        return messages
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Coloring validation")
+                .font(.headline)
+                .foregroundColor(AppTheme.primaryText)
+            if issues.isEmpty {
+                Text("No obvious coloring issues detected.")
+                    .font(.caption)
+                    .foregroundColor(Color(hex: 0x99ffcc))
+            } else {
+                ForEach(issues, id: \.self) { issue in
+                    Text("• \(issue)")
+                        .font(.caption)
+                        .foregroundColor(Color(hex: 0xff99cc))
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
