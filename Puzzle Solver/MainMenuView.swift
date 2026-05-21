@@ -11,7 +11,7 @@ struct MainMenuView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let menuItems: [MainMenuItem] = [
-        MainMenuItem(title: "New Puzzle", subtitle: "Create and solve a sliding puzzle.", symbol: "square.grid.3x3.fill", color: AppTheme.blue, destination: AnyView(NewPuzzleView())),
+        MainMenuItem(title: "Sliding Puzzles", subtitle: "Create and solve a sliding puzzle.", symbol: "square.grid.3x3.fill", color: AppTheme.blue, destination: AnyView(NewPuzzleView())),
         MainMenuItem(title: "Twisty Puzzles", subtitle: "Enter cube-style scrambles and sticker states.", symbol: "cube.fill", color: AppTheme.green, destination: AnyView(TwistyPuzzleInputView())),
         MainMenuItem(title: "Logic Puzzles", subtitle: "Try Sudoku and other logic-grid solvers.", symbol: "brain.head.profile", color: AppTheme.cyan, destination: AnyView(LogicPuzzleMenuView())),
         MainMenuItem(title: "Mechanical Puzzles", subtitle: "Explore movement-based mechanical puzzles.", symbol: "car.fill", color: AppTheme.amber, destination: AnyView(MechanicalPuzzleMenuView())),

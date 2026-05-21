@@ -37,7 +37,7 @@ struct LogicPuzzleMenuRow: View {
 
     var body: some View {
         NavigationLink(destination: destination) {
-            rowContent(actionLabel: descriptor.enabled ? "Open" : "Coming Soon")
+            rowContent(actionLabel: descriptor.enabled ? "Open" : "Unavailable")
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityHint(descriptor.enabled ? "Opens the puzzle input screen." : "Opens the coming soon information screen.")
@@ -45,24 +45,12 @@ struct LogicPuzzleMenuRow: View {
 
     @ViewBuilder
     private var destination: some View {
-        if descriptor.kind == .sudoku {
-            SudokuInputView()
-        } else {
-            ComingSoonView(
-                title: descriptor.kind.displayName,
-                summary: descriptor.notes,
-                plannedItems: [
-                    "Define the editable puzzle input grid.",
-                    "Add bounded validation and solving rules.",
-                    "Return ordered steps or an immediate unsupported result."
-                ],
-                architectureNotes: [
-                    "The puzzle catalog route is already registered.",
-                    "Placeholder board and solver models remain isolated from active Sudoku solving."
-                ],
-                symbol: "square.grid.3x3.square",
-                accentColor: AppTheme.cyan
-            )
+        switch descriptor.kind {
+        case .sudoku: SudokuInputView()
+        case .killerSudoku: KillerSudokuEntryView()
+        case .nonogram: NonogramEntryView()
+        case .kakuro: KakuroEntryView()
+        case .slitherlink: SlitherlinkEntryView()
         }
     }
 
@@ -98,6 +86,22 @@ struct LogicPuzzleMenuRow: View {
         .background(Color.white.opacity(0.08))
         .cornerRadius(14)
     }
+}
+
+struct KillerSudokuEntryView: View {
+    var body: some View { ComingSoonView(title: "Killer Sudoku", summary: LogicPuzzleKind.killerSudoku.summary) }
+}
+
+struct NonogramEntryView: View {
+    var body: some View { ComingSoonView(title: "Nonogram", summary: LogicPuzzleKind.nonogram.summary) }
+}
+
+struct KakuroEntryView: View {
+    var body: some View { ComingSoonView(title: "Kakuro", summary: LogicPuzzleKind.kakuro.summary) }
+}
+
+struct SlitherlinkEntryView: View {
+    var body: some View { ComingSoonView(title: "Slitherlink", summary: LogicPuzzleKind.slitherlink.summary) }
 }
 
 

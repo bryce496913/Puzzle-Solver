@@ -12,30 +12,26 @@ struct MechanicalPuzzleMenuView: View {
         ZStack {
             AppTheme.backgroundGradient.ignoresSafeArea()
 
-            VStack(spacing: 18) {
-                Text("Mechanical Puzzles")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundColor(Color(hex: 0xffcc99))
-                    .multilineTextAlignment(.center)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Mechanical Puzzles")
+                        .font(.largeTitle)
+                        .foregroundColor(Color(hex: 0xccffff))
 
-                ForEach(MechanicalPuzzleCatalog.descriptors) { descriptor in
-                    NavigationLink(destination: destination(for: descriptor.kind)) {
-                        MechanicalPuzzleMenuCard(descriptor: descriptor)
+                    Text("Movement-based puzzles with bounded solvers and safe fallback routes.")
+                        .foregroundColor(AppTheme.secondaryText)
+
+                    ForEach(MechanicalPuzzleCatalog.descriptors) { descriptor in
+                        NavigationLink(destination: destination(for: descriptor.kind)) {
+                            mechanicalRow(descriptor: descriptor)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .accessibilityHint(descriptor.enabled ? "Opens the active solver." : "Opens the coming soon screen.")
                 }
-
-                Spacer()
-
-                NavigationLink(destination: MainMenuView()) {
-                    Text("Back")
-                        .appButtonLabel()
-                }
-                .buttonStyle(AppSecondaryButtonStyle())
+                .padding()
             }
-            .padding()
         }
-        .navigationBarHidden(true)
+        .navigationTitle("Mechanical Puzzles")
     }
 
     @ViewBuilder
@@ -43,56 +39,54 @@ struct MechanicalPuzzleMenuView: View {
         switch kind {
         case .rushHour:
             RushHourInputView()
-        case .klotski, .pegSolitaire:
-            ComingSoonView(
-                title: kind.displayName,
-                summary: kind.summary,
-                plannedItems: [
-                    "Finish the movement-rule validator.",
-                    "Add an input editor for custom board states.",
-                    "Enable a bounded solver with ordered move playback."
-                ],
-                architectureNotes: [
-                    "Placeholder board, move/piece, and solver files are already organized.",
-                    "The puzzle card routes here until solving is intentionally enabled."
-                ],
-                symbol: kind == .klotski ? "rectangle.grid.2x2.fill" : "circle.grid.cross.fill",
-                accentColor: AppTheme.amber
-            )
+        case .klotski:
+            KlotskiEntryView()
+        case .pegSolitaire:
+            PegSolitaireEntryView()
         }
+    }
+
+    private func mechanicalRow(descriptor: MechanicalPuzzleDescriptor) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(descriptor.kind.displayName)
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primaryText)
+                Text(descriptor.notes)
+                    .font(.caption)
+                    .foregroundColor(AppTheme.secondaryText)
+                Text(descriptor.solverAvailable ? "Solver available" : "Solver planned for a future update")
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background((descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99)).opacity(0.2))
+                    .foregroundColor(descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99))
+                    .cornerRadius(8)
+            }
+            Spacer()
+            Text(descriptor.enabled ? "Open" : "Unavailable")
+                .font(.caption.bold())
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(descriptor.enabled ? AppTheme.accent : AppTheme.surface.opacity(0.58))
+                .foregroundColor(descriptor.enabled ? AppTheme.text : AppTheme.text.opacity(0.62))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .padding()
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(14)
     }
 }
 
-private struct MechanicalPuzzleMenuCard: View {
-    let descriptor: MechanicalPuzzleDescriptor
-
+struct KlotskiEntryView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(descriptor.kind.displayName)
-                    .font(.title3.weight(.semibold))
-                Spacer()
-                Text(descriptor.statusLabel)
-                    .font(.caption.weight(.bold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(descriptor.enabled ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99))
-                    .cornerRadius(6)
-            }
-            Text(descriptor.statusDetail)
-                .font(.caption.weight(.semibold))
-            Text(descriptor.notes)
-                .font(.caption)
-        }
-        .foregroundColor(.black)
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(descriptor.enabled ? Color(hex: 0xccffff) : Color(hex: 0xfff0cc))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(descriptor.enabled ? Color.clear : Color(hex: 0xffcc99), lineWidth: 2)
-        )
-        .cornerRadius(12)
+        ComingSoonView(title: "Klotski", summary: MechanicalPuzzleKind.klotski.summary)
+    }
+}
+
+struct PegSolitaireEntryView: View {
+    var body: some View {
+        ComingSoonView(title: "Peg Solitaire", summary: MechanicalPuzzleKind.pegSolitaire.summary)
     }
 }
 
