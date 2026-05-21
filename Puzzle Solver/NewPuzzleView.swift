@@ -453,14 +453,13 @@ struct TwistyPuzzleInputView: View {
             guard isSolving else { return }
             isSolving = false
             solveResult = CubeSolveResult(
+                status: .timeout,
                 puzzle: selectedPuzzle,
-                status: .unsupported,
                 moves: [],
-                moveCount: 0,
-                elapsedTime: Date().timeIntervalSince(solveStartedAt),
-                nodesExplored: 0,
+                steps: [],
                 failureReason: "Solver timed out. Please try a simpler scramble or try again.",
-                stepStates: []
+                elapsedTime: Date().timeIntervalSince(solveStartedAt),
+                nodesExplored: 0
             )
         }
     }
