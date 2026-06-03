@@ -136,17 +136,17 @@ private struct OnboardingPageView: View {
     var body: some View {
         VStack(spacing: 18) {
             Image(systemName: page.symbol)
-                .font(.system(size: 52, weight: .semibold))
+                .font(.system(size: 42, weight: .semibold))
                 .foregroundColor(page.color)
                 .accessibilityHidden(true)
 
             Text(page.title)
-                .font(.title2.weight(.bold))
+                .font(AppTextStyle.h1)
                 .foregroundColor(AppTheme.primaryText)
                 .multilineTextAlignment(.center)
 
             Text(page.message)
-                .font(.body)
+                .font(AppTextStyle.paragraph)
                 .foregroundColor(AppTheme.secondaryText)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)

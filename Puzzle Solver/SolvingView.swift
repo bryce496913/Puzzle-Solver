@@ -45,7 +45,7 @@ struct SolvingView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(solveState.friendlyTitle)
-                        .font(.title)
+                        .font(AppTextStyle.h1)
                         .foregroundColor(statusColor)
 
                     if isSolving {
@@ -59,18 +59,18 @@ struct SolvingView: View {
 
                 Text(progressText)
                     .foregroundColor(AppTheme.secondaryText)
-                    .font(.subheadline)
+                    .font(AppTextStyle.paragraph)
 
                 if let failureDetail {
                     Text(failureDetail)
                         .foregroundColor(AppTheme.primaryText)
-                        .font(.body)
+                        .font(AppTextStyle.paragraph)
                 }
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        Text("Movement List:")
-                            .font(.title2)
+                        Text("Successful solution path")
+                            .font(AppTextStyle.h2)
                             .foregroundColor(AppTheme.primaryText)
                             .padding(.bottom)
 
@@ -98,21 +98,21 @@ struct SolvingView: View {
 
                     if !solutionSteps.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Solution Path:")
-                                .font(.title2)
+                            Text("Board previews")
+                                .font(AppTextStyle.h2)
                                 .foregroundColor(AppTheme.primaryText)
 
                             ForEach(Array(displayedSolutionSteps.enumerated()), id: \.offset) { index, step in
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(index == 0 ? "Start" : "Step \(index): \(step.move?.rawValue ?? "Move")")
                                         .foregroundColor(AppTheme.secondaryText)
-                                        .font(.caption)
+                                        .font(AppTextStyle.paragraph)
                                     MovementGridView(boardState: step.board.toGrid(), tileSize: puzzleSize == 4 ? 30 : 36, spacing: 4)
                                 }
                             }
                             if useCompactSolutionPreviews && solutionSteps.count > displayedSolutionSteps.count {
                                 Text("Showing first \(displayedSolutionSteps.count) of \(solutionSteps.count) board previews to keep scrolling smooth.")
-                                    .font(.caption)
+                                    .font(AppTextStyle.paragraph)
                                     .foregroundColor(AppTheme.secondaryText)
                             }
                         }
@@ -250,7 +250,7 @@ struct SlidingPuzzlePlaybackView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("3×3 Sliding Puzzle")
-                .font(.title2)
+                .font(AppTextStyle.h2)
                 .foregroundColor(AppTheme.primaryText)
 
             if let currentStep {
@@ -263,7 +263,7 @@ struct SlidingPuzzlePlaybackView: View {
 
             Text(currentStepStatus)
                 .foregroundColor(AppTheme.secondaryText)
-                .font(.subheadline)
+                .font(AppTextStyle.paragraph)
 
             HStack(spacing: 8) {
                 playbackButton("Previous", action: previousStep, style: AppSecondaryButtonStyle(), enabled: currentStepIndex > 0)
@@ -280,7 +280,7 @@ struct SlidingPuzzlePlaybackView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Successful Moves")
                         .foregroundColor(AppTheme.primaryText)
-                        .font(.headline)
+                        .font(AppTextStyle.h2)
                     ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
                         Text(move)
                             .foregroundColor(index + 1 == currentStepIndex ? AppTheme.highlight : AppTheme.primaryText)
