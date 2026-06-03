@@ -33,10 +33,11 @@ struct MovementTileView: View {
 
     var body: some View {
         Text(number.map(String.init) ?? " ")
-            .font(.system(size: max(14, size * 0.45), weight: .semibold))
-            .foregroundColor(.white)
+            .font(AppTextStyle.h2)
+            .fontWeight(.semibold)
+            .foregroundColor(AppTheme.text)
             .frame(width: size, height: size)
-            .background(Color.blue)
+            .background(AppTheme.accent)
             .cornerRadius(max(6, size * 0.2))
             .padding(2)
     }

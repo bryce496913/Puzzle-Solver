@@ -15,7 +15,8 @@ struct PuzzleTileView: View {
 
     var body: some View {
         Text(number.map(String.init) ?? "")
-            .font(.system(size: max(16, size * 0.42), weight: .semibold))
+            .font(AppTextStyle.h2)
+            .fontWeight(.semibold)
             .frame(width: size, height: size)
             .background(backgroundColor)
             .foregroundColor(foregroundColor)

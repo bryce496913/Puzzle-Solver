@@ -76,10 +76,12 @@ struct SolvingView: View {
 
                         if movementList.isEmpty {
                             Text(emptyMovementMessage)
+                                .font(AppTextStyle.paragraph)
                                 .foregroundColor(AppTheme.secondaryText)
                         } else {
                             ForEach(Array(movementList.enumerated()), id: \.offset) { _, movement in
                                 Text(movement)
+                                    .font(AppTextStyle.paragraph)
                                     .foregroundColor(AppTheme.primaryText)
                             }
                         }
@@ -283,12 +285,14 @@ struct SlidingPuzzlePlaybackView: View {
                         .font(AppTextStyle.h2)
                     ForEach(Array(moves.enumerated()), id: \.offset) { index, move in
                         Text(move)
+                            .font(AppTextStyle.paragraph)
                             .foregroundColor(index + 1 == currentStepIndex ? AppTheme.highlight : AppTheme.primaryText)
                             .fontWeight(index + 1 == currentStepIndex ? .semibold : .regular)
                     }
                 }
             } else {
                 Text("Already solved.")
+                    .font(AppTextStyle.paragraph)
                     .foregroundColor(AppTheme.secondaryText)
             }
         }
@@ -383,8 +387,9 @@ struct SlidingPuzzleAnimatedBoardView: View {
                         )
                     if tile != 0 {
                         Text("\(tile)")
+                            .font(AppTextStyle.h2)
+                            .fontWeight(.bold)
                             .foregroundColor(AppTheme.text)
-                            .font(.headline.weight(.bold))
                     }
                 }
                 .frame(height: 56)
