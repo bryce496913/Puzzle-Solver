@@ -42,16 +42,23 @@ struct SlidingPuzzleInputView: View {
 
     @State private var selectedTile: Int? = 0
     @State private var gridNumbers: [[Int?]] = SlidingPuzzleInputView.emptyGrid
+    @State private var blankTile: Int?
     @State private var initialState: [[Int?]] = SlidingPuzzleInputView.emptyGrid
     @State private var validationMessage = "Select a tile, then choose a number or blank."
 
     private let puzzleSize = 3
-    private let tileSpacing: CGFloat = 8
     private let keypadColumns = Array(repeating: GridItem(.flexible(minimum: 54), spacing: 10), count: 3)
     private var usedNumbers: Set<Int> { Set(gridNumbers.flatMap { $0.compactMap { $0 } }) }
     private var missingNumbers: [Int] { (1..<9).filter { !usedNumbers.contains($0) } }
-    private var blankCount: Int { gridNumbers.flatMap { $0 }.filter { $0 == nil }.count }
-    private var isComplete: Bool { usedNumbers.count == 8 && blankCount == 1 }
+    private var unassignedTileCount: Int {
+        gridNumbers.enumerated().reduce(0) { total, rowPair in
+            let (row, values) = rowPair
+            return total + values.enumerated().filter { column, value in
+                value == nil && blankTile != row * puzzleSize + column
+            }.count
+        }
+    }
+    private var isComplete: Bool { usedNumbers.count == 8 && blankTile != nil && unassignedTileCount == 0 }
     private var board: SlidingPuzzleBoard? { SlidingPuzzleBoard.fromGrid(gridNumbers, size: puzzleSize) }
     private var validationResult: SlidingPuzzleValidationResult? { board.map(SlidingPuzzlePlaceholderValidator.validate) }
     private var canSolve: Bool { isComplete && validationResult?.state == .solved }
@@ -63,6 +70,7 @@ struct SlidingPuzzleInputView: View {
 
                 SlidingBoardInputPreview(
                     gridNumbers: gridNumbers,
+                    blankTile: blankTile,
                     selectedTile: selectedTile,
                     onSelect: selectTile(row:column:)
                 )
@@ -129,9 +137,7 @@ struct SlidingPuzzleInputView: View {
 
     private var canPlaceBlank: Bool {
         guard let selectedTile else { return false }
-        let row = selectedTile / puzzleSize
-        let column = selectedTile % puzzleSize
-        return gridNumbers[row][column] != nil || blankCount >= 1
+        return blankTile == nil || blankTile == selectedTile
     }
 
     private var validationText: String {
@@ -146,6 +152,12 @@ struct SlidingPuzzleInputView: View {
         if !missingNumbers.isEmpty {
             return "Missing: \(missingNumbers.map(String.init).joined(separator: ", "))"
         }
+        if blankTile == nil {
+            return "Choose one tile and mark it as Blank."
+        }
+        if unassignedTileCount > 0 {
+            return "Fill \(unassignedTileCount) empty tile\(unassignedTileCount == 1 ? "" : "s") before solving."
+        }
         return validationMessage
     }
 
@@ -159,6 +171,8 @@ struct SlidingPuzzleInputView: View {
         let row = selectedTile / puzzleSize
         let column = selectedTile % puzzleSize
         gridNumbers[row][column] = number
+        if blankTile == selectedTile { blankTile = nil }
+        updateInitialState()
         self.selectedTile = nextEmptyTile(after: selectedTile)
         validationMessage = "Placed \(number)."
     }
@@ -168,6 +182,8 @@ struct SlidingPuzzleInputView: View {
         let row = selectedTile / puzzleSize
         let column = selectedTile % puzzleSize
         gridNumbers[row][column] = nil
+        blankTile = selectedTile
+        updateInitialState()
         self.selectedTile = nextEmptyTile(after: selectedTile)
         validationMessage = "Marked row \(row + 1), column \(column + 1) as the blank tile."
     }
@@ -179,7 +195,7 @@ struct SlidingPuzzleInputView: View {
             let candidate = (index + offset) % total
             let row = candidate / puzzleSize
             let column = candidate % puzzleSize
-            if gridNumbers[row][column] == nil && candidate != index { return candidate }
+            if gridNumbers[row][column] == nil && candidate != index && candidate != blankTile { return candidate }
         }
         return nil
     }
@@ -190,6 +206,7 @@ struct SlidingPuzzleInputView: View {
 
     private func loadExample() {
         gridNumbers = PuzzlePresets.sliding3x3Medium.toGrid()
+        blankTile = Self.blankTileIndex(in: gridNumbers, size: puzzleSize)
         initialState = gridNumbers
         selectedTile = nil
         validationMessage = "Example loaded and ready to solve."
@@ -197,16 +214,27 @@ struct SlidingPuzzleInputView: View {
 
     private func resetPuzzle() {
         gridNumbers = Self.emptyGrid
+        blankTile = nil
         initialState = Self.emptyGrid
         selectedTile = 0
         validationMessage = "Select a tile, then choose a number or blank."
     }
 
     private static let emptyGrid = Array(repeating: Array(repeating: Optional<Int>.none, count: 3), count: 3)
+
+    private static func blankTileIndex(in grid: [[Int?]], size: Int) -> Int? {
+        for row in 0..<size {
+            for column in 0..<size where grid[row][column] == nil {
+                return row * size + column
+            }
+        }
+        return nil
+    }
 }
 
 private struct SlidingBoardInputPreview: View {
     let gridNumbers: [[Int?]]
+    let blankTile: Int?
     let selectedTile: Int?
     let onSelect: (Int, Int) -> Void
 
@@ -217,6 +245,7 @@ private struct SlidingBoardInputPreview: View {
                     ForEach(0..<3, id: \.self) { column in
                         let value = gridNumbers[row][column]
                         let index = row * 3 + column
+                        let isBlankTile = blankTile == index
                         Button(action: { onSelect(row, column) }) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -226,15 +255,15 @@ private struct SlidingBoardInputPreview: View {
                                             .stroke(selectedTile == index ? AppTheme.highlight : AppTheme.text.opacity(value == nil ? 0.42 : 0.08), lineWidth: selectedTile == index ? 3 : 1)
                                     )
 
-                                Text(value.map(String.init) ?? "Blank")
+                                Text(value.map(String.init) ?? (isBlankTile ? "Blank" : "Empty"))
                                     .font(AppTextStyle.h2)
                                     .foregroundColor(AppTheme.text)
                                     .minimumScaleFactor(0.75)
                             }
                             .frame(height: 68)
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        .accessibilityLabel(value.map { "Tile \($0)" } ?? "Blank tile")
+                        .buttonStyle(AppSecondaryButtonStyle())
+                        .accessibilityLabel(value.map { "Tile \($0)" } ?? (isBlankTile ? "Blank tile" : "Empty tile"))
                         .accessibilityValue(selectedTile == index ? "Selected" : "Not selected")
                     }
                 }
@@ -251,19 +280,24 @@ private struct SlidingKeypadButton: View {
     let action: () -> Void
 
     var body: some View {
+        if isBlank {
+            keypadButton.buttonStyle(AppDangerButtonStyle(isDisabledAppearance: isUsed))
+        } else {
+            keypadButton.buttonStyle(AppSecondaryButtonStyle(isDisabledAppearance: isUsed))
+        }
+    }
+
+    private var keypadButton: some View {
         Button(action: action) {
             Text(title)
-                .font(AppTextStyle.h2)
+                .appButtonLabel()
                 .foregroundColor(AppTheme.text.opacity(isUsed ? 0.48 : 1))
-                .frame(maxWidth: .infinity, minHeight: 48)
-                .background((isBlank ? AppTheme.highlight : AppTheme.surface).opacity(isUsed ? 0.42 : 1))
+                .frame(maxWidth: .infinity)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(isHighlighted && !isUsed ? AppTheme.accent : AppTheme.text.opacity(0.18), lineWidth: 1.5)
+                        .stroke(isHighlighted && !isUsed ? AppTheme.highlight : AppTheme.text.opacity(0.18), lineWidth: 1.5)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 

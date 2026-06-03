@@ -175,7 +175,8 @@ struct SudokuCellView: View {
 
     var body: some View {
         Text(cell.value.map(String.init) ?? "")
-            .font(.system(size: 22, weight: cell.isGiven ? .bold : .regular, design: .rounded))
+            .font(AppTextStyle.h2)
+            .fontWeight(cell.isGiven ? .bold : .regular)
             .foregroundColor(cell.isGiven ? .black : Color(hex: 0x003366))
             .frame(width: 34, height: 34)
             .background(backgroundColor)
@@ -232,6 +233,7 @@ struct SudokuResultView: View {
 
                         if let failureReason = result.failureReason {
                             Text(failureReason)
+                                .font(AppTextStyle.paragraph)
                                 .foregroundColor(AppTheme.primaryText)
                         }
 
@@ -262,6 +264,7 @@ struct SudokuResultView: View {
                         }
                     } else {
                         Text("Preparing Sudoku solver…")
+                            .font(AppTextStyle.paragraph)
                             .foregroundColor(AppTheme.secondaryText)
                     }
                 }

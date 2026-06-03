@@ -1490,26 +1490,26 @@ struct PuzzleModeDiagnostic: Identifiable, Equatable {
 enum PuzzleModeRegistry {
     static let diagnostics: [PuzzleModeDiagnostic] = [
         PuzzleModeDiagnostic(name: "3×3 Sliding Puzzle", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "4×4 Sliding Puzzle", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "4×4 Sliding Puzzle", enabled: true, solverAvailable: false),
         PuzzleModeDiagnostic(name: "5×5 Sliding Puzzle", enabled: true, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "2×2 Cube", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "3×3 Cube", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "Pyraminx", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "Skewb", enabled: true, solverAvailable: true),
+        PuzzleModeDiagnostic(name: "2×2 Cube", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "3×3 Cube", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Pyraminx", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Skewb", enabled: true, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Megaminx", enabled: true, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Square-1", enabled: true, solverAvailable: false),
         PuzzleModeDiagnostic(name: "Sudoku", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "Killer Sudoku", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Nonogram", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Kakuro", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Slitherlink", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Rush Hour", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "Klotski", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Peg Solitaire", enabled: false, solverAvailable: false),
-        PuzzleModeDiagnostic(name: "Maze", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "Chess Mate-in-N", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "Chess Best Move", enabled: true, solverAvailable: true),
-        PuzzleModeDiagnostic(name: "Jigsaw Solver", enabled: false, solverAvailable: false)
+        PuzzleModeDiagnostic(name: "Killer Sudoku", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Nonogram", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Kakuro", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Slitherlink", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Rush Hour", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Klotski", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Peg Solitaire", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Maze", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Chess Mate-in-N", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Chess Best Move", enabled: true, solverAvailable: false),
+        PuzzleModeDiagnostic(name: "Jigsaw Solver", enabled: true, solverAvailable: false)
     ]
 }
 
