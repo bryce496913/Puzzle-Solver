@@ -2,118 +2,101 @@
 //  MainMenuView.swift
 //  Puzzle Solver
 //
-//  Created by Bryce on 30/1/24.
+//  V1 App Store-ready home menu.
 //
 
 import SwiftUI
 
 struct MainMenuView: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private let menuItems: [MainMenuItem] = [
-        MainMenuItem(title: "Sliding Puzzles", subtitle: "Create and solve a sliding puzzle.", symbol: "square.grid.3x3.fill", color: AppTheme.blue, destination: AnyView(NewPuzzleView())),
-        MainMenuItem(title: "Cubes / Twisty", subtitle: "Enter cube-style scrambles and sticker states.", symbol: "cube.fill", color: AppTheme.green, destination: AnyView(TwistyPuzzleInputView())),
-        MainMenuItem(title: "Logic Puzzles", subtitle: "Try Sudoku and other logic-grid solvers.", symbol: "brain.head.profile", color: AppTheme.cyan, destination: AnyView(LogicPuzzleMenuView())),
-        MainMenuItem(title: "Mechanical Puzzles", subtitle: "Explore movement-based mechanical puzzles.", symbol: "car.fill", color: AppTheme.amber, destination: AnyView(MechanicalPuzzleMenuView())),
-        MainMenuItem(title: "Visual / Experimental", subtitle: "Preview visual, graph, maze, chess, and jigsaw modes.", symbol: "puzzlepiece.extension.fill", color: AppTheme.pink, destination: AnyView(ExperimentalPuzzleMenuView())),
-        MainMenuItem(title: "How It Works", subtitle: "Learn what Version 1 can solve safely.", symbol: "questionmark.circle.fill", color: AppTheme.lavender, destination: AnyView(HowView()))
-    ]
+    private let categories = PuzzleCategory.allCases
 
     var body: some View {
-        ZStack {
-            AppTheme.backgroundGradient
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    header
-
-                    LazyVStack(spacing: 14) {
-                        ForEach(menuItems) { item in
-                            NavigationLink(destination: item.destination) {
-                                MainMenuCard(item: item)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
+        AppScreenContainer(
+            title: "Puzzle Solver",
+            subtitle: "A focused V1 release with only reliable solvers active and every other mode safely parked."
+        ) {
+            LazyVStack(spacing: 12) {
+                ForEach(categories) { category in
+                    NavigationLink(destination: destination(for: category)) {
+                        categoryCard(category)
                     }
-
-                    NavigationLink(destination: SettingsView()) {
-                        Label("Settings", systemImage: "gearshape.fill")
-                            .font(.headline.weight(.semibold))
-                            .frame(maxWidth: .infinity, minHeight: 50)
-                    }
-                    .buttonStyle(AppSecondaryButtonStyle())
-                    .accessibilityHint("Opens app appearance, onboarding, and TestFlight readiness settings.")
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .padding()
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: reduceMotion)
+
+                NavigationLink(destination: SettingsView()) {
+                    settingsCard
+                }
+                .buttonStyle(PlainButtonStyle())
             }
         }
         .navigationBarHidden(true)
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Puzzle")
-                    .appTitleStyle(color: AppTheme.pink)
-                Text("Solver")
-                    .appTitleStyle(color: AppTheme.cyan)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Puzzle Solver")
-
-            Text("Choose a puzzle type, enter its current state, and get a bounded Version 1 result.")
-                .font(.body)
-                .foregroundColor(AppTheme.secondaryText)
+    @ViewBuilder
+    private func destination(for category: PuzzleCategory) -> some View {
+        switch category {
+        case .sliding: NewPuzzleView()
+        case .twisty: TwistyPlaceholderMenuView()
+        case .logic: LogicPuzzleMenuView()
+        case .mechanical: MechanicalPuzzleMenuView()
+        case .visual: ExperimentalPuzzleMenuView()
         }
     }
-}
 
-private struct MainMenuItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let symbol: String
-    let color: Color
-    let destination: AnyView
-}
-
-private struct MainMenuCard: View {
-    let item: MainMenuItem
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: item.symbol)
-                .font(.title2.weight(.semibold))
-                .foregroundColor(.black)
-                .frame(width: 48, height: 48)
-                .background(item.color)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    private func categoryCard(_ category: PuzzleCategory) -> some View {
+        let activeCount = PuzzleAvailabilityCatalog.descriptors(in: category).filter { $0.status.isActive }.count
+        return HStack(alignment: .top, spacing: 12) {
+            Image(systemName: category.icon)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(AppTheme.text)
+                .frame(width: 42, height: 42)
+                .background(AppTheme.accent)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.title)
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(AppTheme.primaryText)
-                Text(item.subtitle)
-                    .font(.subheadline)
-                    .foregroundColor(AppTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(category.rawValue).appH2()
+                Text(category.subtitle).appParagraph().fixedSize(horizontal: false, vertical: true)
+                Text(activeCount == 0 ? "V1 placeholders" : "\(activeCount) active V1 solver\(activeCount == 1 ? "" : "s")")
+                    .font(AppTextStyle.h3)
+                    .foregroundColor(AppTheme.text)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background((activeCount == 0 ? AppTheme.highlight : AppTheme.accent).opacity(0.45))
+                    .clipShape(Capsule())
             }
 
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.footnote.weight(.bold))
-                .foregroundColor(AppTheme.secondaryText)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(AppTheme.text.opacity(0.72))
+                .padding(.top, 14)
                 .accessibilityHidden(true)
         }
-        .padding()
-        .background(AppTheme.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .appCardStyle()
         .accessibilityElement(children: .combine)
-        .accessibilityHint("Opens \(item.title).")
+    }
+
+    private var settingsCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(AppTheme.text)
+                .frame(width: 38, height: 38)
+                .background(AppTheme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Settings").appH2()
+                Text("Appearance and lightweight V1 review preferences.").appParagraph()
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(AppTheme.text.opacity(0.72))
+        }
+        .appCardStyle()
     }
 }
 
@@ -126,58 +109,46 @@ struct SettingsView: View {
     private var buildNumber: String { Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1" }
 
     var body: some View {
-        Form {
-            Section(header: Text("Appearance"), footer: Text("System keeps the app matched to iOS, while Light and Dark are useful for TestFlight review passes.")) {
+        AppScreenContainer(title: "Settings", subtitle: "Keep the V1 experience predictable during review and QA.") {
+            VStack(alignment: .leading, spacing: 14) {
+                AppSectionHeader("Appearance", subtitle: "Choose a preferred presentation while preserving the V1 black/surface/accent palette.")
                 Picker("Theme", selection: $preferredAppearance) {
                     ForEach(AppAppearanceOption.allCases) { option in
                         Text(option.title).tag(option.rawValue)
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())
-            }
 
-            Section(header: Text("Solving"), footer: Text("Compact previews reduce memory and rendering work on large solution paths.")) {
-                Toggle("Compact solution previews", isOn: $useCompactSolutionPreviews)
-            }
+                Toggle("Use compact solution previews", isOn: $useCompactSolutionPreviews)
+                    .font(AppTextStyle.h3)
+                    .foregroundColor(AppTheme.text)
 
-            Section(header: Text("Onboarding")) {
                 Button("Show onboarding again") {
                     hasCompletedOnboarding = false
                 }
                 .buttonStyle(AppSecondaryButtonStyle())
-                .accessibilityHint("Returns to the Version 1 onboarding flow.")
-            }
 
-            Section(header: Text("TestFlight")) {
-                SettingsValueRow(title: "Version", value: appVersion)
-                SettingsValueRow(title: "Build", value: buildNumber)
-                Label("App icon, launch screen, signing, and Version 1 build settings are configured.", systemImage: "checkmark.seal.fill")
-                    .foregroundColor(.green)
-                    .font(.footnote)
+                Text("Version \(appVersion) (\(buildNumber))")
+                    .appParagraph()
             }
+            .appCardStyle()
         }
-        .navigationTitle("Settings")
     }
 }
 
-private struct SettingsValueRow: View {
-    let title: String
-    let value: String
+struct TwistyPlaceholderMenuView: View {
+    private let descriptors = PuzzleAvailabilityCatalog.descriptors(in: .twisty)
 
     var body: some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value)
-                .foregroundColor(AppTheme.secondaryText)
-        }
-    }
-}
-
-struct MainMenuView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            MainMenuView()
+        AppScreenContainer(title: PuzzleCategory.twisty.rawValue, subtitle: PuzzleCategory.twisty.subtitle) {
+            LazyVStack(spacing: 12) {
+                ForEach(descriptors) { descriptor in
+                    NavigationLink(destination: AppPlaceholderScreen(descriptor: descriptor)) {
+                        AppPuzzleCard(descriptor: descriptor)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
         }
     }
 }

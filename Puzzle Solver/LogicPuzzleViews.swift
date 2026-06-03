@@ -2,108 +2,37 @@
 //  LogicPuzzleViews.swift
 //  Puzzle Solver
 //
-//  SwiftUI screens for reusable logic-grid puzzles.
+//  SwiftUI screens for V1 logic puzzles.
 //
 
 import SwiftUI
 
 struct LogicPuzzleMenuView: View {
+    private let descriptors = PuzzleAvailabilityCatalog.descriptors(in: .logic)
+
     var body: some View {
-        ZStack {
-            AppTheme.backgroundGradient.ignoresSafeArea()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text("Logic Puzzles")
-                        .font(.largeTitle)
-                        .foregroundColor(Color(hex: 0xccffff))
-
-                    Text("Logic-grid puzzles use a separate architecture from the twisty and sliding puzzle systems.")
-                        .foregroundColor(AppTheme.secondaryText)
-
-                    ForEach(LogicPuzzleCatalog.descriptors) { descriptor in
-                        LogicPuzzleMenuRow(descriptor: descriptor)
+        AppScreenContainer(title: PuzzleCategory.logic.rawValue, subtitle: PuzzleCategory.logic.subtitle) {
+            LazyVStack(spacing: 12) {
+                ForEach(descriptors) { descriptor in
+                    NavigationLink(destination: destination(for: descriptor)) {
+                        AppPuzzleCard(descriptor: descriptor)
                     }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(!descriptor.status.isInteractive)
                 }
-                .padding()
             }
         }
-        .navigationTitle("Logic Puzzles")
-    }
-}
-
-struct LogicPuzzleMenuRow: View {
-    let descriptor: LogicPuzzleDescriptor
-
-    var body: some View {
-        NavigationLink(destination: destination) {
-            rowContent(actionLabel: descriptor.enabled ? "Open" : "Unavailable")
-        }
-        .buttonStyle(PlainButtonStyle())
-        .accessibilityHint(descriptor.enabled ? "Opens the puzzle input screen." : "Opens the coming soon information screen.")
     }
 
     @ViewBuilder
-    private var destination: some View {
-        switch descriptor.kind {
-        case .sudoku: SudokuInputView()
-        case .killerSudoku: KillerSudokuEntryView()
-        case .nonogram: NonogramEntryView()
-        case .kakuro: KakuroEntryView()
-        case .slitherlink: SlitherlinkEntryView()
+    private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
+        if descriptor.id == "sudoku", descriptor.status == .active {
+            SudokuInputView()
+        } else {
+            AppPlaceholderScreen(descriptor: descriptor)
         }
     }
-
-    private func rowContent(actionLabel: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(descriptor.kind.displayName)
-                    .font(.headline)
-                    .foregroundColor(AppTheme.primaryText)
-                Text(descriptor.notes)
-                    .font(.caption)
-                    .foregroundColor(AppTheme.secondaryText)
-                Text(descriptor.solverAvailable ? "Solver available" : "Coming soon")
-                    .font(.caption2.bold())
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background((descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99)).opacity(0.2))
-                    .foregroundColor(descriptor.solverAvailable ? Color(hex: 0x99ffcc) : Color(hex: 0xffcc99))
-                    .cornerRadius(8)
-            }
-
-            Spacer()
-
-            Text(actionLabel)
-                .font(.caption.bold())
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(descriptor.enabled ? AppTheme.accent : AppTheme.surface.opacity(0.58))
-                .foregroundColor(descriptor.enabled ? AppTheme.text : AppTheme.text.opacity(0.62))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-        .padding()
-        .background(Color.white.opacity(0.08))
-        .cornerRadius(14)
-    }
 }
-
-struct KillerSudokuEntryView: View {
-    var body: some View { ComingSoonView(title: "Killer Sudoku", summary: LogicPuzzleKind.killerSudoku.summary) }
-}
-
-struct NonogramEntryView: View {
-    var body: some View { ComingSoonView(title: "Nonogram", summary: LogicPuzzleKind.nonogram.summary) }
-}
-
-struct KakuroEntryView: View {
-    var body: some View { ComingSoonView(title: "Kakuro", summary: LogicPuzzleKind.kakuro.summary) }
-}
-
-struct SlitherlinkEntryView: View {
-    var body: some View { ComingSoonView(title: "Slitherlink", summary: LogicPuzzleKind.slitherlink.summary) }
-}
-
 
 struct LogicGridView<CellContent: View>: View {
     let rows: Int
@@ -146,20 +75,8 @@ struct SudokuInputView: View {
     private var conflicts: Set<LogicGridCoordinate> { SudokuValidator.conflictingCoordinates(in: board) }
 
     var body: some View {
-        ZStack {
-            AppTheme.backgroundGradient.ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 18) {
-                    VStack(spacing: 6) {
-                        Text("Sudoku")
-                            .font(.largeTitle)
-                            .foregroundColor(Color(hex: 0xccffff))
-                        Text("Enter givens, validate the board, then solve using the reusable logic puzzle solver.")
-                            .font(.caption)
-                            .foregroundColor(AppTheme.secondaryText)
-                            .multilineTextAlignment(.center)
-                    }
+        AppScreenContainer(title: "Sudoku", subtitle: "Enter givens, validate conflicts, then solve with bounded feedback.") {
+                VStack(spacing: 14) {
 
                     SudokuGridView(board: board, selectedCoordinate: selectedCoordinate, conflictingCoordinates: conflicts) { coordinate in
                         selectedCoordinate = coordinate
@@ -186,28 +103,26 @@ struct SudokuInputView: View {
                     .disabled(!validation.canSolve)
 
                     Button("Reset") { reset() }
-                        .buttonStyle(AppDangerButtonStyle())
+                        .buttonStyle(AppResetButtonStyle())
                 }
-                .padding()
-            }
+                .appCardStyle()
         }
-        .navigationTitle("Sudoku")
         .onAppear { refreshValidation() }
     }
 
     private var validationSummary: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(validation.isValid ? "Board is valid" : "Validation issues")
-                .font(.headline)
-                .foregroundColor(validation.isValid ? Color(hex: 0x99ffcc) : Color(hex: 0xff99cc))
+                .font(AppTextStyle.h3)
+                .foregroundColor(validation.isValid ? AppTheme.text : AppTheme.highlight)
             Text(validation.summary)
-                .font(.caption)
-                .foregroundColor(AppTheme.primaryText)
+                .font(AppTextStyle.paragraph)
+                .foregroundColor(AppTheme.text)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
-        .background(Color.white.opacity(0.08))
-        .cornerRadius(12)
+        .padding(10)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func setSelectedValue(_ value: Int?) {
@@ -269,7 +184,7 @@ struct SudokuCellView: View {
 
     private var backgroundColor: Color {
         if isConflicting { return Color(hex: 0xffcccc) }
-        if isSelected { return Color(hex: 0xccffff) }
+        if isSelected { return AppTheme.text }
         return cell.isGiven ? Color(hex: 0xffffcc) : .white
     }
 }
@@ -298,14 +213,11 @@ struct SudokuResultView: View {
     @State private var didFinish = false
 
     var body: some View {
-        ZStack {
-            AppTheme.backgroundGradient.ignoresSafeArea()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+        AppScreenContainer(title: "Sudoku Result", subtitle: "Every solve ends in a clear V1 result state.") {
+                VStack(alignment: .leading, spacing: 14) {
                     HStack {
                         Text(solveState.friendlyTitle)
-                            .font(.largeTitle)
+                            .font(AppTextStyle.h1)
                             .foregroundColor(statusColor)
                         if isSolving {
                             ProgressView()
@@ -315,7 +227,7 @@ struct SudokuResultView: View {
 
                     if let result {
                         Text(summary(for: result))
-                            .font(.caption)
+                            .font(AppTextStyle.paragraph)
                             .foregroundColor(AppTheme.secondaryText)
 
                         if let failureReason = result.failureReason {
@@ -332,19 +244,19 @@ struct SudokuResultView: View {
 
                         if result.isSolved {
                             Text("Filled \(result.steps.count) cells")
-                                .font(.headline)
+                                .font(AppTextStyle.h2)
                                 .foregroundColor(AppTheme.primaryText)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 ForEach(result.steps.prefix(20)) { step in
                                     Text("R\(step.coordinate.row + 1)C\(step.coordinate.column + 1) = \(step.value)")
                                         .foregroundColor(AppTheme.primaryText)
-                                        .font(.caption)
+                                        .font(AppTextStyle.paragraph)
                                 }
                                 if result.steps.count > 20 {
                                     Text("…and \(result.steps.count - 20) more placements")
                                         .foregroundColor(AppTheme.secondaryText)
-                                        .font(.caption)
+                                        .font(AppTextStyle.paragraph)
                                 }
                             }
                         }
@@ -353,18 +265,16 @@ struct SudokuResultView: View {
                             .foregroundColor(AppTheme.secondaryText)
                     }
                 }
-                .padding()
-            }
+                .appCardStyle()
         }
-        .navigationTitle("Sudoku Result")
         .onAppear { solveSudoku() }
     }
 
     private var statusColor: Color {
         switch solveState {
-        case .solved: return Color(hex: 0x99ffcc)
-        case .validating, .solving, .idle: return Color(hex: 0xccffff)
-        default: return Color(hex: 0xff99cc)
+        case .solved: return AppTheme.accent
+        case .validating, .solving, .idle: return AppTheme.text
+        default: return AppTheme.highlight
         }
     }
 
