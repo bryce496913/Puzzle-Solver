@@ -4,7 +4,7 @@ _Date: 2026-05-12_
 
 ## Audit summary
 
-The current branch is broadly merged and wired for the Version 1 puzzle-solving scope. The codebase contains the shared design system, category navigation, active solver screens, safe placeholder routes, bounded solver options, diagnostics, and broad XCTest coverage for the implemented solver/model layers.
+The current branch is broadly merged and wired for the focused puzzle-solving scope. The codebase contains the shared design system, category navigation, active solver screens, safe placeholder routes, bounded solver options, diagnostics, and broad XCTest coverage for the implemented solver/model layers.
 
 Because this audit environment is Linux and does not include Xcode or the Apple SwiftUI SDK, a full iOS app build could not be executed here. I verified source parsing for all Swift files and model-layer parsing for the non-SwiftUI implementation files. `xcodebuild` must still be run on macOS/Xcode before release.
 
@@ -111,6 +111,6 @@ Because this audit environment is Linux and does not include Xcode or the Apple 
    - `xcodebuild -project 'Puzzle Solver.xcodeproj' -scheme 'Puzzle Solver' -destination 'platform=iOS Simulator,name=iPhone 15' clean build`
 2. Run the full XCTest suite on an iOS simulator.
 3. Add a UI smoke test that opens every main menu card, every category picker option, and every coming-soon placeholder action.
-4. Decide whether model-layer solvers for Killer Sudoku, Nonogram, Kakuro, Klotski, Peg Solitaire, Maze, and Chess should be exposed in Version 1 UI or remain documented as architecture-ready.
+4. Keep model-layer solvers for Killer Sudoku, Nonogram, Kakuro, Klotski, Peg Solitaire, Maze, and Chess documented as architecture-ready until their full app flows meet release requirements.
 5. Remove or guard remaining force unwraps in solver internals during release hardening.
 6. Start Version 2 visualization only after simulator build/test results are clean and every placeholder route has an automated open/solve feedback smoke test.

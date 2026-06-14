@@ -2,7 +2,7 @@
 //  MainMenuView.swift
 //  Puzzle Solver
 //
-//  V1 App Store-ready home menu.
+//  App Store-ready home menu.
 //
 
 import SwiftUI
@@ -13,7 +13,7 @@ struct MainMenuView: View {
     var body: some View {
         AppScreenContainer(
             title: "Puzzle Solver",
-            subtitle: "A focused V1 release with only reliable solvers active and every other mode safely parked."
+            subtitle: "A focused puzzle collection with reliable solvers and future modes safely parked."
         ) {
             LazyVStack(spacing: 12) {
                 ForEach(categories) { category in
@@ -66,7 +66,7 @@ struct MainMenuView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(category.rawValue).appH2()
                 Text(category.subtitle).appParagraph().fixedSize(horizontal: false, vertical: true)
-                Text("\(activeCount) active V1 solver\(activeCount == 1 ? "" : "s")")
+                Text("\(activeCount) active solver\(activeCount == 1 ? "" : "s")")
                     .font(AppTextStyle.h3)
                     .foregroundColor(AppTheme.text)
                     .padding(.horizontal, 8)
@@ -118,7 +118,7 @@ struct MainMenuView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Settings").appH2()
-                Text("Appearance and lightweight V1 review preferences.").appParagraph()
+                Text("Appearance and lightweight review preferences.").appParagraph()
             }
             Spacer()
             Image(systemName: "chevron.right")
@@ -138,9 +138,9 @@ struct SettingsView: View {
     private var buildNumber: String { Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1" }
 
     var body: some View {
-        AppScreenContainer(title: "Settings", subtitle: "Keep the V1 experience predictable during review and QA.") {
+        AppScreenContainer(title: "Settings", subtitle: "Keep the app experience predictable during review and QA.") {
             VStack(alignment: .leading, spacing: 14) {
-                AppSectionHeader("Appearance", subtitle: "Choose a preferred presentation while preserving the V1 black/surface/accent palette.")
+                AppSectionHeader("Appearance", subtitle: "Choose a preferred presentation while preserving the black, purple, and pink palette.")
                 HStack(spacing: 6) {
                     ForEach(AppAppearanceOption.allCases) { option in
                         Button {
@@ -377,7 +377,7 @@ struct CubeInputView: View {
             guard !didFinish else { return }
             didFinish = true
             solveState = .timedOut
-            solveResult = CubeSolveResult(status: .timeout, puzzle: kind, moves: [], steps: [], failureReason: "The bounded V1 solver timed out. Try a simpler cube state.", elapsedTime: options.timeout, nodesExplored: 0)
+            solveResult = CubeSolveResult(status: .timeout, puzzle: kind, moves: [], steps: [], failureReason: "The bounded solver timed out. Try a simpler cube state.", elapsedTime: options.timeout, nodesExplored: 0)
         }
         CubeSolvingService.shared.solve(state, options: options) { result in
             DispatchQueue.main.async {

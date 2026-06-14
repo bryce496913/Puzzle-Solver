@@ -2,7 +2,7 @@
 //  ExperimentalPuzzleViews.swift
 //  Puzzle Solver
 //
-//  V1 visual/experimental puzzle menu. All modes are placeholders.
+//  Visual/experimental puzzle menu. All modes are placeholders.
 //
 
 import SwiftUI

@@ -172,7 +172,7 @@ private struct OnboardingPage: Identifiable {
     static let pages = [
         OnboardingPage(symbol: "square.grid.3x3.fill", title: "Build your puzzle", message: "Enter sliding, logic, twisty, or mechanical puzzle states with guided input screens and examples.", color: AppTheme.blue),
         OnboardingPage(symbol: "bolt.horizontal.circle.fill", title: "Solve with feedback", message: "Solvers validate input, show bounded loading states, and return clear next steps when a puzzle cannot be solved.", color: AppTheme.green),
-        OnboardingPage(symbol: "accessibility", title: "Made for everyday use", message: "Version 1 includes Dynamic Type, VoiceOver labels, dark-mode polish, and TestFlight-ready release metadata.", color: AppTheme.pink)
+        OnboardingPage(symbol: "accessibility", title: "Made for everyday use", message: "The app includes Dynamic Type, VoiceOver labels, dark-mode polish, and TestFlight-ready release metadata.", color: AppTheme.pink)
     ]
 }
 

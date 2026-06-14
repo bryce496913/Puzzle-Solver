@@ -9,7 +9,7 @@ import XCTest
 @testable import Puzzle_Solver
 
 final class Puzzle_SolverTests: XCTestCase {
-    func testV1AvailabilityCatalogContainsOnlyApprovedActiveModes() {
+    func testAvailabilityCatalogContainsOnlyApprovedActiveModes() {
         let active = Set(PuzzleAvailabilityCatalog.all.filter { $0.status == .active }.map(\.title))
 
         XCTAssertEqual(active, Set([
@@ -18,7 +18,7 @@ final class Puzzle_SolverTests: XCTestCase {
         ]))
     }
 
-    func testV1ComingSoonCatalogContainsAllDeferredModes() {
+    func testComingSoonCatalogContainsAllDeferredModes() {
         let comingSoon = Set(PuzzleAvailabilityCatalog.all.filter { $0.status == .comingSoon }.map(\.title))
 
         XCTAssertEqual(comingSoon, Set([
@@ -153,42 +153,65 @@ final class Puzzle_SolverTests: XCTestCase {
     // MARK: - Rush Hour mechanical puzzle solver coverage
 
     func testRushHourExampleSolvesWithOrderedPlayback() throws {
-        let result = RushHourSolver().solve(RushHourBoard.example, options: MechanicalPuzzleSolveOptions(timeout: 2, maxNodes: 10_000))
+        let result = RushHourSolver().solve(RushHourBoard.example, options: RushHourSolveOptions(timeout: 2, maxStates: 10_000))
 
-        XCTAssertEqual(result.state, .solved)
-        XCTAssertFalse(result.moves.isEmpty)
-        XCTAssertEqual(result.playbackFrames.count, result.moves.count + 1)
-        XCTAssertEqual(result.playbackFrames.first?.order, 0)
-        XCTAssertTrue(result.playbackFrames.last?.board.isSolved ?? false)
+        XCTAssertEqual(result.status, .solved)
+        XCTAssertGreaterThan(result.moveCount, 0)
+        XCTAssertEqual(result.steps.count, result.moveCount + 1)
+        XCTAssertEqual(result.steps.first?.stepNumber, 0)
+        XCTAssertTrue(result.steps.last?.board.isSolved ?? false)
+        XCTAssertTrue(result.steps.dropFirst().allSatisfy { $0.moveLabel.hasPrefix("Move ") })
     }
 
     func testInvalidRushHourBoardReturnsInvalid() throws {
-        let invalid = RushHourBoard(pieces: [])
+        let invalid = RushHourBoard(vehicles: [])
 
-        let result = RushHourSolver().solve(invalid, options: MechanicalPuzzleSolveOptions(timeout: 1, maxNodes: 100))
+        let result = RushHourSolver().solve(invalid, options: RushHourSolveOptions(timeout: 1, maxStates: 100))
 
-        XCTAssertEqual(result.state, .invalid)
-        XCTAssertTrue(result.moves.isEmpty)
-        XCTAssertEqual(result.playbackFrames.count, 1)
+        XCTAssertEqual(result.status, .invalid)
+        XCTAssertTrue(result.steps.isEmpty)
+        XCTAssertEqual(result.message, "Add exactly one red target car.")
     }
 
     func testRushHourExampleHasConnectedValidVehicles() throws {
-        XCTAssertTrue(RushHourBoardAnalyzer.validate(.example))
-        XCTAssertEqual(RushHourBoard.example.targetPiece?.occupiedCoordinates.count, 2)
-        XCTAssertTrue(RushHourBoard.example.pieces.allSatisfy { piece in
-            piece.occupiedCoordinates.count == piece.size.rows * piece.size.columns
-        })
+        XCTAssertTrue(RushHourBoardValidator.validate(.example))
+        XCTAssertEqual(RushHourBoard.example.targetVehicle?.occupiedCells.count, 2)
+        XCTAssertTrue(RushHourBoard.example.vehicles.allSatisfy { $0.occupiedCells.count == $0.length })
     }
 
     func testRushHourRejectsDuplicateVehicleIdentifiers() throws {
-        let duplicateIDs = RushHourBoard(pieces: [
-            MechanicalPuzzlePiece(id: "X", label: "X", origin: MechanicalBoardCoordinate(row: 2, column: 0), size: MechanicalBoardSize(rows: 1, columns: 2), orientation: .horizontal, isPrimary: true),
-            MechanicalPuzzlePiece(id: "A", label: "A", origin: MechanicalBoardCoordinate(row: 0, column: 0), size: MechanicalBoardSize(rows: 2, columns: 1), orientation: .vertical, isPrimary: false),
-            MechanicalPuzzlePiece(id: "A", label: "A", origin: MechanicalBoardCoordinate(row: 0, column: 3), size: MechanicalBoardSize(rows: 2, columns: 1), orientation: .vertical, isPrimary: false)
+        let duplicateIDs = RushHourBoard(vehicles: [
+            RushHourVehicle(id: "X", label: "X", orientation: .horizontal, length: 2, row: 2, column: 0, style: .purple, isTarget: true),
+            RushHourVehicle(id: "A", label: "A", orientation: .vertical, length: 2, row: 0, column: 0, style: .blue, isTarget: false),
+            RushHourVehicle(id: "A", label: "A", orientation: .vertical, length: 2, row: 0, column: 3, style: .teal, isTarget: false)
         ])
 
-        XCTAssertFalse(RushHourBoardAnalyzer.validate(duplicateIDs))
-        XCTAssertEqual(RushHourSolver().solve(duplicateIDs).state, .invalid)
+        XCTAssertFalse(RushHourBoardValidator.validate(duplicateIDs))
+        XCTAssertEqual(RushHourSolver().solve(duplicateIDs).status, .invalid)
+    }
+
+    func testRushHourRejectsOverlapAndOutOfBoundsPlacement() throws {
+        let target = RushHourVehicle(id: "X", label: "X", orientation: .horizontal, length: 2, row: 2, column: 0, style: .purple, isTarget: true)
+        let overlap = RushHourVehicle(id: "A", label: "A", orientation: .vertical, length: 2, row: 1, column: 1, style: .blue, isTarget: false)
+        let outside = RushHourVehicle(id: "B", label: "B", orientation: .horizontal, length: 3, row: 5, column: 4, style: .teal, isTarget: false)
+
+        XCTAssertEqual(RushHourBoardValidator.placementIssue(for: RushHourBoard(vehicles: [target, overlap])), "Vehicles cannot overlap.")
+        XCTAssertEqual(RushHourBoardValidator.placementIssue(for: RushHourBoard(vehicles: [target, outside])), "That vehicle would extend outside the 6×6 board.")
+    }
+
+    func testRushHourRequiresOneHorizontalTarget() throws {
+        let verticalTarget = RushHourVehicle(id: "X", label: "X", orientation: .vertical, length: 2, row: 0, column: 0, style: .purple, isTarget: true)
+        XCTAssertEqual(RushHourBoard(vehicles: [verticalTarget]).validationIssue, "The red target car must be horizontal.")
+    }
+
+    func testRushHourGeneratesAllSlideDistancesAndAppliesMoves() throws {
+        let board = RushHourBoard(vehicles: [
+            RushHourVehicle(id: "X", label: "X", orientation: .horizontal, length: 2, row: 2, column: 0, style: .purple, isTarget: true)
+        ])
+        let targetMoves = board.legalMoves().filter { $0.move.vehicleID == "X" }
+
+        XCTAssertEqual(Set(targetMoves.map { $0.move.distance }), Set([1, 2, 3, 4]))
+        XCTAssertTrue(targetMoves.contains { $0.board.isSolved && $0.move.label == "Move red car right 4" })
     }
 
     // MARK: - 2×2 cube solver coverage
@@ -570,9 +593,9 @@ final class Puzzle_SolverTests: XCTestCase {
     }
 
     func testRushHourTimeoutIsBounded() throws {
-        let result = RushHourSolver().solve(RushHourBoard.example, options: MechanicalPuzzleSolveOptions(timeout: 0, maxNodes: 10_000))
+        let result = RushHourSolver().solve(RushHourBoard.example, options: RushHourSolveOptions(timeout: 0, maxStates: 10_000))
 
-        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertEqual(result.status, .timedOut)
         XCTAssertTrue(result.moves.isEmpty)
         XCTAssertLessThan(result.elapsedTime, 1)
     }
@@ -664,14 +687,14 @@ final class Puzzle_SolverTests: XCTestCase {
     func testActivePuzzleFamiliesSolveOrReturnBoundedFailureStates() throws {
         let sliding = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4Medium, options: SlidingPuzzleSolveOptions(timeout: 3, maxNodes: 120_000, maxDepth: 60))
         let sudoku = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 500_000, timeout: 5))
-        let rushHour = RushHourSolver().solve(.example, options: MechanicalPuzzleSolveOptions(timeout: 5, maxNodes: 100_000))
+        let rushHour = RushHourSolver().solve(.example, options: RushHourSolveOptions(timeout: 5, maxStates: 100_000))
         let maze = MazeSolver().solve(MazeBoard(lines: ["S..", "##.", "G.."]))
         let chessBoard = try XCTUnwrap(ChessBoard(fen: "7k/8/5KQ1/8/8/8/8/8 w - - 0 1"))
         let chess = ChessPuzzleSolver().solveMate(in: 1, board: chessBoard)
 
         XCTAssertEqual(sliding.state, .solved)
         XCTAssertEqual(sudoku.state, .solved)
-        XCTAssertEqual(rushHour.state, .solved)
+        XCTAssertEqual(rushHour.status, .solved)
         XCTAssertEqual(maze.state, .solved)
         XCTAssertEqual(chess.state, .solved)
     }

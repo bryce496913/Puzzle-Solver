@@ -189,212 +189,268 @@ protocol MechanicalPuzzleSolving {
 
 // MARK: - Rush Hour
 
-struct RushHourBoard: MechanicalPuzzleBoard, Hashable {
-    static let targetPieceID = "X"
-    static let exitRow = 2
+enum RushHourOrientation: String, CaseIterable, Identifiable, Hashable {
+    case horizontal
+    case vertical
 
-    let pieces: [MechanicalPuzzlePiece]
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+}
 
-    var kind: MechanicalPuzzleKind { .rushHour }
-    var size: MechanicalBoardSize { .rushHour }
-    var targetPiece: MechanicalPuzzlePiece? { pieces.first { $0.id == Self.targetPieceID || $0.isPrimary } }
-    var isSolved: Bool { targetPiece.map { $0.origin.column + $0.size.columns == size.columns } ?? false }
+enum RushHourVehicleStyle: Int, CaseIterable, Hashable {
+    case purple, blue, teal, orange, indigo, green
+}
 
-    init(pieces: [MechanicalPuzzlePiece]) {
-        self.pieces = pieces.sorted { $0.id < $1.id }
+struct RushHourVehicle: Identifiable, Hashable {
+    let id: String
+    let label: String
+    let orientation: RushHourOrientation
+    let length: Int
+    let row: Int
+    let column: Int
+    let style: RushHourVehicleStyle
+    let isTarget: Bool
+
+    var occupiedCells: [MechanicalBoardCoordinate] {
+        (0..<length).map { offset in
+            MechanicalBoardCoordinate(
+                row: row + (orientation == .vertical ? offset : 0),
+                column: column + (orientation == .horizontal ? offset : 0)
+            )
+        }
     }
 
-    static let example = RushHourBoard(pieces: [
-        MechanicalPuzzlePiece(id: Self.targetPieceID, label: "X", origin: MechanicalBoardCoordinate(row: 2, column: 0), size: MechanicalBoardSize(rows: 1, columns: 2), orientation: .horizontal, isPrimary: true),
-        MechanicalPuzzlePiece(id: "A", label: "A", origin: MechanicalBoardCoordinate(row: 2, column: 3), size: MechanicalBoardSize(rows: 2, columns: 1), orientation: .vertical, isPrimary: false),
-        MechanicalPuzzlePiece(id: "B", label: "B", origin: MechanicalBoardCoordinate(row: 0, column: 4), size: MechanicalBoardSize(rows: 2, columns: 1), orientation: .vertical, isPrimary: false),
-        MechanicalPuzzlePiece(id: "C", label: "C", origin: MechanicalBoardCoordinate(row: 4, column: 0), size: MechanicalBoardSize(rows: 1, columns: 2), orientation: .horizontal, isPrimary: false),
-        MechanicalPuzzlePiece(id: "D", label: "D", origin: MechanicalBoardCoordinate(row: 5, column: 3), size: MechanicalBoardSize(rows: 1, columns: 2), orientation: .horizontal, isPrimary: false)
+    func moved(by signedDistance: Int) -> RushHourVehicle {
+        RushHourVehicle(
+            id: id,
+            label: label,
+            orientation: orientation,
+            length: length,
+            row: row + (orientation == .vertical ? signedDistance : 0),
+            column: column + (orientation == .horizontal ? signedDistance : 0),
+            style: style,
+            isTarget: isTarget
+        )
+    }
+}
+
+struct RushHourMove: Identifiable, Hashable {
+    let vehicleID: String
+    let vehicleLabel: String
+    let signedDistance: Int
+    let orientation: RushHourOrientation
+    let isTarget: Bool
+
+    var id: String { "\(vehicleID)-\(signedDistance)" }
+    var distance: Int { abs(signedDistance) }
+    var direction: String {
+        if orientation == .horizontal { return signedDistance < 0 ? "left" : "right" }
+        return signedDistance < 0 ? "up" : "down"
+    }
+    var label: String {
+        let name = isTarget ? "red car" : vehicleLabel
+        return "Move \(name) \(direction) \(distance)"
+    }
+}
+
+struct RushHourBoard: Hashable {
+    static let dimension = 6
+
+    let vehicles: [RushHourVehicle]
+
+    init(vehicles: [RushHourVehicle]) {
+        self.vehicles = vehicles.sorted { $0.id < $1.id }
+    }
+
+    static let empty = RushHourBoard(vehicles: [])
+    static let example = RushHourBoard(vehicles: [
+        RushHourVehicle(id: "X", label: "X", orientation: .horizontal, length: 2, row: 2, column: 0, style: .purple, isTarget: true),
+        RushHourVehicle(id: "A", label: "A", orientation: .vertical, length: 2, row: 1, column: 2, style: .blue, isTarget: false),
+        RushHourVehicle(id: "B", label: "B", orientation: .vertical, length: 3, row: 0, column: 3, style: .teal, isTarget: false),
+        RushHourVehicle(id: "C", label: "C", orientation: .horizontal, length: 2, row: 3, column: 2, style: .orange, isTarget: false),
+        RushHourVehicle(id: "D", label: "D", orientation: .vertical, length: 2, row: 3, column: 5, style: .indigo, isTarget: false)
     ])
 
-    func occupancy(excluding excludedID: String? = nil) -> [MechanicalBoardCoordinate: String] {
-        var map: [MechanicalBoardCoordinate: String] = [:]
-        for piece in pieces where piece.id != excludedID {
-            for coordinate in piece.occupiedCoordinates {
-                map[coordinate] = piece.id
+    var targetVehicle: RushHourVehicle? { vehicles.first(where: \.isTarget) }
+    var isSolved: Bool {
+        guard let targetVehicle else { return false }
+        return targetVehicle.column + targetVehicle.length == Self.dimension
+    }
+    var validationIssue: String? { RushHourBoardValidator.validationIssue(for: self) }
+    var isValid: Bool { validationIssue == nil }
+
+    func occupancy(excluding vehicleID: String? = nil) -> [MechanicalBoardCoordinate: String] {
+        var result: [MechanicalBoardCoordinate: String] = [:]
+        for vehicle in vehicles where vehicle.id != vehicleID {
+            for cell in vehicle.occupiedCells { result[cell] = vehicle.id }
+        }
+        return result
+    }
+
+    func vehicle(at cell: MechanicalBoardCoordinate) -> RushHourVehicle? {
+        vehicles.first { $0.occupiedCells.contains(cell) }
+    }
+
+    func grid() -> [[String?]] {
+        var result = Array(repeating: Array<String?>(repeating: nil, count: Self.dimension), count: Self.dimension)
+        for vehicle in vehicles {
+            for cell in vehicle.occupiedCells where (0..<Self.dimension).contains(cell.row) && (0..<Self.dimension).contains(cell.column) {
+                result[cell.row][cell.column] = vehicle.id
             }
         }
-        return map
+        return result
     }
 
-    func piece(at coordinate: MechanicalBoardCoordinate) -> MechanicalPuzzlePiece? {
-        pieces.first { $0.occupiedCoordinates.contains(coordinate) }
+    func canPlace(_ vehicle: RushHourVehicle) -> Bool {
+        let candidate = RushHourBoard(vehicles: vehicles + [vehicle])
+        return RushHourBoardValidator.placementIssue(for: candidate) == nil
     }
 
-    func applying(_ move: MechanicalPuzzleMove) -> RushHourBoard? {
-        guard let piece = pieces.first(where: { $0.id == move.pieceID }) else { return nil }
-        let scaledDelta = MechanicalMoveDelta(row: move.delta.row * move.distance, column: move.delta.column * move.distance)
-        let movedPiece = piece.moving(by: scaledDelta)
-        var nextPieces = pieces.filter { $0.id != piece.id }
-        nextPieces.append(movedPiece)
-        let nextBoard = RushHourBoard(pieces: nextPieces)
-        return RushHourBoardAnalyzer.validate(nextBoard) ? nextBoard : nil
+    func applying(_ move: RushHourMove) -> RushHourBoard? {
+        guard let vehicle = vehicles.first(where: { $0.id == move.vehicleID }),
+              vehicle.orientation == move.orientation else { return nil }
+        let replacement = vehicle.moved(by: move.signedDistance)
+        let board = RushHourBoard(vehicles: vehicles.filter { $0.id != vehicle.id } + [replacement])
+        return RushHourBoardValidator.placementIssue(for: board) == nil ? board : nil
+    }
+
+    func legalMoves() -> [(move: RushHourMove, board: RushHourBoard)] {
+        vehicles.flatMap { vehicle in
+            [-1, 1].flatMap { direction -> [(move: RushHourMove, board: RushHourBoard)] in
+                var results: [(move: RushHourMove, board: RushHourBoard)] = []
+                var distance = 1
+                while true {
+                    let move = RushHourMove(
+                        vehicleID: vehicle.id,
+                        vehicleLabel: vehicle.label,
+                        signedDistance: direction * distance,
+                        orientation: vehicle.orientation,
+                        isTarget: vehicle.isTarget
+                    )
+                    guard let next = applying(move) else { break }
+                    results.append((move, next))
+                    distance += 1
+                }
+                return results
+            }
+        }
     }
 }
 
-enum RushHourBoardAnalyzer {
-    static func validate(_ board: RushHourBoard) -> Bool {
-        guard board.size == .rushHour, let target = board.targetPiece else { return false }
-        guard board.pieces.filter({ $0.id == RushHourBoard.targetPieceID || $0.isPrimary }).count == 1 else { return false }
-        guard target.id == RushHourBoard.targetPieceID,
-              target.isPrimary,
-              target.orientation == .horizontal,
-              target.origin.row == RushHourBoard.exitRow,
-              target.size == MechanicalBoardSize(rows: 1, columns: 2) else { return false }
-        guard Set(board.pieces.map(\.id)).count == board.pieces.count else { return false }
-        var occupied: Set<MechanicalBoardCoordinate> = []
-        for piece in board.pieces {
-            guard !piece.id.isEmpty, piece.size.rows > 0, piece.size.columns > 0 else { return false }
-            switch piece.orientation {
-            case .horizontal:
-                guard piece.size.rows == 1, (2...3).contains(piece.size.columns) else { return false }
-            case .vertical:
-                guard piece.size.columns == 1, (2...3).contains(piece.size.rows) else { return false }
-            case .single:
-                return false
-            }
-            guard piece.occupiedCoordinates.allSatisfy(board.size.contains) else { return false }
-            for coordinate in piece.occupiedCoordinates {
-                guard !occupied.contains(coordinate) else { return false }
-                occupied.insert(coordinate)
+enum RushHourBoardValidator {
+    static func placementIssue(for board: RushHourBoard) -> String? {
+        guard Set(board.vehicles.map(\.id)).count == board.vehicles.count else {
+            return "Each vehicle needs a unique identifier."
+        }
+        var occupied = Set<MechanicalBoardCoordinate>()
+        for vehicle in board.vehicles {
+            guard !vehicle.id.isEmpty, !vehicle.label.isEmpty else { return "Each vehicle needs an identifier and label." }
+            guard vehicle.length == 2 || vehicle.length == 3 else { return "Vehicles must be length 2 or 3." }
+            guard vehicle.row >= 0, vehicle.column >= 0,
+                  vehicle.occupiedCells.allSatisfy({
+                      $0.row < RushHourBoard.dimension && $0.column < RushHourBoard.dimension
+                  }) else { return "That vehicle would extend outside the 6×6 board." }
+            for cell in vehicle.occupiedCells {
+                guard occupied.insert(cell).inserted else { return "Vehicles cannot overlap." }
             }
         }
-        return true
+        return nil
     }
 
-    static func legalMoves(from board: RushHourBoard) -> [(move: MechanicalPuzzleMove, board: RushHourBoard)] {
-        board.pieces.flatMap { piece in
-            legalMoves(for: piece, on: board).compactMap { move in
-                board.applying(move).map { (move, $0) }
-            }
-        }
+    static func validationIssue(for board: RushHourBoard) -> String? {
+        if let issue = placementIssue(for: board) { return issue }
+        let targets = board.vehicles.filter(\.isTarget)
+        guard targets.count == 1 else { return "Add exactly one red target car." }
+        guard targets[0].orientation == .horizontal else { return "The red target car must be horizontal." }
+        return nil
     }
 
-    private static func legalMoves(for piece: MechanicalPuzzlePiece, on board: RushHourBoard) -> [MechanicalPuzzleMove] {
-        let directions: [MechanicalMoveDelta]
-        switch piece.orientation {
-        case .horizontal: directions = [.left, .right]
-        case .vertical: directions = [.up, .down]
-        case .single: directions = [.left, .right, .up, .down]
-        }
-
-        let occupied = board.occupancy(excluding: piece.id)
-        return directions.flatMap { direction in
-            legalMoves(for: piece, direction: direction, board: board, occupied: occupied)
-        }
-    }
-
-    private static func legalMoves(
-        for piece: MechanicalPuzzlePiece,
-        direction: MechanicalMoveDelta,
-        board: RushHourBoard,
-        occupied: [MechanicalBoardCoordinate: String]
-    ) -> [MechanicalPuzzleMove] {
-        var moves: [MechanicalPuzzleMove] = []
-        var distance = 1
-
-        while true {
-            let delta = MechanicalMoveDelta(row: direction.row * distance, column: direction.column * distance)
-            let moved = piece.moving(by: delta)
-            guard moved.occupiedCoordinates.allSatisfy(board.size.contains) else { break }
-            guard moved.occupiedCoordinates.allSatisfy({ occupied[$0] == nil }) else { break }
-            moves.append(MechanicalPuzzleMove(pieceID: piece.id, pieceLabel: piece.label, delta: direction, distance: distance))
-            distance += 1
-        }
-
-        return moves
-    }
+    static func validate(_ board: RushHourBoard) -> Bool { validationIssue(for: board) == nil }
 }
 
-final class RushHourSolver: MechanicalPuzzleSolving {
+enum RushHourSolveStatus: Equatable {
+    case solved
+    case invalid
+    case noSolution
+    case timedOut
+    case failed
+}
+
+struct RushHourSolutionStep: Identifiable, Hashable {
+    let stepNumber: Int
+    let board: RushHourBoard
+    let moveLabel: String
+
+    var id: Int { stepNumber }
+}
+
+struct RushHourSolveResult {
+    let status: RushHourSolveStatus
+    let steps: [RushHourSolutionStep]
+    let message: String?
+
+    var moveCount: Int { max(steps.count - 1, 0) }
+}
+
+struct RushHourSolveOptions {
+    let timeout: TimeInterval
+    let maxStates: Int
+
+    static let `default` = RushHourSolveOptions(timeout: 5, maxStates: 100_000)
+}
+
+final class RushHourSolver {
     private struct SearchNode {
         let board: RushHourBoard
-        let moves: [MechanicalPuzzleMove]
+        let moves: [RushHourMove]
         let path: [RushHourBoard]
     }
 
-    func solve(_ board: RushHourBoard, options: MechanicalPuzzleSolveOptions = .default) -> MechanicalPuzzleSolveResult<RushHourBoard> {
-        let start = Date()
-        SolverDebugLogger.shared.log("RushHourSolver: validation started")
-        guard RushHourBoardAnalyzer.validate(board) else {
-            SolverDebugLogger.shared.log("RushHourSolver: validation failed")
-            return finish(.invalid, board: board, reason: "Rush Hour boards need one horizontal target car on row 3 and non-overlapping pieces.", start: start, nodes: 0)
+    func solve(_ board: RushHourBoard, options: RushHourSolveOptions = .default) -> RushHourSolveResult {
+        guard let timeout = options.timeout.isFinite ? Optional(max(0, options.timeout)) : nil,
+              options.maxStates > 0 else {
+            return RushHourSolveResult(status: .failed, steps: [], message: "The solver safety settings are invalid.")
         }
-
-        SolverDebugLogger.shared.log("RushHourSolver: validation passed")
-        if board.isSolved {
-            return success(moves: [], path: [board], start: start, nodes: 0)
+        if let issue = board.validationIssue {
+            return RushHourSolveResult(status: .invalid, steps: [], message: issue)
         }
+        if board.isSolved { return solved(path: [board], moves: []) }
 
-        let deadline = start.addingTimeInterval(max(0, options.timeout))
-        var frontier = [SearchNode(board: board, moves: [], path: [board])]
+        let deadline = Date().addingTimeInterval(timeout)
+        var queue = [SearchNode(board: board, moves: [], path: [board])]
         var visited: Set<RushHourBoard> = [board]
         var cursor = 0
-        var nodes = 0
-        SolverDebugLogger.shared.log("RushHourSolver: solve started")
 
-        while cursor < frontier.count {
+        while cursor < queue.count {
             if Date() >= deadline {
-                return finish(.timedOut, board: board, reason: "Rush Hour solver exceeded the \(options.timeout)s timeout.", start: start, nodes: nodes)
+                return RushHourSolveResult(status: .timedOut, steps: [], message: "This puzzle took too long to solve. Try simplifying the board.")
             }
-            if nodes >= options.maxNodes {
-                return finish(.failed, board: board, reason: "Rush Hour solver exceeded the \(options.maxNodes) node safety limit.", start: start, nodes: nodes)
+            if visited.count >= options.maxStates {
+                return RushHourSolveResult(status: .failed, steps: [], message: "The puzzle reached the solver safety limit. Try simplifying the board.")
             }
 
-            let current = frontier[cursor]
+            let current = queue[cursor]
             cursor += 1
-            nodes += 1
-
-            for neighbor in RushHourBoardAnalyzer.legalMoves(from: current.board) {
-                guard !visited.contains(neighbor.board) else { continue }
-                let nextMoves = current.moves + [neighbor.move]
-                let nextPath = current.path + [neighbor.board]
-                if neighbor.board.isSolved {
-                    SolverDebugLogger.shared.log("RushHourSolver: solve finished solved in \(nextMoves.count) moves")
-                    return success(moves: nextMoves, path: nextPath, start: start, nodes: nodes)
-                }
+            for neighbor in current.board.legalMoves() where !visited.contains(neighbor.board) {
+                let moves = current.moves + [neighbor.move]
+                let path = current.path + [neighbor.board]
+                if neighbor.board.isSolved { return solved(path: path, moves: moves) }
                 visited.insert(neighbor.board)
-                frontier.append(SearchNode(board: neighbor.board, moves: nextMoves, path: nextPath))
+                queue.append(SearchNode(board: neighbor.board, moves: moves, path: path))
             }
         }
 
-        return finish(.unsolvable, board: board, reason: "No Rush Hour solution could be found from this layout.", start: start, nodes: nodes)
+        return RushHourSolveResult(status: .noSolution, steps: [], message: "No solution found for this board.")
     }
 
-    private func success(moves: [MechanicalPuzzleMove], path: [RushHourBoard], start: Date, nodes: Int) -> MechanicalPuzzleSolveResult<RushHourBoard> {
-        MechanicalPuzzleSolveResult(
-            kind: .rushHour,
-            state: .solved,
-            moves: moves,
-            playbackFrames: Self.makeFrames(path: path, moves: moves),
-            failureReason: nil,
-            elapsedTime: Date().timeIntervalSince(start),
-            nodesExplored: nodes
-        )
-    }
-
-    private func finish(_ state: SolveState, board: RushHourBoard, reason: String, start: Date, nodes: Int) -> MechanicalPuzzleSolveResult<RushHourBoard> {
-        SolverDebugLogger.shared.log("RushHourSolver: solve finished \(state.rawValue): \(reason)")
-        return MechanicalPuzzleSolveResult(
-            kind: .rushHour,
-            state: state,
-            moves: [],
-            playbackFrames: [OrderedMovePlaybackFrame(order: 0, move: nil, board: board, caption: "Start")],
-            failureReason: reason,
-            elapsedTime: Date().timeIntervalSince(start),
-            nodesExplored: nodes
-        )
-    }
-
-    private static func makeFrames(path: [RushHourBoard], moves: [MechanicalPuzzleMove]) -> [OrderedMovePlaybackFrame<RushHourBoard>] {
-        path.enumerated().map { index, board in
-            let move = index == 0 ? nil : moves[index - 1]
-            return OrderedMovePlaybackFrame(order: index, move: move, board: board, caption: index == 0 ? "Start" : "Step \(index): \(move?.notation ?? "Move")")
+    private func solved(path: [RushHourBoard], moves: [RushHourMove]) -> RushHourSolveResult {
+        let steps = path.enumerated().map { index, board in
+            RushHourSolutionStep(
+                stepNumber: index,
+                board: board,
+                moveLabel: index == 0 ? "Start" : moves[index - 1].label
+            )
         }
+        return RushHourSolveResult(status: .solved, steps: steps, message: nil)
     }
 }
