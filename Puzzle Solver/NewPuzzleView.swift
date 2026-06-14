@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct NewPuzzleView: View {
-    private let descriptors = PuzzleAvailabilityCatalog.descriptors(in: .sliding)
+    private let descriptors = PuzzleAvailabilityCatalog.activeDescriptors(in: .sliding)
 
     var body: some View {
         AppScreenContainer(title: PuzzleCategory.sliding.rawValue, subtitle: PuzzleCategory.sliding.subtitle) {
@@ -26,11 +26,7 @@ struct NewPuzzleView: View {
 
     @ViewBuilder
     private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
-        if descriptor.id == "sliding-3x3", descriptor.status == .active {
-            SlidingPuzzleInputView(descriptor: descriptor)
-        } else {
-            AppPlaceholderScreen(descriptor: descriptor)
-        }
+        SlidingPuzzleInputView(descriptor: descriptor)
     }
 }
 
@@ -41,15 +37,17 @@ struct SlidingPuzzleInputView: View {
     let descriptor: PuzzleAvailabilityDescriptor
 
     @State private var selectedTile: Int? = 0
-    @State private var gridNumbers: [[Int?]] = SlidingPuzzleInputView.emptyGrid
+    @State private var gridNumbers: [[Int?]]
     @State private var blankTile: Int?
-    @State private var initialState: [[Int?]] = SlidingPuzzleInputView.emptyGrid
+    @State private var initialState: [[Int?]]
     @State private var validationMessage = "Select a tile, then choose a number or blank."
 
-    private let puzzleSize = 3
-    private let keypadColumns = Array(repeating: GridItem(.flexible(minimum: 54), spacing: 10), count: 3)
+    private let puzzleSize: Int
+    private var keypadColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(minimum: 44), spacing: 8), count: puzzleSize <= 3 ? 3 : 4)
+    }
     private var usedNumbers: Set<Int> { Set(gridNumbers.flatMap { $0.compactMap { $0 } }) }
-    private var missingNumbers: [Int] { (1..<9).filter { !usedNumbers.contains($0) } }
+    private var missingNumbers: [Int] { (1..<(puzzleSize * puzzleSize)).filter { !usedNumbers.contains($0) } }
     private var unassignedTileCount: Int {
         gridNumbers.enumerated().reduce(0) { total, rowPair in
             let (row, values) = rowPair
@@ -58,10 +56,19 @@ struct SlidingPuzzleInputView: View {
             }.count
         }
     }
-    private var isComplete: Bool { usedNumbers.count == 8 && blankTile != nil && unassignedTileCount == 0 }
+    private var isComplete: Bool { usedNumbers.count == puzzleSize * puzzleSize - 1 && blankTile != nil && unassignedTileCount == 0 }
     private var board: SlidingPuzzleBoard? { SlidingPuzzleBoard.fromGrid(gridNumbers, size: puzzleSize) }
     private var validationResult: SlidingPuzzleValidationResult? { board.map(SlidingPuzzlePlaceholderValidator.validate) }
     private var canSolve: Bool { isComplete && validationResult?.state == .solved }
+
+    init(descriptor: PuzzleAvailabilityDescriptor) {
+        self.descriptor = descriptor
+        let size = Int(descriptor.id.suffix(3).prefix(1)) ?? 3
+        puzzleSize = size
+        let grid = Self.emptyGrid(size: size)
+        _gridNumbers = State(initialValue: grid)
+        _initialState = State(initialValue: grid)
+    }
 
     var body: some View {
         AppScreenContainer(title: descriptor.title, subtitle: descriptor.shortDescription) {
@@ -72,6 +79,7 @@ struct SlidingPuzzleInputView: View {
                     gridNumbers: gridNumbers,
                     blankTile: blankTile,
                     selectedTile: selectedTile,
+                    size: puzzleSize,
                     onSelect: selectTile(row:column:)
                 )
                 .frame(maxWidth: .infinity)
@@ -87,7 +95,7 @@ struct SlidingPuzzleInputView: View {
                 AppSectionHeader("Available tiles", subtitle: "Used numbers are dimmed. Choose Blank for the empty space.")
 
                 LazyVGrid(columns: keypadColumns, spacing: 10) {
-                    ForEach(1...8, id: \.self) { number in
+                    ForEach(1..<(puzzleSize * puzzleSize), id: \.self) { number in
                         SlidingKeypadButton(
                             title: "\(number)",
                             isUsed: usedNumbers.contains(number),
@@ -115,13 +123,13 @@ struct SlidingPuzzleInputView: View {
 
                 if canSolve {
                     NavigationLink(destination: SolvingView(initialState: initialState, puzzleSize: puzzleSize)) {
-                        Text("Solve 3×3 Puzzle")
+                        Text("Solve \(puzzleSize)×\(puzzleSize) Puzzle")
                             .appButtonLabel()
                     }
                     .buttonStyle(AppPrimaryButtonStyle())
                     .transition(.opacity.combined(with: .scale(scale: reduceMotion ? 1 : 0.96)))
                 } else {
-                    Text("Solve unlocks when all numbers 1–8 and one blank are placed with no duplicates.")
+                    Text("Solve unlocks when every number and one blank are placed with no duplicates.")
                         .appParagraph()
                         .padding(.vertical, 4)
                 }
@@ -205,7 +213,11 @@ struct SlidingPuzzleInputView: View {
     }
 
     private func loadExample() {
-        gridNumbers = PuzzlePresets.sliding3x3Medium.toGrid()
+        switch puzzleSize {
+        case 3: gridNumbers = PuzzlePresets.sliding3x3Medium.toGrid()
+        case 4: gridNumbers = PuzzlePresets.sliding4x4Medium.toGrid()
+        default: gridNumbers = PuzzlePresets.sliding5x5Solved.toGrid()
+        }
         blankTile = Self.blankTileIndex(in: gridNumbers, size: puzzleSize)
         initialState = gridNumbers
         selectedTile = nil
@@ -213,14 +225,16 @@ struct SlidingPuzzleInputView: View {
     }
 
     private func resetPuzzle() {
-        gridNumbers = Self.emptyGrid
+        gridNumbers = Self.emptyGrid(size: puzzleSize)
         blankTile = nil
-        initialState = Self.emptyGrid
+        initialState = Self.emptyGrid(size: puzzleSize)
         selectedTile = 0
         validationMessage = "Select a tile, then choose a number or blank."
     }
 
-    private static let emptyGrid = Array(repeating: Array(repeating: Optional<Int>.none, count: 3), count: 3)
+    private static func emptyGrid(size: Int) -> [[Int?]] {
+        Array(repeating: Array(repeating: Optional<Int>.none, count: size), count: size)
+    }
 
     private static func blankTileIndex(in grid: [[Int?]], size: Int) -> Int? {
         for row in 0..<size {
@@ -236,15 +250,16 @@ private struct SlidingBoardInputPreview: View {
     let gridNumbers: [[Int?]]
     let blankTile: Int?
     let selectedTile: Int?
+    let size: Int
     let onSelect: (Int, Int) -> Void
 
     var body: some View {
         VStack(spacing: 8) {
-            ForEach(0..<3, id: \.self) { row in
+            ForEach(0..<size, id: \.self) { row in
                 HStack(spacing: 8) {
-                    ForEach(0..<3, id: \.self) { column in
+                    ForEach(0..<size, id: \.self) { column in
                         let value = gridNumbers[row][column]
-                        let index = row * 3 + column
+                        let index = row * size + column
                         let isBlankTile = blankTile == index
                         Button(action: { onSelect(row, column) }) {
                             ZStack {
@@ -260,7 +275,7 @@ private struct SlidingBoardInputPreview: View {
                                     .foregroundColor(AppTheme.text)
                                     .minimumScaleFactor(0.75)
                             }
-                            .frame(height: 68)
+                            .frame(height: size == 3 ? 68 : (size == 4 ? 54 : 44))
                         }
                         .buttonStyle(AppSecondaryButtonStyle())
                         .accessibilityLabel(value.map { "Tile \($0)" } ?? (isBlankTile ? "Blank tile" : "Empty tile"))

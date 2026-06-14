@@ -9,6 +9,25 @@ import XCTest
 @testable import Puzzle_Solver
 
 final class Puzzle_SolverTests: XCTestCase {
+    func testV1AvailabilityCatalogContainsOnlyApprovedActiveModes() {
+        let active = Set(PuzzleAvailabilityCatalog.all.filter { $0.status == .active }.map(\.title))
+
+        XCTAssertEqual(active, Set([
+            "3×3 Sliding Puzzle", "4×4 Sliding Puzzle", "5×5 Sliding Puzzle",
+            "2×2 Cube", "3×3 Rubik’s Cube", "Sudoku", "Rush Hour"
+        ]))
+    }
+
+    func testV1ComingSoonCatalogContainsAllDeferredModes() {
+        let comingSoon = Set(PuzzleAvailabilityCatalog.all.filter { $0.status == .comingSoon }.map(\.title))
+
+        XCTAssertEqual(comingSoon, Set([
+            "Pyraminx", "Skewb", "Megaminx", "Square-1",
+            "Killer Sudoku", "Nonogram", "Kakuro", "Slitherlink",
+            "Klotski", "Peg Solitaire", "Maze Solver", "Chess Puzzles", "Jigsaw Solver"
+        ]))
+    }
+
     // MARK: - 3×3 sliding puzzle
 
     func testSolvedThreeByThreeSlidingPuzzleReturnsSolvedWithoutMoves() throws {

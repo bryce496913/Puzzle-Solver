@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct LogicPuzzleMenuView: View {
-    private let descriptors = PuzzleAvailabilityCatalog.descriptors(in: .logic)
+    private let descriptors = PuzzleAvailabilityCatalog.activeDescriptors(in: .logic)
 
     var body: some View {
         AppScreenContainer(title: PuzzleCategory.logic.rawValue, subtitle: PuzzleCategory.logic.subtitle) {
