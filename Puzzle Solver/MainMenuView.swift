@@ -172,12 +172,22 @@ struct TwistyPuzzleMenuView: View {
         AppScreenContainer(title: PuzzleCategory.twisty.rawValue, subtitle: PuzzleCategory.twisty.subtitle) {
             LazyVStack(spacing: 12) {
                 ForEach(descriptors) { descriptor in
-                    NavigationLink(destination: CubeInputView(descriptor: descriptor)) {
+                    NavigationLink(destination: destination(for: descriptor)) {
                         AppPuzzleCard(descriptor: descriptor)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
+        switch descriptor.id {
+        case "cube-2x2", "cube-3x3":
+            CubeInputView(descriptor: descriptor)
+        default:
+            AppPlaceholderScreen(descriptor: descriptor)
         }
     }
 }
