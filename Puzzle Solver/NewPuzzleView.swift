@@ -26,7 +26,12 @@ struct NewPuzzleView: View {
 
     @ViewBuilder
     private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
-        SlidingPuzzleInputView(descriptor: descriptor)
+        switch descriptor.id {
+        case "sliding-3x3", "sliding-4x4", "sliding-5x5":
+            SlidingPuzzleInputView(descriptor: descriptor)
+        default:
+            AppPlaceholderScreen(descriptor: descriptor)
+        }
     }
 }
 
