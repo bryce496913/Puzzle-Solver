@@ -18,7 +18,7 @@ struct HowView: View {
                 HowCard(title: "Placeholders are intentional", detail: "Partially working or experimental modes open a shared placeholder screen instead of fake solving or risking stuck loading.", symbol: "pause.circle.fill", color: AppTheme.highlight)
 
                 Button("Back") { dismiss() }
-                    .buttonStyle(AppSecondaryButtonStyle())
+                    .buttonStyle(AppBackButtonStyle())
             }
         }
     }

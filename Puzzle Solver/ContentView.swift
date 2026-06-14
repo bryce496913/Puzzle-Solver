@@ -97,6 +97,7 @@ struct OnboardingView: View {
                 Button(action: primaryAction) {
                     Text(selectedPage == pages.count - 1 ? "Start Solving" : "Continue")
                         .appButtonLabel()
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(AppPrimaryButtonStyle())
                 .accessibilityHint(selectedPage == pages.count - 1 ? "Opens the main puzzle menu." : "Shows the next onboarding page.")
@@ -105,6 +106,7 @@ struct OnboardingView: View {
                     completeOnboarding()
                 }
                 .buttonStyle(AppSecondaryButtonStyle())
+                .frame(maxWidth: .infinity)
                 .accessibilityHint("Skips onboarding and opens the main puzzle menu.")
                 .padding(.bottom, 16)
             }

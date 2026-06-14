@@ -140,7 +140,7 @@ struct SlidingPuzzleInputView: View {
                 }
 
                 Button("Back") { dismiss() }
-                    .buttonStyle(AppSecondaryButtonStyle())
+                    .buttonStyle(AppBackButtonStyle())
             }
             .appCardStyle()
         }
@@ -275,14 +275,16 @@ private struct SlidingBoardInputPreview: View {
                                             .stroke(selectedTile == index ? AppTheme.highlight : AppTheme.text.opacity(value == nil ? 0.42 : 0.08), lineWidth: selectedTile == index ? 3 : 1)
                                     )
 
-                                Text(value.map(String.init) ?? (isBlankTile ? "Blank" : "Empty"))
-                                    .font(AppTextStyle.h2)
+                                Text(value.map(String.init) ?? (isBlankTile ? "—" : ""))
+                                    .font(size == 3 ? AppTextStyle.h1 : AppTextStyle.h2)
                                     .foregroundColor(AppTheme.text)
-                                    .minimumScaleFactor(0.75)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.65)
+                                    .padding(2)
                             }
                             .frame(height: size == 3 ? 68 : (size == 4 ? 54 : 44))
                         }
-                        .buttonStyle(AppSecondaryButtonStyle())
+                        .buttonStyle(PlainButtonStyle())
                         .accessibilityLabel(value.map { "Tile \($0)" } ?? (isBlankTile ? "Blank tile" : "Empty tile"))
                         .accessibilityValue(selectedTile == index ? "Selected" : "Not selected")
                     }
@@ -313,10 +315,6 @@ private struct SlidingKeypadButton: View {
                 .appButtonLabel()
                 .foregroundColor(AppTheme.text.opacity(isUsed ? 0.48 : 1))
                 .frame(maxWidth: .infinity)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(isHighlighted && !isUsed ? AppTheme.highlight : AppTheme.text.opacity(0.18), lineWidth: 1.5)
-                )
         }
     }
 }

@@ -75,7 +75,7 @@ extension Text {
     func appTitleStyle(color: Color) -> some View {
         self
             .foregroundColor(color)
-            .font(AppTextStyle.h1)
+            .font(AppTextStyle.screenTitle)
             .minimumScaleFactor(0.7)
     }
 
@@ -98,9 +98,12 @@ extension View {
         self
             .font(AppTextStyle.h2)
             .foregroundColor(appButtonForegroundColor(for: role))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .frame(minHeight: 44)
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .frame(minHeight: 48)
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .background(appButtonBackground(for: role, isPressed: isPressed))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -171,6 +174,19 @@ struct AppSecondaryButtonStyle: ButtonStyle {
     }
 }
 
+struct AppBackButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 13, weight: .bold))
+            configuration.label
+        }
+        .appButtonChrome(role: isEnabled ? .secondary : .disabled, isPressed: configuration.isPressed)
+    }
+}
+
 struct AppDangerButtonStyle: ButtonStyle {
     var isDisabledAppearance = false
     @Environment(\.isEnabled) private var isEnabled
@@ -192,13 +208,15 @@ struct AppDisabledButtonStyle: ButtonStyle {
 // MARK: - V1 design system and puzzle availability
 
 enum AppTextStyle {
-    static let h1: Font = .system(size: 16, weight: .bold, design: .rounded)
-    static let h2: Font = .system(size: 14, weight: .semibold, design: .rounded)
-    static let h3: Font = .system(size: 12, weight: .semibold, design: .rounded)
-    static let paragraph: Font = .system(size: 10, weight: .regular, design: .rounded)
+    static let screenTitle: Font = .system(size: 30, weight: .bold, design: .rounded)
+    static let h1: Font = .system(size: 20, weight: .bold, design: .rounded)
+    static let h2: Font = .system(size: 16, weight: .semibold, design: .rounded)
+    static let h3: Font = .system(size: 14, weight: .semibold, design: .rounded)
+    static let paragraph: Font = .system(size: 14, weight: .regular, design: .rounded)
 }
 
 extension Text {
+    func appScreenTitle() -> some View { self.font(AppTextStyle.screenTitle).foregroundColor(AppTheme.text) }
     func appH1() -> some View { self.font(AppTextStyle.h1).foregroundColor(AppTheme.text) }
     func appH2() -> some View { self.font(AppTextStyle.h2).foregroundColor(AppTheme.text) }
     func appH3() -> some View { self.font(AppTextStyle.h3).foregroundColor(AppTheme.text) }
@@ -264,7 +282,7 @@ struct AppScreenContainer<Content: View>: View {
     private var screenContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(title).appH1().accessibilityAddTraits(.isHeader)
+                Text(title).appScreenTitle().accessibilityAddTraits(.isHeader)
                 Text(subtitle).appParagraph().fixedSize(horizontal: false, vertical: true)
             }
             content
@@ -483,7 +501,7 @@ struct AppPlaceholderScreen: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 Button("Back") { dismiss() }
-                    .buttonStyle(AppSecondaryButtonStyle())
+                    .buttonStyle(AppBackButtonStyle())
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .appCardStyle()

@@ -45,7 +45,7 @@ struct SolvingView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(solveState.friendlyTitle)
-                        .font(AppTextStyle.h1)
+                        .font(AppTextStyle.screenTitle)
                         .foregroundColor(statusColor)
 
                     if isSolving {

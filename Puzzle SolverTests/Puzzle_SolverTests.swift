@@ -172,6 +172,25 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.playbackFrames.count, 1)
     }
 
+    func testRushHourExampleHasConnectedValidVehicles() throws {
+        XCTAssertTrue(RushHourBoardAnalyzer.validate(.example))
+        XCTAssertEqual(RushHourBoard.example.targetPiece?.occupiedCoordinates.count, 2)
+        XCTAssertTrue(RushHourBoard.example.pieces.allSatisfy { piece in
+            piece.occupiedCoordinates.count == piece.size.rows * piece.size.columns
+        })
+    }
+
+    func testRushHourRejectsDuplicateVehicleIdentifiers() throws {
+        let duplicateIDs = RushHourBoard(pieces: [
+            MechanicalPuzzlePiece(id: "X", label: "X", origin: MechanicalBoardCoordinate(row: 2, column: 0), size: MechanicalBoardSize(rows: 1, columns: 2), orientation: .horizontal, isPrimary: true),
+            MechanicalPuzzlePiece(id: "A", label: "A", origin: MechanicalBoardCoordinate(row: 0, column: 0), size: MechanicalBoardSize(rows: 2, columns: 1), orientation: .vertical, isPrimary: false),
+            MechanicalPuzzlePiece(id: "A", label: "A", origin: MechanicalBoardCoordinate(row: 0, column: 3), size: MechanicalBoardSize(rows: 2, columns: 1), orientation: .vertical, isPrimary: false)
+        ])
+
+        XCTAssertFalse(RushHourBoardAnalyzer.validate(duplicateIDs))
+        XCTAssertEqual(RushHourSolver().solve(duplicateIDs).state, .invalid)
+    }
+
     // MARK: - 2×2 cube solver coverage
 
     func testSolvedTwoByTwoReturnsSuccessWithoutMoves() throws {

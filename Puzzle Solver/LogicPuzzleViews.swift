@@ -91,8 +91,10 @@ struct SudokuInputView: View {
                     HStack(spacing: 12) {
                         Button("Example") { loadExample() }
                             .buttonStyle(AppSecondaryButtonStyle())
+                            .frame(maxWidth: .infinity)
                         Button("Validate") { refreshValidation() }
                             .buttonStyle(AppSecondaryButtonStyle())
+                            .frame(maxWidth: .infinity)
                     }
 
                     NavigationLink(destination: SudokuResultView(initialBoard: board)) {
@@ -100,10 +102,12 @@ struct SudokuInputView: View {
                             .appButtonLabel()
                     }
                     .buttonStyle(AppPrimaryButtonStyle())
+                    .frame(maxWidth: .infinity)
                     .disabled(!validation.canSolve)
 
                     Button("Reset") { reset() }
                         .buttonStyle(AppResetButtonStyle())
+                        .frame(maxWidth: .infinity)
                 }
                 .appCardStyle()
         }

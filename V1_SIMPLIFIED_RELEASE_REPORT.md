@@ -51,10 +51,22 @@ Coming Soon cards are informational and intentionally have no navigation or solv
 - Main navigation is limited to Sliding Puzzles, Twisty Puzzles, Logic Puzzles, Mechanical Puzzles, Coming Soon, and Settings.
 - Active category screens use the same screen container, cards, spacing, typography, colors, and button styles.
 - Shared V1 colors match the black, purple surface, purple accent, pink highlight, and white text design system.
-- Shared typography uses 16-point h1, 14-point h2, 12-point h3, and 10-point paragraph styles.
-- Sliding input now scales from 3×3 through 5×5, marks the selected cell and blank, disables used values, and only enables Solve for complete valid input.
-- Cube input provides a labeled net, orientation instructions, selected sticker feedback, a color palette, and color-count validation.
-- Settings was retained and styled with the shared V1 components.
+- Shared typography now uses a 30-point screen title plus 20-point h1, 16-point h2, 14-point h3, and 14-point paragraph styles.
+- Primary, secondary, back, reset, and disabled controls share consistent 48-point minimum heights, padding, rounded corners, colors, pressed feedback, and readable disabled states.
+- Onboarding now presents Continue/Start Solving as the clear full-width primary action and Skip as the secondary action.
+- Sliding input scales from 3×3 through 5×5, marks the selected cell and blank, disables used values, and only enables Solve for complete valid input. Compact boards use a dash for the assigned blank and no longer render “Empty” in unassigned cells.
+- Cube input retains the labeled U/L/F/R/B/D net and orientation instructions while adding named color swatches, a clear selected-color label/checkmark, stronger sticker outlines, and readable per-color counts.
+- Sudoku Example, Validate, Solve, and Reset actions now use the shared button hierarchy and spacing.
+- Settings uses a custom themed appearance selector so System, Light, and Dark remain readable in every appearance.
+- Coming Soon, category menus, puzzle screens, Settings, and onboarding all use the larger screen-title treatment.
+
+## Rush Hour final status: active and working
+
+- The built-in 6×6 V1 board is validated before search and loads the same connected vehicle state that is displayed.
+- Cars and trucks render as single rectangular vehicles spanning their occupied cells; the red target car and right-side exit are visually distinct.
+- Bounded breadth-first search generates only legal axis-aligned moves and detects success when the target reaches the row-three exit.
+- Solving runs off the main thread with both time and node limits. Results return as solved, invalid, no-solution, timed-out, or failed states without indefinite loading.
+- Ordered playback renders every resulting board with connected vehicles and identifies the move for each step.
 
 ## Solver safety changes completed
 
@@ -64,13 +76,14 @@ Coming Soon cards are informational and intentionally have no navigation or solv
 - Invalid, unsolvable, timed-out, unsupported, and failed results show user-facing feedback instead of leaving an indefinite loading state.
 - 4×4 uses bounded IDA* search.
 - 5×5 accepts and validates full board input, then returns an immediate safe unsupported result for layouts that require a production 24-puzzle algorithm; it never starts an unbounded search.
-- Rush Hour provides bounded solving and ordered playback for its stable built-in V1 board.
+- Rush Hour provides validated bounded BFS solving, timeout protection, and ordered playback for its stable built-in V1 board.
 
 ## Known limitations
 
 - The 5×5 solver is intentionally conservative. Solved boards complete immediately; non-solved boards return a friendly unavailable result until a memory-safe production strategy is added.
 - The 3×3 cube solver is a bounded search intended for solved and short-scramble states. More difficult valid states can time out gracefully.
 - Rush Hour V1 ships with a stable built-in puzzle rather than a full board editor.
+- Rush Hour playback is manual Previous/Next navigation in V1; automatic animation and custom board entry remain intentionally out of scope.
 - Automated iOS build and UI execution require Xcode and an Apple simulator, which are not available in the Linux development container.
 
 ## Recommended next steps after V1
