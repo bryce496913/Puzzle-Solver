@@ -293,38 +293,48 @@ struct AppSectionHeader: View {
     }
 }
 
-enum PuzzleAvailabilityStatus: String, CaseIterable, Hashable {
+struct AppStatusBadge: View {
+    let text: String
+    let state: SolveState
+
+    var body: some View {
+        Text(text)
+            .font(AppTextStyle.h3)
+            .foregroundColor(AppTheme.text)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background((state == .solved ? AppTheme.accent : AppTheme.highlight).opacity(0.62))
+            .clipShape(Capsule())
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+enum PuzzleAvailability: String, CaseIterable, Hashable {
     case active
-    case placeholder
     case comingSoon
-    case disabled
 
     var label: String {
         switch self {
         case .active: return "Active V1"
-        case .placeholder: return "Placeholder"
         case .comingSoon: return "Coming soon"
-        case .disabled: return "Disabled"
         }
     }
 
     var detail: String {
         switch self {
         case .active: return "Ready to open and solve."
-        case .placeholder: return "Safe placeholder for V1."
         case .comingSoon: return "Planned for a future update."
-        case .disabled: return "Unavailable in this release."
         }
     }
 
-    var isInteractive: Bool { self != .disabled }
+    var isInteractive: Bool { self == .active }
     var isActive: Bool { self == .active }
     var color: Color { isActive ? AppTheme.accent : AppTheme.highlight }
 }
 
 enum PuzzleCategory: String, CaseIterable, Identifiable {
     case sliding = "Sliding Puzzles"
-    case twisty = "Cubes / Twisty"
+    case twisty = "Twisty Puzzles"
     case logic = "Logic Puzzles"
     case mechanical = "Mechanical Puzzles"
     case visual = "Visual / Experimental"
@@ -333,11 +343,11 @@ enum PuzzleCategory: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .sliding: return "Classic tile sliding puzzles with bounded V1 solving."
-        case .twisty: return "Cube-style solvers reserved for a future polished release."
-        case .logic: return "Grid-based puzzle solvers and planned logic modes."
-        case .mechanical: return "Movement puzzle solvers staged behind safe V1 placeholders."
-        case .visual: return "Image, graph, chess, maze, and jigsaw experiments held for Version 2."
+        case .sliding: return "Solve 3×3, 4×4, and 5×5 sliding tile layouts."
+        case .twisty: return "Enter and solve 2×2 and 3×3 cube states."
+        case .logic: return "Solve classic Sudoku with guided input."
+        case .mechanical: return "Clear the path in Rush Hour."
+        case .visual: return "Visual and experimental ideas planned for later updates."
         }
     }
 
@@ -358,39 +368,47 @@ struct PuzzleAvailabilityDescriptor: Identifiable, Hashable {
     let title: String
     let shortDescription: String
     let icon: String
-    let status: PuzzleAvailabilityStatus
+    let status: PuzzleAvailability
 
     var placeholderDescription: String {
-        status.isActive ? shortDescription : "This V1 release keeps \(title) as a polished placeholder until the solver, validation, and result flow are fully reliable."
+        status.isActive ? shortDescription : shortDescription
     }
 }
 
 enum PuzzleAvailabilityCatalog {
     static let all: [PuzzleAvailabilityDescriptor] = [
         PuzzleAvailabilityDescriptor(id: "sliding-3x3", category: .sliding, title: "3×3 Sliding Puzzle", shortDescription: "Enter all eight tiles and the blank, then solve with animated playback.", icon: "square.grid.3x3.fill", status: .active),
-        PuzzleAvailabilityDescriptor(id: "sliding-4x4", category: .sliding, title: "4×4 Sliding Puzzle", shortDescription: "Held for V2 while performance and playback are hardened.", icon: "square.grid.4x3.fill", status: .placeholder),
-        PuzzleAvailabilityDescriptor(id: "sliding-5x5", category: .sliding, title: "5×5 Sliding Puzzle", shortDescription: "Large-board solving is planned after V1 stability work.", icon: "square.grid.3x3.square", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "cube-2x2", category: .twisty, title: "2×2 Cube", shortDescription: "Sticker input and solve flow need more validation polish.", icon: "cube.fill", status: .placeholder),
-        PuzzleAvailabilityDescriptor(id: "cube-3x3", category: .twisty, title: "3×3 Rubik’s Cube", shortDescription: "Naive and experimental cube solving is disabled for V1.", icon: "cube.transparent.fill", status: .placeholder),
-        PuzzleAvailabilityDescriptor(id: "pyraminx", category: .twisty, title: "Pyraminx", shortDescription: "Twisty puzzle support is planned for a later release.", icon: "triangle.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "skewb", category: .twisty, title: "Skewb", shortDescription: "Twisty puzzle support is planned for a later release.", icon: "diamond.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "megaminx", category: .twisty, title: "Megaminx", shortDescription: "Held until notation and solver strategy are production-ready.", icon: "pentagon.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "square-1", category: .twisty, title: "Square-1", shortDescription: "Held until shape validation and solving are production-ready.", icon: "square.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "sliding-4x4", category: .sliding, title: "4×4 Sliding Puzzle", shortDescription: "Solve with a bounded, memory-safe search and clear timeout feedback.", icon: "square.grid.4x3.fill", status: .active),
+        PuzzleAvailabilityDescriptor(id: "sliding-5x5", category: .sliding, title: "5×5 Sliding Puzzle", shortDescription: "Enter a 5×5 board and receive a safe result without unbounded searching.", icon: "square.grid.3x3.square", status: .active),
+        PuzzleAvailabilityDescriptor(id: "cube-2x2", category: .twisty, title: "2×2 Cube", shortDescription: "Enter sticker colors on a labeled cube net and solve bounded scrambles.", icon: "cube.fill", status: .active),
+        PuzzleAvailabilityDescriptor(id: "cube-3x3", category: .twisty, title: "3×3 Rubik’s Cube", shortDescription: "Enter a validated cube state and use the bounded V1 solver.", icon: "cube.transparent.fill", status: .active),
+        PuzzleAvailabilityDescriptor(id: "pyraminx", category: .twisty, title: "Pyraminx", shortDescription: "Solve the four-sided twisty pyramid puzzle.", icon: "triangle.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "skewb", category: .twisty, title: "Skewb", shortDescription: "Solve the corner-turning cube puzzle.", icon: "diamond.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "megaminx", category: .twisty, title: "Megaminx", shortDescription: "Solve the dodecahedron twisty puzzle.", icon: "pentagon.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "square-1", category: .twisty, title: "Square-1", shortDescription: "Solve the shape-shifting cube puzzle.", icon: "square.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "sudoku", category: .logic, title: "Sudoku", shortDescription: "Enter givens, validate conflicts, and solve with clear feedback.", icon: "squareshape.split.3x3", status: .active),
-        PuzzleAvailabilityDescriptor(id: "killer-sudoku", category: .logic, title: "Killer Sudoku", shortDescription: "Cage editing and solving remain out of scope for V1.", icon: "sum", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "nonogram", category: .logic, title: "Nonogram", shortDescription: "Clue entry and picture solving are planned for V2.", icon: "rectangle.grid.3x2.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "kakuro", category: .logic, title: "Kakuro", shortDescription: "Run clue entry and solving need additional polish.", icon: "number.square.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "slitherlink", category: .logic, title: "Slitherlink", shortDescription: "Loop solving is disabled until the full solver is reliable.", icon: "point.topleft.down.curvedto.point.bottomright.up", status: .placeholder),
-        PuzzleAvailabilityDescriptor(id: "rush-hour", category: .mechanical, title: "Rush Hour", shortDescription: "Sample-only input is not V1-ready, so it is safely parked.", icon: "car.fill", status: .placeholder),
-        PuzzleAvailabilityDescriptor(id: "klotski", category: .mechanical, title: "Klotski", shortDescription: "Block editing and solve playback are planned for a future update.", icon: "rectangle.3.group.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "peg-solitaire", category: .mechanical, title: "Peg Solitaire", shortDescription: "Board variants and guidance need more V1 polish.", icon: "circle.grid.cross.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "maze-solver", category: .visual, title: "Maze Solver", shortDescription: "Image/grid import remains experimental and is disabled for V1.", icon: "arrow.triangle.turn.up.right.diamond.fill", status: .placeholder),
-        PuzzleAvailabilityDescriptor(id: "chess-puzzles", category: .visual, title: "Chess Puzzles", shortDescription: "Chess search and position input are held for Version 2.", icon: "checkerboard.rectangle", status: .placeholder),
-        PuzzleAvailabilityDescriptor(id: "jigsaw-solver", category: .visual, title: "Jigsaw Solver", shortDescription: "Image recognition and matching are planned future work.", icon: "puzzlepiece.extension.fill", status: .comingSoon)
+        PuzzleAvailabilityDescriptor(id: "killer-sudoku", category: .logic, title: "Killer Sudoku", shortDescription: "Solve Sudoku puzzles with cage-sum rules.", icon: "sum", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "nonogram", category: .logic, title: "Nonogram", shortDescription: "Solve picture logic puzzles from row and column clues.", icon: "rectangle.grid.3x2.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "kakuro", category: .logic, title: "Kakuro", shortDescription: "Solve crossword-style number-sum puzzles.", icon: "number.square.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "slitherlink", category: .logic, title: "Slitherlink", shortDescription: "Solve loop puzzles using numbered grid clues.", icon: "point.topleft.down.curvedto.point.bottomright.up", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "rush-hour", category: .mechanical, title: "Rush Hour", shortDescription: "Slide blocking vehicles until the target car reaches the exit.", icon: "car.fill", status: .active),
+        PuzzleAvailabilityDescriptor(id: "klotski", category: .mechanical, title: "Klotski", shortDescription: "Solve sliding block escape puzzles.", icon: "rectangle.3.group.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "peg-solitaire", category: .mechanical, title: "Peg Solitaire", shortDescription: "Solve peg-jumping board puzzles.", icon: "circle.grid.cross.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "maze-solver", category: .visual, title: "Maze Solver", shortDescription: "Find paths through drawn or generated mazes.", icon: "arrow.triangle.turn.up.right.diamond.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "chess-puzzles", category: .visual, title: "Chess Puzzles", shortDescription: "Solve mate-in-N and best-move chess positions.", icon: "checkerboard.rectangle", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "jigsaw-solver", category: .visual, title: "Jigsaw Solver", shortDescription: "Explore future image-based jigsaw solving.", icon: "puzzlepiece.extension.fill", status: .comingSoon)
     ]
 
     static func descriptors(in category: PuzzleCategory) -> [PuzzleAvailabilityDescriptor] {
         all.filter { $0.category == category }
+    }
+
+    static func activeDescriptors(in category: PuzzleCategory) -> [PuzzleAvailabilityDescriptor] {
+        descriptors(in: category).filter { $0.status == .active }
+    }
+
+    static func comingSoonDescriptors(in category: PuzzleCategory) -> [PuzzleAvailabilityDescriptor] {
+        descriptors(in: category).filter { $0.status == .comingSoon }
     }
 
     static func descriptor(id: String) -> PuzzleAvailabilityDescriptor {
@@ -425,7 +443,7 @@ struct AppPuzzleCard: View {
 
             Spacer(minLength: 8)
 
-            Image(systemName: descriptor.status.isInteractive ? "chevron.right" : "lock.fill")
+            Image(systemName: descriptor.status.isInteractive ? "chevron.right" : "clock.fill")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(AppTheme.text.opacity(0.72))
                 .padding(.top, 12)
@@ -452,7 +470,7 @@ struct AppPlaceholderScreen: View {
 
                 AppSectionHeader(descriptor.status.label, subtitle: descriptor.placeholderDescription)
 
-                Text(descriptor.status == .comingSoon ? "Planned for a future update" : "Safely unavailable in V1")
+                Text("Planned for a future update")
                     .font(AppTextStyle.h3)
                     .foregroundColor(AppTheme.text)
                     .padding(.horizontal, 10)
