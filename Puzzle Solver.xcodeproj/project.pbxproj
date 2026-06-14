@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AC0000012B00000100000001 /* KlotskiBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000022B00000100000001 /* KlotskiBoard.swift */; };
-		AC0000032B00000100000001 /* KlotskiPiece.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000042B00000100000001 /* KlotskiPiece.swift */; };
-		AC0000052B00000100000001 /* KlotskiSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000062B00000100000001 /* KlotskiSolver.swift */; };
-		AC0000072B00000100000001 /* PegSolitaireBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000082B00000100000001 /* PegSolitaireBoard.swift */; };
-		AC0000092B00000100000001 /* PegSolitaireMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC00000A2B00000100000001 /* PegSolitaireMove.swift */; };
-		AC00000B2B00000100000001 /* PegSolitaireSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC00000C2B00000100000001 /* PegSolitaireSolver.swift */; };
+		AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000022B00000100000001 /* LogicPuzzleModels.swift */; };
+		AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000042B00000100000001 /* LogicPuzzleViews.swift */; };
+		AA0000052B00000100000001 /* MechanicalPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */; };
+		AA0000072B00000100000001 /* MechanicalPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */; };
+		AA0000092B00000100000001 /* ExperimentalPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */; };
+		AA00000B2B00000100000001 /* ExperimentalPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */; };
 		AB0000012B00000100000001 /* KillerSudokuModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000022B00000100000001 /* KillerSudokuModels.swift */; };
 		AB0000032B00000100000001 /* KillerSudokuSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000042B00000100000001 /* KillerSudokuSolver.swift */; };
 		AB0000052B00000100000001 /* NonogramModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000062B00000100000001 /* NonogramModels.swift */; };
@@ -21,12 +21,12 @@
 		AB00000B2B00000100000001 /* KakuroSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000C2B00000100000001 /* KakuroSolver.swift */; };
 		AB00000D2B00000100000001 /* SlitherlinkModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000E2B00000100000001 /* SlitherlinkModels.swift */; };
 		AB00000F2B00000100000001 /* SlitherlinkSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000102B00000100000001 /* SlitherlinkSolver.swift */; };
-		AA00000B2B00000100000001 /* ExperimentalPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */; };
-		AA0000092B00000100000001 /* ExperimentalPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */; };
-		AA0000052B00000100000001 /* MechanicalPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */; };
-		AA0000072B00000100000001 /* MechanicalPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */; };
-		AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000022B00000100000001 /* LogicPuzzleModels.swift */; };
-		AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000042B00000100000001 /* LogicPuzzleViews.swift */; };
+		AC0000012B00000100000001 /* KlotskiBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000022B00000100000001 /* KlotskiBoard.swift */; };
+		AC0000032B00000100000001 /* KlotskiPiece.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000042B00000100000001 /* KlotskiPiece.swift */; };
+		AC0000052B00000100000001 /* KlotskiSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000062B00000100000001 /* KlotskiSolver.swift */; };
+		AC0000072B00000100000001 /* PegSolitaireBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000082B00000100000001 /* PegSolitaireBoard.swift */; };
+		AC0000092B00000100000001 /* PegSolitaireMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC00000A2B00000100000001 /* PegSolitaireMove.swift */; };
+		AC00000B2B00000100000001 /* PegSolitaireSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC00000C2B00000100000001 /* PegSolitaireSolver.swift */; };
 		EE18DB782B939DD000B3843E /* PuzzleSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE18DB772B939DD000B3843E /* PuzzleSolver.swift */; };
 		EE38313D2B950E3E00D96988 /* MovementGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE38313C2B950E3E00D96988 /* MovementGridView.swift */; };
 		EE82B6672B69931500B2BC49 /* Puzzle_SolverApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */; };
@@ -63,12 +63,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AC0000022B00000100000001 /* KlotskiBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiBoard.swift; sourceTree = "<group>"; };
-		AC0000042B00000100000001 /* KlotskiPiece.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiPiece.swift; sourceTree = "<group>"; };
-		AC0000062B00000100000001 /* KlotskiSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiSolver.swift; sourceTree = "<group>"; };
-		AC0000082B00000100000001 /* PegSolitaireBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireBoard.swift; sourceTree = "<group>"; };
-		AC00000A2B00000100000001 /* PegSolitaireMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireMove.swift; sourceTree = "<group>"; };
-		AC00000C2B00000100000001 /* PegSolitaireSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireSolver.swift; sourceTree = "<group>"; };
+		AA0000022B00000100000001 /* LogicPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleModels.swift; sourceTree = "<group>"; };
+		AA0000042B00000100000001 /* LogicPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleViews.swift; sourceTree = "<group>"; };
+		AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleModels.swift; sourceTree = "<group>"; };
+		AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleViews.swift; sourceTree = "<group>"; };
+		AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalPuzzleModels.swift; sourceTree = "<group>"; };
+		AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalPuzzleViews.swift; sourceTree = "<group>"; };
 		AB0000022B00000100000001 /* KillerSudokuModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuModels.swift; sourceTree = "<group>"; };
 		AB0000042B00000100000001 /* KillerSudokuSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuSolver.swift; sourceTree = "<group>"; };
 		AB0000062B00000100000001 /* NonogramModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramModels.swift; sourceTree = "<group>"; };
@@ -77,12 +77,12 @@
 		AB00000C2B00000100000001 /* KakuroSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroSolver.swift; sourceTree = "<group>"; };
 		AB00000E2B00000100000001 /* SlitherlinkModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlitherlinkModels.swift; sourceTree = "<group>"; };
 		AB0000102B00000100000001 /* SlitherlinkSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlitherlinkSolver.swift; sourceTree = "<group>"; };
-		AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalPuzzleViews.swift; sourceTree = "<group>"; };
-		AA00000A2B00000100000001 /* ExperimentalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalPuzzleModels.swift; sourceTree = "<group>"; };
-		AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleModels.swift; sourceTree = "<group>"; };
-		AA0000082B00000100000001 /* MechanicalPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleViews.swift; sourceTree = "<group>"; };
-		AA0000022B00000100000001 /* LogicPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleModels.swift; sourceTree = "<group>"; };
-		AA0000042B00000100000001 /* LogicPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleViews.swift; sourceTree = "<group>"; };
+		AC0000022B00000100000001 /* KlotskiBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiBoard.swift; sourceTree = "<group>"; };
+		AC0000042B00000100000001 /* KlotskiPiece.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiPiece.swift; sourceTree = "<group>"; };
+		AC0000062B00000100000001 /* KlotskiSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KlotskiSolver.swift; sourceTree = "<group>"; };
+		AC0000082B00000100000001 /* PegSolitaireBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireBoard.swift; sourceTree = "<group>"; };
+		AC00000A2B00000100000001 /* PegSolitaireMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireMove.swift; sourceTree = "<group>"; };
+		AC00000C2B00000100000001 /* PegSolitaireSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PegSolitaireSolver.swift; sourceTree = "<group>"; };
 		EE18DB772B939DD000B3843E /* PuzzleSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleSolver.swift; sourceTree = "<group>"; };
 		EE38313C2B950E3E00D96988 /* MovementGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovementGridView.swift; sourceTree = "<group>"; };
 		EE82B6632B69931500B2BC49 /* Puzzle Solver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Puzzle Solver.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -278,7 +278,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1420;
-				LastUpgradeCheck = 1420;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					EE82B6622B69931500B2BC49 = {
 						CreatedOnToolsVersion = 14.2;
@@ -447,6 +447,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -466,6 +467,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -507,6 +509,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -519,6 +522,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				VALIDATE_PRODUCT = YES;
@@ -530,6 +534,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Puzzle Solver/Preview Content\"";
@@ -541,9 +546,10 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -554,9 +560,10 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -565,6 +572,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Puzzle Solver/Preview Content\"";
@@ -576,9 +584,10 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -589,16 +598,16 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
 		EE82B68B2B69931700B2BC49 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -617,7 +626,6 @@
 		EE82B68C2B69931700B2BC49 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -636,7 +644,6 @@
 		EE82B68E2B69931700B2BC49 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -653,7 +660,6 @@
 		EE82B68F2B69931700B2BC49 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
