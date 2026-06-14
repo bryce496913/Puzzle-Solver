@@ -2,7 +2,7 @@
 //  NewPuzzleView.swift
 //  Puzzle Solver
 //
-//  Sliding puzzle V1 picker and 3×3 input flow.
+//  Sliding puzzle picker and input flow.
 //
 
 import SwiftUI

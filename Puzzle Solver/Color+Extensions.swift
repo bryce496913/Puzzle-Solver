@@ -205,7 +205,7 @@ struct AppDisabledButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - V1 design system and puzzle availability
+// MARK: - Design system and puzzle availability
 
 enum AppTextStyle {
     static let screenTitle: Font = .system(size: 30, weight: .bold, design: .rounded)
@@ -333,7 +333,7 @@ enum PuzzleAvailability: String, CaseIterable, Hashable {
 
     var label: String {
         switch self {
-        case .active: return "Active V1"
+        case .active: return "Active"
         case .comingSoon: return "Coming soon"
         }
     }
@@ -399,7 +399,7 @@ enum PuzzleAvailabilityCatalog {
         PuzzleAvailabilityDescriptor(id: "sliding-4x4", category: .sliding, title: "4×4 Sliding Puzzle", shortDescription: "Solve with a bounded, memory-safe search and clear timeout feedback.", icon: "square.grid.4x3.fill", status: .active),
         PuzzleAvailabilityDescriptor(id: "sliding-5x5", category: .sliding, title: "5×5 Sliding Puzzle", shortDescription: "Enter a 5×5 board and receive a safe result without unbounded searching.", icon: "square.grid.3x3.square", status: .active),
         PuzzleAvailabilityDescriptor(id: "cube-2x2", category: .twisty, title: "2×2 Cube", shortDescription: "Enter sticker colors on a labeled cube net and solve bounded scrambles.", icon: "cube.fill", status: .active),
-        PuzzleAvailabilityDescriptor(id: "cube-3x3", category: .twisty, title: "3×3 Rubik’s Cube", shortDescription: "Enter a validated cube state and use the bounded V1 solver.", icon: "cube.transparent.fill", status: .active),
+        PuzzleAvailabilityDescriptor(id: "cube-3x3", category: .twisty, title: "3×3 Rubik’s Cube", shortDescription: "Enter a validated cube state and use the bounded solver.", icon: "cube.transparent.fill", status: .active),
         PuzzleAvailabilityDescriptor(id: "pyraminx", category: .twisty, title: "Pyraminx", shortDescription: "Solve the four-sided twisty pyramid puzzle.", icon: "triangle.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "skewb", category: .twisty, title: "Skewb", shortDescription: "Solve the corner-turning cube puzzle.", icon: "diamond.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "megaminx", category: .twisty, title: "Megaminx", shortDescription: "Solve the dodecahedron twisty puzzle.", icon: "pentagon.fill", status: .comingSoon),
@@ -496,7 +496,7 @@ struct AppPlaceholderScreen: View {
                     .background(AppTheme.highlight.opacity(0.42))
                     .clipShape(Capsule())
 
-                Text("No solve button is shown because this mode has not met all V1 reliability criteria yet. This prevents crashes, infinite loading, and confusing partial results.")
+                Text("No solve button is shown because this mode has not met all reliability criteria yet. This prevents crashes, infinite loading, and confusing partial results.")
                     .appParagraph()
                     .fixedSize(horizontal: false, vertical: true)
 

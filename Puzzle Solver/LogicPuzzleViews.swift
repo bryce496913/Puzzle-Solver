@@ -2,7 +2,7 @@
 //  LogicPuzzleViews.swift
 //  Puzzle Solver
 //
-//  SwiftUI screens for V1 logic puzzles.
+//  SwiftUI screens for logic puzzles.
 //
 
 import SwiftUI
@@ -218,7 +218,7 @@ struct SudokuResultView: View {
     @State private var didFinish = false
 
     var body: some View {
-        AppScreenContainer(title: "Sudoku Result", subtitle: "Every solve ends in a clear V1 result state.") {
+        AppScreenContainer(title: "Sudoku Result", subtitle: "Every solve ends in a clear result state.") {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
                         Text(solveState.friendlyTitle)
