@@ -331,7 +331,7 @@ struct CubeInputView: View {
                 guard !didFinish else { return }
                 didFinish = true
                 solveResult = result
-                solveState = result.solveState
+                solveState = result.status.solveState
             }
         }
     }
