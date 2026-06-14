@@ -240,10 +240,24 @@ struct RushHourBoard: MechanicalPuzzleBoard, Hashable {
 enum RushHourBoardAnalyzer {
     static func validate(_ board: RushHourBoard) -> Bool {
         guard board.size == .rushHour, let target = board.targetPiece else { return false }
-        guard target.orientation == .horizontal, target.origin.row == RushHourBoard.exitRow else { return false }
+        guard board.pieces.filter({ $0.id == RushHourBoard.targetPieceID || $0.isPrimary }).count == 1 else { return false }
+        guard target.id == RushHourBoard.targetPieceID,
+              target.isPrimary,
+              target.orientation == .horizontal,
+              target.origin.row == RushHourBoard.exitRow,
+              target.size == MechanicalBoardSize(rows: 1, columns: 2) else { return false }
+        guard Set(board.pieces.map(\.id)).count == board.pieces.count else { return false }
         var occupied: Set<MechanicalBoardCoordinate> = []
         for piece in board.pieces {
             guard !piece.id.isEmpty, piece.size.rows > 0, piece.size.columns > 0 else { return false }
+            switch piece.orientation {
+            case .horizontal:
+                guard piece.size.rows == 1, (2...3).contains(piece.size.columns) else { return false }
+            case .vertical:
+                guard piece.size.columns == 1, (2...3).contains(piece.size.rows) else { return false }
+            case .single:
+                return false
+            }
             guard piece.occupiedCoordinates.allSatisfy(board.size.contains) else { return false }
             for coordinate in piece.occupiedCoordinates {
                 guard !occupied.contains(coordinate) else { return false }
@@ -384,4 +398,3 @@ final class RushHourSolver: MechanicalPuzzleSolving {
         }
     }
 }
-

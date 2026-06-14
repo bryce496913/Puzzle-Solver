@@ -56,6 +56,8 @@ struct RushHourView: View {
                     Text(result.failureReason ?? "Solution contains \(result.moves.count) moves.")
                         .appParagraph()
                     if !result.playbackFrames.isEmpty {
+                        Text(result.playbackFrames[frameIndex].caption)
+                            .appH3()
                         Text("Step \(frameIndex) of \(max(result.playbackFrames.count - 1, 0))").appH3()
                         HStack(spacing: 10) {
                             Button("Previous") { frameIndex = max(0, frameIndex - 1) }
@@ -70,6 +72,7 @@ struct RushHourView: View {
 
                 Button(solveState == .solving ? "Solving…" : "Solve Rush Hour") { solve() }
                     .buttonStyle(AppPrimaryButtonStyle())
+                    .frame(maxWidth: .infinity)
                     .disabled(solveState == .solving)
                 Button("Reset") { reset() }
                     .buttonStyle(AppResetButtonStyle())
@@ -88,6 +91,15 @@ struct RushHourView: View {
             guard !didFinish else { return }
             didFinish = true
             solveState = .timedOut
+            result = MechanicalPuzzleSolveResult(
+                kind: .rushHour,
+                state: .timedOut,
+                moves: [],
+                playbackFrames: [OrderedMovePlaybackFrame(order: 0, move: nil, board: .example, caption: "Start")],
+                failureReason: "Rush Hour took too long to solve. The board was reset safely.",
+                elapsedTime: timeout,
+                nodesExplored: 0
+            )
         }
         DispatchQueue.global(qos: .userInitiated).async {
             let solved = RushHourSolver().solve(.example, options: MechanicalPuzzleSolveOptions(timeout: timeout, maxNodes: 100_000))
@@ -110,26 +122,85 @@ struct RushHourView: View {
 
 private struct RushHourBoardView: View {
     let board: RushHourBoard
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 3), count: 6)
+    private let boardDimension = 6
+    private let gridSpacing: CGFloat = 3
+    private let boardPadding: CGFloat = 8
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 3) {
-            ForEach(0..<36, id: \.self) { index in
-                let coordinate = MechanicalBoardCoordinate(row: index / 6, column: index % 6)
-                let piece = board.piece(at: coordinate)
-                Text(piece?.label ?? "")
+        GeometryReader { geometry in
+            let available = geometry.size.width - (boardPadding * 2)
+            let cellSize = (available - CGFloat(boardDimension - 1) * gridSpacing) / CGFloat(boardDimension)
+
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(AppTheme.surface)
+
+                VStack(spacing: gridSpacing) {
+                    ForEach(0..<boardDimension, id: \.self) { _ in
+                        HStack(spacing: gridSpacing) {
+                            ForEach(0..<boardDimension, id: \.self) { _ in
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .fill(AppTheme.background.opacity(0.82))
+                                    .frame(width: cellSize, height: cellSize)
+                            }
+                        }
+                    }
+                }
+                .padding(boardPadding)
+
+                ForEach(board.pieces) { piece in
+                    vehicle(piece, cellSize: cellSize)
+                }
+
+                exitMarker(cellSize: cellSize)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(AppTheme.accent.opacity(0.65), lineWidth: 1.5)
+            )
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .padding(.trailing, 18)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Six by six Rush Hour board with exit on row three")
+    }
+
+    private func vehicle(_ piece: MechanicalPuzzlePiece, cellSize: CGFloat) -> some View {
+        let width = CGFloat(piece.size.columns) * cellSize + CGFloat(piece.size.columns - 1) * gridSpacing
+        let height = CGFloat(piece.size.rows) * cellSize + CGFloat(piece.size.rows - 1) * gridSpacing
+        let x = boardPadding + CGFloat(piece.origin.column) * (cellSize + gridSpacing)
+        let y = boardPadding + CGFloat(piece.origin.row) * (cellSize + gridSpacing)
+
+        return RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .fill(piece.isPrimary ? AppTheme.highlight : AppTheme.accent)
+            .frame(width: width, height: height)
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(AppTheme.text.opacity(0.75), lineWidth: piece.isPrimary ? 2 : 1)
+            )
+            .overlay(
+                Text(piece.label)
                     .font(AppTextStyle.h3)
                     .foregroundColor(AppTheme.text)
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(1, contentMode: .fit)
-                    .background(piece?.isPrimary == true ? AppTheme.highlight : (piece == nil ? AppTheme.background : AppTheme.accent))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .accessibilityLabel(piece.map { "Vehicle \($0.label)" } ?? "Empty")
-            }
+            )
+            .offset(x: x, y: y)
+            .accessibilityLabel(piece.isPrimary ? "Red target car \(piece.label)" : "Vehicle \(piece.label)")
+    }
+
+    private func exitMarker(cellSize: CGFloat) -> some View {
+        HStack(spacing: 3) {
+            Rectangle()
+                .fill(AppTheme.highlight)
+                .frame(width: 4, height: cellSize * 0.68)
+            Image(systemName: "arrow.right")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(AppTheme.highlight)
         }
-        .padding(6)
-        .background(AppTheme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .offset(
+            x: boardPadding + CGFloat(boardDimension) * (cellSize + gridSpacing) - gridSpacing + 3,
+            y: boardPadding + CGFloat(RushHourBoard.exitRow) * (cellSize + gridSpacing) + cellSize * 0.16
+        )
+        .accessibilityLabel("Exit")
     }
 }
 

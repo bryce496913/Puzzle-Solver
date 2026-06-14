@@ -141,12 +141,30 @@ struct SettingsView: View {
         AppScreenContainer(title: "Settings", subtitle: "Keep the V1 experience predictable during review and QA.") {
             VStack(alignment: .leading, spacing: 14) {
                 AppSectionHeader("Appearance", subtitle: "Choose a preferred presentation while preserving the V1 black/surface/accent palette.")
-                Picker("Theme", selection: $preferredAppearance) {
+                HStack(spacing: 6) {
                     ForEach(AppAppearanceOption.allCases) { option in
-                        Text(option.title).tag(option.rawValue)
+                        Button {
+                            preferredAppearance = option.rawValue
+                        } label: {
+                            Text(option.title)
+                                .font(AppTextStyle.h3)
+                                .foregroundColor(AppTheme.text)
+                                .frame(maxWidth: .infinity)
+                                .frame(minHeight: 42)
+                                .background(preferredAppearance == option.rawValue ? AppTheme.accent : Color.clear)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .accessibilityValue(preferredAppearance == option.rawValue ? "Selected" : "Not selected")
                     }
                 }
-                .pickerStyle(SegmentedPickerStyle())
+                .padding(4)
+                .background(AppTheme.background.opacity(0.7))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .stroke(AppTheme.accent.opacity(0.7), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
 
                 Toggle("Use compact solution previews", isOn: $useCompactSolutionPreviews)
                     .font(AppTextStyle.h3)
@@ -223,23 +241,62 @@ struct CubeInputView: View {
                 cubeNet
 
                 AppSectionHeader("Sticker color", subtitle: "Select a color, then tap a sticker. The outlined sticker is selected.")
-                HStack(spacing: 8) {
-                    ForEach(colors, id: \.self) { color in
-                        Button(color) { selectedColor = color }
-                            .buttonStyle(AppSecondaryButtonStyle())
+                Text("Selected color: \(colorName(selectedColor))")
+                    .appH3()
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach(colors, id: \.self) { code in
+                        Button {
+                            selectedColor = code
+                        } label: {
+                            HStack(spacing: 10) {
+                                Circle()
+                                    .fill(stickerColor(code))
+                                    .frame(width: 24, height: 24)
+                                    .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
+                                Text(colorName(code))
+                                    .font(AppTextStyle.h3)
+                                    .foregroundColor(AppTheme.text)
+                                Spacer(minLength: 0)
+                                if code == selectedColor {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(AppTheme.highlight)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: 48)
+                            .background(AppTheme.surface)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(color == selectedColor ? AppTheme.highlight : Color.clear, lineWidth: 3)
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(code == selectedColor ? AppTheme.highlight : AppTheme.accent.opacity(0.65), lineWidth: code == selectedColor ? 3 : 1)
                             )
-                            .accessibilityLabel("\(colorName(color)) color")
-                            .accessibilityValue(color == selectedColor ? "Selected" : "")
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .accessibilityLabel("\(colorName(code)) color")
+                        .accessibilityValue(code == selectedColor ? "Selected" : "")
                     }
                 }
 
-                AppStatusBadge(
-                    text: countsAreValid ? "Color counts valid" : colorCountSummary,
-                    state: countsAreValid ? .solved : .invalid
-                )
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(countsAreValid ? "Color counts valid" : "Color counts")
+                        .appH3()
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 6) {
+                        ForEach(colors, id: \.self) { code in
+                            HStack(spacing: 5) {
+                                Circle().fill(stickerColor(code)).frame(width: 12, height: 12)
+                                Text("\(colorName(code)): \(stickers.filter { $0 == code }.count)/\(stickersPerFace)")
+                                    .font(AppTextStyle.paragraph)
+                                    .foregroundColor(AppTheme.text)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                            }
+                        }
+                    }
+                }
+                .padding(10)
+                .background(AppTheme.background.opacity(0.55))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 HStack(spacing: 10) {
                     Button("Solved Example") { resetSolved() }
@@ -306,10 +363,6 @@ struct CubeInputView: View {
         }
     }
 
-    private var colorCountSummary: String {
-        colors.map { color in "\(color): \(stickers.filter { $0 == color }.count)" }.joined(separator: " • ")
-    }
-
     private func solve() {
         guard countsAreValid else {
             solveState = .invalid
@@ -355,6 +408,6 @@ struct CubeInputView: View {
     }
 
     private func colorName(_ code: String) -> String {
-        ["U": "white", "R": "red", "F": "green", "D": "yellow", "L": "orange", "B": "blue"][code] ?? code
+        ["U": "White", "R": "Red", "F": "Green", "D": "Yellow", "L": "Orange", "B": "Blue"][code] ?? code
     }
 }
