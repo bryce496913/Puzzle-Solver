@@ -82,6 +82,11 @@ struct SudokuInputView: View {
                         selectedCoordinate = coordinate
                     }
 
+                    Text("Selected: row \(selectedCoordinate.row + 1), column \(selectedCoordinate.column + 1)")
+                        .font(AppTextStyle.h3)
+                        .foregroundColor(AppTheme.text)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     SudokuKeypadView { value in
                         setSelectedValue(value)
                     }
@@ -163,34 +168,63 @@ struct SudokuGridView: View {
             SudokuCellView(
                 cell: board.cells[coordinate.row][coordinate.column],
                 isSelected: selectedCoordinate == coordinate,
+                isRelated: isRelated(coordinate),
+                isMatchingValue: isMatchingValue(coordinate),
                 isConflicting: conflictingCoordinates.contains(coordinate)
             )
             .onTapGesture { onSelect(coordinate) }
         }
         .padding(3)
-        .background(Color.black)
+        .background(AppTheme.background)
+    }
+
+    private func isRelated(_ coordinate: LogicGridCoordinate) -> Bool {
+        guard let selectedCoordinate, coordinate != selectedCoordinate else { return false }
+        let sameRow = coordinate.row == selectedCoordinate.row
+        let sameColumn = coordinate.column == selectedCoordinate.column
+        let sameBox = coordinate.row / SudokuBoard.boxSize == selectedCoordinate.row / SudokuBoard.boxSize && coordinate.column / SudokuBoard.boxSize == selectedCoordinate.column / SudokuBoard.boxSize
+        return sameRow || sameColumn || sameBox
+    }
+
+    private func isMatchingValue(_ coordinate: LogicGridCoordinate) -> Bool {
+        guard let selectedCoordinate, coordinate != selectedCoordinate,
+              let selectedValue = board.value(at: selectedCoordinate),
+              let value = board.value(at: coordinate) else { return false }
+        return value == selectedValue
     }
 }
 
 struct SudokuCellView: View {
     let cell: SudokuCell
     let isSelected: Bool
+    let isRelated: Bool
+    let isMatchingValue: Bool
     let isConflicting: Bool
 
     var body: some View {
         Text(cell.value.map(String.init) ?? "")
             .font(AppTextStyle.h2)
             .fontWeight(cell.isGiven ? .bold : .regular)
-            .foregroundColor(cell.isGiven ? .black : Color(hex: 0x003366))
+            .foregroundColor(foregroundColor)
             .frame(width: 34, height: 34)
             .background(backgroundColor)
-            .border(Color.gray.opacity(0.45), width: 0.5)
+            .overlay(
+                Rectangle()
+                    .stroke(isSelected ? AppTheme.highlight : AppTheme.text.opacity(0.18), lineWidth: isSelected ? 2.5 : 0.5)
+            )
+    }
+
+    private var foregroundColor: Color {
+        if isSelected { return AppTheme.text }
+        return cell.isGiven ? AppTheme.text : AppTheme.text.opacity(0.86)
     }
 
     private var backgroundColor: Color {
-        if isConflicting { return Color(hex: 0xffcccc) }
-        if isSelected { return AppTheme.text }
-        return cell.isGiven ? Color(hex: 0xffffcc) : .white
+        if isConflicting { return AppTheme.highlight.opacity(0.72) }
+        if isSelected { return AppTheme.highlight.opacity(0.95) }
+        if isMatchingValue { return AppTheme.accent.opacity(0.62) }
+        if isRelated { return AppTheme.accent.opacity(0.32) }
+        return cell.isGiven ? AppTheme.surface.opacity(0.92) : AppTheme.background.opacity(0.9)
     }
 }
 

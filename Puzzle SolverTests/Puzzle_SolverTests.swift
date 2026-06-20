@@ -150,6 +150,26 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.state, .timedOut)
     }
 
+
+    // MARK: - 5×5 sliding puzzle solver coverage
+
+    func testOneMoveFiveByFiveSlidingPuzzleSolves() throws {
+        let quick = SlidingPuzzleBoard(size: 5, tiles: Array(1...23) + [0, 24])
+        let result = SlidingPuzzleSolver().solve(quick, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: 10))
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.moves, [SlidingPuzzleMove.right.rawValue])
+        XCTAssertEqual(result.path.first, quick)
+        XCTAssertEqual(result.path.last, PuzzlePresets.sliding5x5Solved)
+    }
+
+    func testUnsolvableFiveByFiveSlidingPuzzleReturnsUnsolvable() throws {
+        let unsolvable = SlidingPuzzleBoard(size: 5, tiles: Array(1...22) + [24, 23, 0])
+        let result = SlidingPuzzleSolver().solve(unsolvable, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: 10))
+
+        XCTAssertEqual(result.state, .unsolvable)
+    }
+
     // MARK: - Rush Hour mechanical puzzle solver coverage
 
     func testRushHourExampleSolvesWithOrderedPlayback() throws {
