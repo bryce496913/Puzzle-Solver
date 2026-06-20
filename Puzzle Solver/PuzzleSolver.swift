@@ -1502,7 +1502,7 @@ enum SlidingPuzzleKind: Int, CaseIterable, Equatable {
 
     var size: Int { rawValue }
     var displayName: String { "\(size)×\(size) Sliding Puzzle" }
-    var solverAvailable: Bool { self != .fiveByFive }
+    var solverAvailable: Bool { true }
 }
 
 struct SlidingPuzzleValidationResult: Equatable {
@@ -1516,6 +1516,9 @@ enum SlidingPuzzlePlaceholderValidator {
     static func validate(_ board: SlidingPuzzleBoard) -> SlidingPuzzleValidationResult {
         guard SlidingPuzzleAnalyzer.validate(board) else {
             return SlidingPuzzleValidationResult(state: .invalid, message: "Please use each tile once.")
+        }
+        guard SlidingPuzzleAnalyzer.isSolvable(board) else {
+            return SlidingPuzzleValidationResult(state: .unsolvable, message: "This layout is not solvable. Try swapping two numbered tiles.")
         }
         return SlidingPuzzleValidationResult(state: .solved, message: "Ready to solve.")
     }
@@ -1691,7 +1694,7 @@ enum SlidingPuzzleAnalyzer {
 final class SlidingPuzzleSolver {
     private let solvers: [SlidingPuzzleKind: SlidingPuzzleSolving]
 
-    init(solvers: [SlidingPuzzleSolving] = [SlidingPuzzleAStarSolver(), SlidingPuzzleIDAStarSolver(), SlidingPuzzle5x5PlaceholderSolver()]) {
+    init(solvers: [SlidingPuzzleSolving] = [SlidingPuzzleAStarSolver(), SlidingPuzzleIDAStarSolver(supportedKind: .fourByFour), SlidingPuzzleIDAStarSolver(supportedKind: .fiveByFive)]) {
         self.solvers = Dictionary(uniqueKeysWithValues: solvers.map { ($0.supportedKind, $0) })
     }
 
@@ -1731,25 +1734,6 @@ final class SlidingPuzzleSolver {
     }
 }
 
-
-final class SlidingPuzzle5x5PlaceholderSolver: SlidingPuzzleSolving {
-    let supportedKind: SlidingPuzzleKind = .fiveByFive
-    let algorithmName = "5×5 placeholder"
-
-    func solve(_ board: SlidingPuzzleBoard, options: SlidingPuzzleSolveOptions, start: Date) -> SlidingPuzzleSolveResult {
-        // Future implementation should use a bounded 24-puzzle strategy such as pattern databases, IDA*,
-        // or staged row/column solving. It is intentionally unavailable today so opening or solving a
-        // 5×5 puzzle returns visible UI feedback instead of attempting an unbounded search.
-        SlidingPuzzleSolveResult(
-            state: .unsupported,
-            moves: [],
-            path: [board],
-            failureReason: "This solver is planned for a future update.",
-            elapsedTime: Date().timeIntervalSince(start),
-            nodesExplored: 0
-        )
-    }
-}
 
 final class SlidingPuzzleAStarSolver: SlidingPuzzleSolving {
     let supportedKind: SlidingPuzzleKind = .threeByThree
@@ -1799,8 +1783,12 @@ final class SlidingPuzzleAStarSolver: SlidingPuzzleSolving {
 }
 
 final class SlidingPuzzleIDAStarSolver: SlidingPuzzleSolving {
-    let supportedKind: SlidingPuzzleKind = .fourByFour
+    let supportedKind: SlidingPuzzleKind
     let algorithmName = "IDA* Manhattan"
+
+    init(supportedKind: SlidingPuzzleKind = .fourByFour) {
+        self.supportedKind = supportedKind
+    }
 
     private struct SearchContext {
         let deadline: Date
@@ -1827,14 +1815,18 @@ final class SlidingPuzzleIDAStarSolver: SlidingPuzzleSolving {
                 SolverDebugLogger.shared.log("solve finished: solved in \(moves.count) moves")
                 return success(moves: moves, path: boards, start: start, nodes: context.nodes)
             case .nextBound(let nextBound):
-                if context.timedOut { return finish(.timedOut, reason: "Solver took too long.", start: start, nodes: context.nodes) }
-                if context.nodeLimited { return finish(.timedOut, reason: "Solver took too long.", start: start, nodes: context.nodes) }
+                if context.timedOut { return finish(.timedOut, reason: timeoutReason, start: start, nodes: context.nodes) }
+                if context.nodeLimited { return finish(.timedOut, reason: timeoutReason, start: start, nodes: context.nodes) }
                 if nextBound == Int.max { return finish(.failed, reason: "Could not find a solution.", start: start, nodes: context.nodes) }
                 bound = nextBound
             }
         }
 
-        return finish(.timedOut, reason: "Solver reached the safe depth limit for this 4×4 puzzle.", start: start, nodes: context.nodes)
+        return finish(.timedOut, reason: supportedKind == .fiveByFive ? timeoutReason : "Solver reached the safe depth limit for this 4×4 puzzle.", start: start, nodes: context.nodes)
+    }
+
+    private var timeoutReason: String {
+        supportedKind == .fiveByFive ? "This 5×5 puzzle is too complex to solve quickly. Try a puzzle closer to solved." : "Solver took too long."
     }
 
     private func search(
@@ -1909,7 +1901,7 @@ enum PuzzlePresets {
     static let sliding4x4Medium = SlidingPuzzleBoard(size: 4, tiles: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 14, 15])
 
     static let sliding5x5Solved = SlidingPuzzleBoard.solved(size: 5)
-    static let sliding5x5Placeholder = SlidingPuzzleBoard(size: 5, tiles: Array(1..<25) + [0])
+    static let sliding5x5OneMove = SlidingPuzzleBoard(size: 5, tiles: Array(1...23) + [0, 24])
 }
 
 struct ExamplePuzzlePreset: Identifiable, Hashable {

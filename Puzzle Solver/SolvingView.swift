@@ -89,7 +89,7 @@ struct SolvingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical)
 
-                    if puzzleSize == 3, solveState == .solved, !solutionSteps.isEmpty {
+                    if (3...5).contains(puzzleSize), solveState == .solved, !solutionSteps.isEmpty {
                         SlidingPuzzlePlaybackView(
                             steps: solutionSteps,
                             moves: movementList.filter { $0.contains(". ") },
@@ -160,7 +160,7 @@ struct SolvingView: View {
         let options = solverOptions
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
             guard !self.didFinish else { return }
-            self.complete(state: .timedOut, moves: [], steps: [], reason: "Solver took too long.", elapsedTime: timeout, nodes: 0)
+            self.complete(state: .timedOut, moves: [], steps: [], reason: self.puzzleSize == 5 ? "This 5×5 puzzle is too complex to solve quickly. Try a puzzle closer to solved." : "Solver took too long.", elapsedTime: timeout, nodes: 0)
         }
 
         DispatchQueue.global(qos: .userInitiated).async {
@@ -179,6 +179,9 @@ struct SolvingView: View {
     private var solverOptions: SlidingPuzzleSolveOptions {
         if puzzleSize == 4 {
             return SlidingPuzzleSolveOptions(timeout: solverTimeout, maxNodes: 120_000, maxDepth: 60)
+        }
+        if puzzleSize == 5 {
+            return SlidingPuzzleSolveOptions(timeout: solverTimeout, maxNodes: 180_000, maxDepth: 40)
         }
         return SlidingPuzzleSolveOptions(timeout: solverTimeout, maxNodes: 250_000)
     }
@@ -251,7 +254,7 @@ struct SlidingPuzzlePlaybackView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("3×3 Sliding Puzzle")
+            Text("\(currentStep?.board.size ?? 3)×\(currentStep?.board.size ?? 3) Sliding Puzzle")
                 .font(AppTextStyle.h2)
                 .foregroundColor(AppTheme.primaryText)
 
@@ -373,7 +376,9 @@ struct SlidingPuzzlePlaybackView: View {
 struct SlidingPuzzleAnimatedBoardView: View {
     let board: SlidingPuzzleBoard
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
+    private var columns: [GridItem] { Array(repeating: GridItem(.flexible(), spacing: board.size <= 3 ? 8 : 5), count: board.size) }
+    private var tileHeight: CGFloat { board.size <= 3 ? 56 : (board.size == 4 ? 46 : 38) }
+    private var tileFont: Font { board.size >= 5 ? AppTextStyle.paragraph : AppTextStyle.h2 }
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
@@ -387,12 +392,12 @@ struct SlidingPuzzleAnimatedBoardView: View {
                         )
                     if tile != 0 {
                         Text("\(tile)")
-                            .font(AppTextStyle.h2)
+                            .font(tileFont)
                             .fontWeight(.bold)
                             .foregroundColor(AppTheme.text)
                     }
                 }
-                .frame(height: 56)
+                .frame(height: tileHeight)
                 .id(tile)
             }
         }

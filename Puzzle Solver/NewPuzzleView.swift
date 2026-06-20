@@ -221,7 +221,7 @@ struct SlidingPuzzleInputView: View {
         switch puzzleSize {
         case 3: gridNumbers = PuzzlePresets.sliding3x3Medium.toGrid()
         case 4: gridNumbers = PuzzlePresets.sliding4x4Medium.toGrid()
-        default: gridNumbers = PuzzlePresets.sliding5x5Solved.toGrid()
+        default: gridNumbers = PuzzlePresets.sliding5x5OneMove.toGrid()
         }
         blankTile = Self.blankTileIndex(in: gridNumbers, size: puzzleSize)
         initialState = gridNumbers
