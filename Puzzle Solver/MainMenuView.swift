@@ -218,9 +218,10 @@ struct CubeInputView: View {
     @State private var selectedSticker = 0
     @State private var solveResult: CubeSolveResult?
     @State private var solveState: SolveState = .idle
-    @State private var didFinish = false
+    @State private var progressText = "Ready to solve."
+    @State private var solveStartedAt: Date?
 
-    private let colors = ["U", "R", "F", "D", "L", "B"]
+    private let colors = CubeColor.defaultFaceOrder.map(\.rawValue)
     private var kind: CubePuzzleKind { descriptor.id == "cube-2x2" ? .twoByTwo : .threeByThree }
     private var faceSize: Int { kind == .twoByTwo ? 2 : 3 }
     private var stickersPerFace: Int { faceSize * faceSize }
@@ -305,21 +306,45 @@ struct CubeInputView: View {
                         .buttonStyle(AppResetButtonStyle())
                 }
 
-                Button(solveState == .solving ? "Solving…" : "Solve Cube") { solve() }
+                Button(solveState == .solving || solveState == .validating ? "Solving…" : "Solve Cube") { solve() }
                     .buttonStyle(AppPrimaryButtonStyle())
-                    .disabled(!countsAreValid || solveState == .solving)
+                    .disabled(!countsAreValid || solveState == .solving || solveState == .validating)
+
+                solveProgressCard
 
                 if let solveResult {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(solveState.friendlyTitle).appH2()
-                        Text(solveResult.failureReason ?? (solveResult.moves.isEmpty ? "Cube is already solved." : solveResult.formattedMoves))
-                            .appParagraph()
+                        Text(resultMessage(solveResult)).appParagraph()
+                        if !solveResult.moves.isEmpty {
+                            Text("Moves (\(solveResult.moveCount)): \(solveResult.formattedMoves)")
+                                .font(AppTextStyle.h3)
+                                .foregroundColor(AppTheme.text)
+                        }
                     }
                     .appCardStyle()
                 }
             }
             .appCardStyle()
         }
+    }
+
+    private var solveProgressCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                if solveState == .validating || solveState == .solving {
+                    ProgressView()
+                }
+                Text(progressText).appParagraph()
+            }
+            Text("Puzzle: \(descriptor.title)").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text.opacity(0.62))
+            if let solveStartedAt, solveState == .solving || solveState == .validating {
+                Text("Elapsed: \(String(format: "%.1f", Date().timeIntervalSince(solveStartedAt)))s — This may take a few seconds.")
+                    .font(AppTextStyle.paragraph)
+                    .foregroundColor(AppTheme.text.opacity(0.62))
+            }
+        }
+        .appCardStyle()
     }
 
     private var cubeNet: some View {
@@ -364,29 +389,38 @@ struct CubeInputView: View {
     }
 
     private func solve() {
+        SolverDebugLogger.shared.log("CubeInputView: solve button tapped for \(kind.rawValue)")
         guard countsAreValid else {
             solveState = .invalid
+            progressText = "Each color must appear exactly \(stickersPerFace) times."
             return
         }
-        solveState = .solving
-        didFinish = false
+        solveResult = nil
+        solveState = .validating
+        progressText = "Checking cube colors..."
+        solveStartedAt = Date()
         let state = CubeState(puzzle: kind, stickers: stickers)
-        let options = CubeSolveOptions(timeout: 5, maxDepth: kind == .twoByTwo ? 10 : 8, maxNodes: kind == .twoByTwo ? 100_000 : 250_000, includeStepStates: false)
+        let options = CubeSolveOptions(timeout: kind == .twoByTwo ? 2 : 5, maxDepth: kind == .twoByTwo ? 10 : 6, maxNodes: kind == .twoByTwo ? 100_000 : 80_000, includeStepStates: false)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + options.timeout + 0.25) {
-            guard !didFinish else { return }
-            didFinish = true
-            solveState = .timedOut
-            solveResult = CubeSolveResult(status: .timeout, puzzle: kind, moves: [], steps: [], failureReason: "The bounded solver timed out. Try a simpler cube state.", elapsedTime: options.timeout, nodesExplored: 0)
-        }
-        CubeSolvingService.shared.solve(state, options: options) { result in
-            DispatchQueue.main.async {
-                guard !didFinish else { return }
-                didFinish = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            guard solveState == .validating else { return }
+            solveState = .solving
+            progressText = "Preparing cube state... Solving cube..."
+            CubeSolvingService.shared.solve(state, options: options) { result in
                 solveResult = result
                 solveState = result.status.solveState
+                progressText = resultMessage(result)
+                solveStartedAt = nil
             }
         }
+    }
+
+    private func resultMessage(_ result: CubeSolveResult) -> String {
+        if result.status == .alreadySolved { return "Already solved." }
+        if result.status == .timeout { return "Solver timed out. Please check the cube colors or try a simpler scramble." }
+        if let reason = result.failureReason { return reason }
+        if result.moves.isEmpty { return result.status.userFacingMessage }
+        return "Solution ready."
     }
 
     private func resetSolved() {
@@ -394,6 +428,8 @@ struct CubeInputView: View {
         selectedSticker = 0
         solveResult = nil
         solveState = .idle
+        progressText = "Ready to solve."
+        solveStartedAt = nil
     }
 
     private func stickerColor(_ code: String) -> Color {
@@ -408,6 +444,6 @@ struct CubeInputView: View {
     }
 
     private func colorName(_ code: String) -> String {
-        ["U": "White", "R": "Red", "F": "Green", "D": "Yellow", "L": "Orange", "B": "Blue"][code] ?? code
+        CubeColor(rawValue: code)?.name ?? code
     }
 }

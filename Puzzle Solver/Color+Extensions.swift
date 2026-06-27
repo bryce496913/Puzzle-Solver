@@ -362,7 +362,7 @@ enum PuzzleCategory: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .sliding: return "Solve 3×3, 4×4, and 5×5 sliding tile layouts."
-        case .twisty: return "Enter and solve 2×2 and 3×3 cube states."
+        case .twisty: return "Enter validated 2×2 and 3×3 cube states with non-freezing solving feedback."
         case .logic: return "Solve classic Sudoku with guided input."
         case .mechanical: return "Clear the path in Rush Hour."
         case .visual: return "Visual and experimental ideas planned for later updates."
@@ -400,10 +400,6 @@ enum PuzzleAvailabilityCatalog {
         PuzzleAvailabilityDescriptor(id: "sliding-5x5", category: .sliding, title: "5×5 Sliding Puzzle", shortDescription: "Enter a 5×5 board and receive a safe result without unbounded searching.", icon: "square.grid.3x3.square", status: .active),
         PuzzleAvailabilityDescriptor(id: "cube-2x2", category: .twisty, title: "2×2 Cube", shortDescription: "Enter sticker colors on a labeled cube net and solve bounded scrambles.", icon: "cube.fill", status: .active),
         PuzzleAvailabilityDescriptor(id: "cube-3x3", category: .twisty, title: "3×3 Rubik’s Cube", shortDescription: "Enter a validated cube state and use the bounded solver.", icon: "cube.transparent.fill", status: .active),
-        PuzzleAvailabilityDescriptor(id: "pyraminx", category: .twisty, title: "Pyraminx", shortDescription: "Solve the four-sided twisty pyramid puzzle.", icon: "triangle.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "skewb", category: .twisty, title: "Skewb", shortDescription: "Solve the corner-turning cube puzzle.", icon: "diamond.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "megaminx", category: .twisty, title: "Megaminx", shortDescription: "Solve the dodecahedron twisty puzzle.", icon: "pentagon.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "square-1", category: .twisty, title: "Square-1", shortDescription: "Solve the shape-shifting cube puzzle.", icon: "square.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "sudoku", category: .logic, title: "Sudoku", shortDescription: "Enter givens, validate conflicts, and solve with clear feedback.", icon: "squareshape.split.3x3", status: .active),
         PuzzleAvailabilityDescriptor(id: "killer-sudoku", category: .logic, title: "Killer Sudoku", shortDescription: "Solve Sudoku puzzles with cage-sum rules.", icon: "sum", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "nonogram", category: .logic, title: "Nonogram", shortDescription: "Solve picture logic puzzles from row and column clues.", icon: "rectangle.grid.3x2.fill", status: .comingSoon),

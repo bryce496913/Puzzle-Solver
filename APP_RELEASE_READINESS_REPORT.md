@@ -6,6 +6,7 @@
 - The real bundle version remains visible in Settings as `Version <short version> (<build>)`.
 - Rush Hour has been rebuilt as a user-generated puzzle builder with validation, bounded background solving, and ordered solution playback.
 - Sliding puzzle and Sudoku V1 behavior has been tightened so active modes either solve safely or show clear bounded feedback.
+- Twisty solving was rebuilt around a shared, validated, asynchronous path for the active 2×2 Cube and 3×3 Rubik’s Cube modes only.
 
 ## Active puzzle list
 
@@ -19,14 +20,10 @@
 - Settings
 - Coming Soon
 
-No deferred puzzle modes were reactivated.
+No deferred puzzle modes were reactivated. Pyraminx, Skewb, Megaminx, Square-1, 4×4 Cube, and 5×5 Cube are not active twisty solve routes.
 
 ## Coming Soon puzzle list
 
-- Pyraminx
-- Skewb
-- Megaminx
-- Square-1
 - Killer Sudoku
 - Nonogram
 - Kakuro
@@ -36,6 +33,26 @@ No deferred puzzle modes were reactivated.
 - Maze Solver
 - Chess Puzzles
 - Jigsaw Solver
+
+## Twisty puzzle V1 status
+
+- 2×2 Cube remains active with immediate validation, solved-state detection, timeout-guarded depth-limited solving, ordered move output, and no explored-state/debug output in the UI.
+- 3×3 Rubik’s Cube remains active in a safe V1 mode: solved cubes and short generated scrambles are supported, while complex states return a clear “solver upgrade in progress” unavailable state instead of running unsafe brute force or hanging.
+- Solved 2×2 and solved 3×3 inputs return immediately as `alreadySolved` with 0 moves and the user-facing message “Already solved.”
+- Invalid 2×2 and 3×3 inputs fail before solving with friendly reasons for missing stickers, incorrect color counts, or invalid fixed 3×3 centers.
+- The shared cube solving service dispatches solver work off the main queue and publishes completion back to SwiftUI, so solving cannot freeze view rendering.
+- The cube input/result UI now shows progress text for checking colors, preparing state, solving, timeout, invalid, unavailable, and solved outcomes.
+- Timeout is a safety result only after validation/solved checks; solved and invalid cubes no longer report timeout.
+
+## Twisty smoke-test results
+
+- Solved 2×2: expected `alreadySolved`, 0 moves, empty move list.
+- Solved 3×3: expected `alreadySolved`, 0 moves, empty move list.
+- One-turn 2×2 scramble: expected a real inverse move sequence that returns the sticker state to solved.
+- Short 2×2 scramble `R U`: expected a real solution within the configured V1 bounds.
+- One-turn 3×3 scramble: expected a real inverse move sequence that returns the sticker state to solved.
+- Short 3×3 scramble `R U`: expected a real solution within the safe shallow-search V1 bounds.
+- Invalid color count and missing-sticker inputs: expected `invalidInput` before any solve search starts.
 
 ## Sliding puzzle V1 status
 
@@ -73,6 +90,7 @@ No deferred puzzle modes were reactivated.
 
 ## Known limitations
 
+- 3×3 Rubik’s Cube complex-state solving is intentionally limited in V1. A complete Kociemba/two-phase solver remains a planned upgrade; unsupported complex states fail safely instead of hanging or pretending to solve.
 - Sliding puzzle search is intentionally bounded. Deep 4×4 or 5×5 scrambles can time out by design instead of hanging the app.
 - 5×5 solving is practical for near-solved examples and safer than an unbounded search, but arbitrary 24-puzzle scrambles may exceed the V1 safety limits.
 - The Rush Hour builder places new vehicles from the tapped top-left cell; moving or rotating an existing vehicle requires removing and re-adding it.
@@ -83,7 +101,13 @@ No deferred puzzle modes were reactivated.
 ## QA notes
 
 - Confirm the active catalog remains limited to the approved seven puzzle solvers.
-- Confirm all Coming Soon routes remain placeholders and expose no solve action.
+- Confirm no removed twisty puzzle modes expose active solve routes.
+- Confirm solved 2×2 returns instantly with “Already solved.”
+- Confirm solved 3×3 returns instantly with “Already solved.”
+- Confirm invalid cubes fail before solving.
+- Confirm simple 2×2 and 3×3 scrambles solve or fail gracefully without freezing.
+- Confirm cube loading UI shows progress and no stuck “Solving…” screens remain.
+- Confirm timeout appears only when a real solve attempt times out.
 - Confirm 4×4 Sliding Puzzle opens, accepts valid input, solves the quick example, and shows animated playback controls.
 - Confirm 5×5 Sliding Puzzle opens, accepts valid input, validates solvability, solves the one-move example or fails gracefully for complex boards, and never hangs.
 - Confirm 5×5 blank tiles render compactly without overflowing “Empty” text.
@@ -93,6 +117,5 @@ No deferred puzzle modes were reactivated.
 - Confirm overlap and out-of-bounds placement display friendly validation messages.
 - Confirm only one target is accepted and a vertical target fails validation.
 - Confirm Load Example, Validate, Solve Rush Hour, ordered moves, and playback controls work.
-- Confirm solving always leaves the loading state through solved, invalid, no-solution, timed-out, or failed handling.
-- Confirm Settings, Coming Soon, onboarding, and the active puzzle menus still open.
+- Confirm solving always leaves the loading state through solved, already-solved, invalid, no-solution, timed-out, failed, cancelled, or unavailable handling.
 - Run unit tests, a clean app build, simulator smoke testing, and archive validation before submission.

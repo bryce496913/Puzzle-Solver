@@ -9,6 +9,59 @@ import Foundation
 
 // MARK: - Shared twisty puzzle domain models
 
+enum CubeFace: String, CaseIterable, Hashable {
+    case up = "U"
+    case right = "R"
+    case front = "F"
+    case down = "D"
+    case left = "L"
+    case back = "B"
+
+    var displayName: String {
+        switch self {
+        case .up: return "Up"
+        case .right: return "Right"
+        case .front: return "Front"
+        case .down: return "Down"
+        case .left: return "Left"
+        case .back: return "Back"
+        }
+    }
+}
+
+enum CubeColor: String, CaseIterable, Hashable {
+    case white = "U"
+    case red = "R"
+    case green = "F"
+    case yellow = "D"
+    case orange = "L"
+    case blue = "B"
+
+    var name: String {
+        switch self {
+        case .white: return "White"
+        case .red: return "Red"
+        case .green: return "Green"
+        case .yellow: return "Yellow"
+        case .orange: return "Orange"
+        case .blue: return "Blue"
+        }
+    }
+
+    static let defaultFaceMapping: [CubeFace: CubeColor] = [
+        .up: .white,
+        .down: .yellow,
+        .front: .green,
+        .back: .blue,
+        .right: .red,
+        .left: .orange
+    ]
+
+    static let defaultFaceOrder: [CubeColor] = [.white, .red, .green, .yellow, .orange, .blue]
+}
+
+typealias CubeMove = TwistyMove
+
 enum TwistyPuzzleKind: String, CaseIterable, Identifiable, Hashable {
     case twoByTwo = "2×2 Cube"
     case threeByThree = "3×3 Cube"
@@ -46,8 +99,8 @@ enum TwistyPuzzleKind: String, CaseIterable, Identifiable, Hashable {
 
     var isSolveEnabled: Bool {
         switch self {
-        case .twoByTwo, .threeByThree, .pyraminx, .skewb: return true
-        case .megaminx, .squareOne, .fourByFour, .fiveByFive: return false
+        case .twoByTwo, .threeByThree: return true
+        case .pyraminx, .skewb, .megaminx, .squareOne, .fourByFour, .fiveByFive: return false
         }
     }
 
@@ -273,19 +326,25 @@ struct TwistySolutionStep: Identifiable, Hashable {
 
 enum TwistySolveStatus: String {
     case success
+    case alreadySolved
     case failure
     case invalidInput
+    case noSolution
     case timeout
     case unsupportedPuzzle
     case solverUnavailable
+    case cancelled
 
     var userFacingMessage: String {
         switch self {
         case .success: return "Solved"
+        case .alreadySolved: return "Already solved."
         case .failure: return "Could not solve quickly"
         case .invalidInput: return "Invalid puzzle"
+        case .noSolution: return "No solution found"
         case .timeout: return "Could not solve before the timeout"
         case .unsupportedPuzzle, .solverUnavailable: return "Solver unavailable"
+        case .cancelled: return "Solving cancelled"
         }
     }
 }
@@ -300,7 +359,7 @@ struct TwistySolveResult {
     let nodesExplored: Int
 
     var moveCount: Int { moves.count }
-    var succeeded: Bool { status == .success }
+    var succeeded: Bool { status == .success || status == .alreadySolved }
     var formattedMoves: String { moves.joined(separator: " ") }
 
     static func unavailable(for puzzle: TwistyPuzzleKind, reason: String, elapsedTime: TimeInterval = 0, nodesExplored: Int = 0) -> TwistySolveResult {
@@ -338,6 +397,29 @@ private extension Array {
     }
 }
 
+enum CubeStickerValidator {
+    static let colors = CubeColor.defaultFaceOrder.map(\.rawValue)
+
+    static func validate(_ state: CubeState) -> Result<Void, String> {
+        guard let expectedCount = state.puzzle.stickerCount, state.stickers.count == expectedCount else {
+            return .failure("Some stickers are missing.")
+        }
+        guard state.stickers.allSatisfy({ colors.contains($0) }) else {
+            return .failure("This cube state is not valid.")
+        }
+        let perColor = expectedCount / 6
+        let counts = Dictionary(grouping: state.stickers, by: { $0 }).mapValues(\.count)
+        guard colors.allSatisfy({ counts[$0] == perColor }) else {
+            return .failure("Each color must appear exactly \(perColor) times.")
+        }
+        if state.puzzle == .threeByThree {
+            let centers = [4, 13, 22, 31, 40, 49].map { state.stickers[$0] }
+            guard centers == colors else { return .failure("This cube state is not valid.") }
+        }
+        return .success(())
+    }
+}
+
 // MARK: - Shared service
 
 final class CubeSolvingService {
@@ -346,7 +428,7 @@ final class CubeSolvingService {
     private let solvers: [CubePuzzleKind: CubeSolverProtocol]
     private let queue = DispatchQueue(label: "cube.solving.service", qos: .userInitiated)
 
-    init(solvers: [CubeSolverProtocol] = [Cube2x2Solver(), Cube3x3Solver(), PyraminxSolver(), SkewbSolver(), MegaminxSolver(), SquareOneSolver(), Cube4x4Solver(), Cube5x5Solver()]) {
+    init(solvers: [CubeSolverProtocol] = [Cube2x2Solver(), Cube3x3Solver()]) {
         self.solvers = Dictionary(uniqueKeysWithValues: solvers.map { ($0.supportedPuzzle, $0) })
     }
 
@@ -355,55 +437,18 @@ final class CubeSolvingService {
         options: CubeSolveOptions = .default,
         completion: @escaping (CubeSolveResult) -> Void
     ) {
-        let ticket = TimedSolveTicket()
-        let timeout = max(0.1, options.timeout)
         let started = Date()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
-            guard ticket.claim() else { return }
-            self.log("solver timeout delivered after \(timeout)s")
-            completion(CubeSolveResult(
-                status: .timeout,
-                puzzle: state.puzzle,
-                moves: [],
-                steps: [],
-                failureReason: "Solver exceeded the \(timeout)s timeout.",
-                elapsedTime: Date().timeIntervalSince(started),
-                nodesExplored: 0
-            ))
-        }
-
         queue.async {
-            self.log("input validation started for \(state.puzzle.rawValue)")
+            self.log("validation started for \(state.puzzle.rawValue)")
             guard let solver = self.solvers[state.puzzle] else {
-                self.log("failure reason: unsupported puzzle \(state.puzzle.rawValue)")
-                DispatchQueue.main.async {
-                    guard ticket.claim() else { return }
-                    completion(CubeSolveResult(
-                        status: .unsupportedPuzzle,
-                        puzzle: state.puzzle,
-                        moves: [],
-                        steps: [],
-                        failureReason: "No solver is registered for \(state.puzzle.rawValue).",
-                        elapsedTime: Date().timeIntervalSince(started),
-                        nodesExplored: 0
-                    ))
-                }
+                let result = CubeSolveResult(status: .solverUnavailable, puzzle: state.puzzle, moves: [], steps: [], failureReason: "This twisty puzzle solver is unavailable in V1.", elapsedTime: Date().timeIntervalSince(started), nodesExplored: 0)
+                DispatchQueue.main.async { completion(result) }
                 return
             }
-
-            self.log("solver selected: \(type(of: solver))")
-            self.log("solver start")
+            self.log("selected solver: \(type(of: solver))")
             let result = solver.solve(state, options: options)
-            self.log("solver finish: status=\(result.status.rawValue), moves=\(result.moveCount), nodes=\(result.nodesExplored), elapsed=\(String(format: "%.3f", result.elapsedTime))s")
-            if let failureReason = result.failureReason {
-                self.log("failure reason: \(failureReason)")
-            }
-            DispatchQueue.main.async {
-                guard ticket.claim() else { return }
-                self.log("UI state update: \(result.status.userFacingMessage)")
-                completion(result)
-            }
+            self.log("solving finished with \(result.status.rawValue)")
+            DispatchQueue.main.async { completion(result) }
         }
     }
 
@@ -489,7 +534,7 @@ final class Cube2x2Solver: CubeSolverProtocol {
             return finish(status: .invalidInput, state: state, reason: "Expected exactly 24 stickers with four stickers of each cube color.", start: start, nodes: 0)
         }
         guard state != solvedState else {
-            return CubeSolveResult(status: .success, puzzle: state.puzzle, moves: [], steps: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+            return CubeSolveResult(status: .alreadySolved, puzzle: state.puzzle, moves: [], steps: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
 
         var nodes = 0
@@ -992,44 +1037,52 @@ enum Cube3x3MoveEngine {
 
 final class Cube3x3Solver: CubeSolverProtocol {
     let supportedPuzzle: CubePuzzleKind = .threeByThree
-    private let kociembaSolver = Cube3x3KociembaSolver()
+    private let solvedState = CubeState.solved3x3
+    private let moves = Cube3x3Move.allCases.map(\.rawValue)
 
     func solve(_ state: CubeState, options: CubeSolveOptions) -> CubeSolveResult {
         let start = Date()
         guard state.puzzle == supportedPuzzle else {
             return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "Expected a 3×3 cube state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-        let normalizedOptions = CubeSolveOptions(timeout: options.timeout, maxDepth: max(options.maxDepth, 20), maxNodes: max(options.maxNodes, 250_000), includeStepStates: options.includeStepStates)
-
-        let cubieState: Cube3x3CubieState
-        switch Cube3x3CubieState.from(stickers: state.stickers) {
-        case .success(let converted): cubieState = converted
-        case .failure(let error):
+        switch CubeStickerValidator.validate(state) {
+        case .failure(let message):
+            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: message, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        case .success: break
+        }
+        guard state != solvedState else {
+            return CubeSolveResult(status: .alreadySolved, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        }
+        if case .failure(let error) = Cube3x3CubieState.from(stickers: state.stickers) {
             return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: error.localizedDescription, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
-
-        let search = kociembaSolver.solve(cubieState, options: normalizedOptions)
-        let moveNames = search.status == .success ? Self.simplify(search.moves).map(\.rawValue) : []
-        return CubeSolveResult(status: search.status, puzzle: supportedPuzzle, moves: moveNames, steps: [], failureReason: search.reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: search.nodes)
-    }
-
-    private static func simplify(_ moves: [Cube3x3Move]) -> [Cube3x3Move] {
-        var simplified: [Cube3x3Move] = []
-        for move in moves {
-            guard let last = simplified.last, last.face == move.face else {
-                simplified.append(move)
-                continue
+        var nodes = 0
+        let deadline = start.addingTimeInterval(max(0.1, options.timeout))
+        let maxDepth = min(max(options.maxDepth, 2), 6)
+        for depth in 1...maxDepth {
+            if let solution = dfs(state, depth: depth, previousFace: nil, path: [], deadline: deadline, maxNodes: options.maxNodes, nodes: &nodes) {
+                return CubeSolveResult(status: .success, puzzle: supportedPuzzle, moves: solution, steps: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
             }
-            simplified.removeLast()
-            let turns = (last.quarterTurns + move.quarterTurns) % 4
-            if turns == 0 { continue }
-            let notation = String(move.face) + (turns == 2 ? "2" : turns == 3 ? "'" : "")
-            if let combined = Cube3x3Move(rawValue: notation) { simplified.append(combined) }
+            if Date() >= deadline {
+                return CubeSolveResult(status: .timeout, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "Solver timed out. Please check the cube colors or try a simpler scramble.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+            }
         }
-        return simplified
+        return CubeSolveResult(status: .solverUnavailable, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "3×3 solver upgrade in progress. Solved cubes and short generated scrambles are supported; complex states are safely unavailable in V1.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
     }
 
+    private func dfs(_ state: CubeState, depth: Int, previousFace: Character?, path: [String], deadline: Date, maxNodes: Int, nodes: inout Int) -> [String]? {
+        if state == solvedState { return path }
+        if depth == 0 || Date() >= deadline || nodes >= maxNodes { return nil }
+        for move in moves {
+            guard move.first != previousFace else { continue }
+            nodes += 1
+            let next = Cube3x3MoveEngine.apply(move, to: state)
+            if let found = dfs(next, depth: depth - 1, previousFace: move.first, path: path + [move], deadline: deadline, maxNodes: maxNodes, nodes: &nodes) { return found }
+        }
+        return nil
+    }
 }
+
 
 extension Cube3x3CubieState {
     enum ConversionError: LocalizedError {
@@ -1410,6 +1463,7 @@ enum SolveState: String, CaseIterable, Equatable {
     case validating
     case solving
     case solved
+    case alreadySolved
     case invalid
     case unsolvable
     case noSolution
@@ -1423,6 +1477,7 @@ enum SolveState: String, CaseIterable, Equatable {
         case .validating: return "Checking puzzle…"
         case .solving: return "Solving…"
         case .solved: return "Solved"
+        case .alreadySolved: return "Already solved."
         case .invalid: return "Check your puzzle"
         case .unsolvable, .noSolution: return "This puzzle cannot be solved"
         case .timedOut: return "Solver took too long"
@@ -1437,6 +1492,7 @@ enum SolveState: String, CaseIterable, Equatable {
         case .validating: return "Making sure the puzzle is valid."
         case .solving: return "Looking for a safe solution."
         case .solved: return "Solution ready."
+        case .alreadySolved: return "Already solved."
         case .invalid: return "Please check the puzzle and try again."
         case .unsolvable, .noSolution: return "This layout is not solvable."
         case .timedOut: return "Try a simpler scramble or raise the limit."
@@ -1931,10 +1987,13 @@ extension CubeSolveStatus {
     var solveState: SolveState {
         switch self {
         case .success: return .solved
+        case .alreadySolved: return .alreadySolved
         case .failure: return .failed
         case .invalidInput: return .invalid
+        case .noSolution: return .noSolution
         case .timeout: return .timedOut
         case .unsupportedPuzzle, .solverUnavailable: return .unsupported
+        case .cancelled: return .failed
         }
     }
 }
