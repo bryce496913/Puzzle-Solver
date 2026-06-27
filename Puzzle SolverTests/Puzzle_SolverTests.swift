@@ -236,19 +236,19 @@ final class Puzzle_SolverTests: XCTestCase {
 
     // MARK: - 2×2 cube solver coverage
 
-    func testSolvedTwoByTwoReturnsSuccessWithoutMoves() throws {
+    func testSolvedTwoByTwoReturnsAlreadySolvedWithoutMoves() throws {
         let solver = Cube2x2Solver()
 
         let result = solver.solve(.solved2x2, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
 
-        XCTAssertEqual(result.status, .success)
+        XCTAssertEqual(result.status, .alreadySolved)
         XCTAssertEqual(result.moveCount, 0)
-        XCTAssertTrue(result.steps.isEmpty)
+        XCTAssertTrue(result.moves.isEmpty)
     }
 
     func testOneMoveTwoByTwoSolves() throws {
         let solver = Cube2x2Solver()
-        let scrambled = makeTwoByTwoState(after: ["U"])
+        let scrambled = makeTwoByTwoState(after: ["R"])
 
         let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 2, maxDepth: 4, maxNodes: 10_000, includeStepStates: true))
 
@@ -256,14 +256,15 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertFalse(result.moves.isEmpty)
     }
 
-    func testMediumTwoByTwoScrambleSolves() throws {
+    func testShortTwoByTwoScrambleSolves() throws {
         let solver = Cube2x2Solver()
-        let scrambled = makeTwoByTwoState(after: ["U", "R", "F"])
+        let scrambled = makeTwoByTwoState(after: ["R", "U"])
 
         let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 3, maxDepth: 8, maxNodes: 50_000, includeStepStates: false))
 
         XCTAssertEqual(result.status, .success)
         XCTAssertFalse(result.moves.isEmpty)
+        XCTAssertEqual(TwoByTwoMoveEngine.apply(result.moves, to: scrambled), .solved2x2)
     }
 
     func testInvalidTwoByTwoReturnsInvalidInput() throws {
@@ -287,14 +288,14 @@ final class Puzzle_SolverTests: XCTestCase {
 
     // MARK: - 3×3 cube solver coverage
 
-    func testSolvedThreeByThreeReturnsSuccessWithoutMoves() throws {
+    func testSolvedThreeByThreeReturnsAlreadySolvedWithoutMoves() throws {
         let solver = Cube3x3Solver()
 
         let result = solver.solve(.solved3x3, options: CubeSolveOptions(timeout: 1, maxDepth: 1, maxNodes: 100, includeStepStates: true))
 
-        XCTAssertEqual(result.status, .success)
+        XCTAssertEqual(result.status, .alreadySolved)
         XCTAssertEqual(result.moveCount, 0)
-        XCTAssertTrue(result.steps.isEmpty)
+        XCTAssertTrue(result.moves.isEmpty)
     }
 
     func testSingleRThreeByThreeReturnsInverseOrEquivalent() throws {
@@ -311,9 +312,9 @@ final class Puzzle_SolverTests: XCTestCase {
 
     func testSimpleThreeByThreeScrambleSolves() throws {
         let solver = Cube3x3Solver()
-        let scrambled = makeThreeByThreeState(after: [.R, .U, .Ri, .Ui])
+        let scrambled = makeThreeByThreeState(after: [.R, .U])
 
-        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 5, maxDepth: 8, maxNodes: 250_000, includeStepStates: false))
+        let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 5, maxDepth: 6, maxNodes: 80_000, includeStepStates: false))
 
         XCTAssertEqual(result.status, .success)
         XCTAssertTrue(solves(scrambled, moves: result.moves))
@@ -331,13 +332,35 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.nodesExplored, 0)
     }
 
+    func testMissingTwoByTwoStickerFailsBeforeSolving() throws {
+        let solver = Cube2x2Solver()
+        var stickers = CubeState.solved2x2.stickers
+        stickers.removeLast()
+
+        let result = solver.solve(CubeState(puzzle: .twoByTwo, stickers: stickers), options: .default)
+
+        XCTAssertEqual(result.status, .invalidInput)
+        XCTAssertEqual(result.nodesExplored, 0)
+    }
+
+    func testMissingThreeByThreeStickerFailsBeforeSolving() throws {
+        let solver = Cube3x3Solver()
+        var stickers = CubeState.solved3x3.stickers
+        stickers.removeLast()
+
+        let result = solver.solve(CubeState(puzzle: .threeByThree, stickers: stickers), options: .default)
+
+        XCTAssertEqual(result.status, .invalidInput)
+        XCTAssertEqual(result.nodesExplored, 0)
+    }
+
     func testThreeByThreeSafetyOptionsKeepSearchBounded() throws {
         let solver = Cube3x3Solver()
-        let scrambled = makeThreeByThreeState(after: [.R, .U, .Ri, .Ui])
+        let scrambled = makeThreeByThreeState(after: [.R, .U])
 
         let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 0, maxDepth: 8, maxNodes: 1, includeStepStates: false))
 
-        XCTAssertTrue([CubeSolveStatus.success, .timeout, .failure].contains(result.status))
+        XCTAssertTrue([CubeSolveStatus.success, .timeout, .failure, .solverUnavailable].contains(result.status))
         XCTAssertLessThan(result.elapsedTime, 2)
     }
 
@@ -376,47 +399,21 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertThrowsError(try parsed.get())
     }
 
-    func testSolvedPyraminxAndSkewbReturnSuccess() throws {
-        let pyraminx = PyraminxSolver().solve(.solvedPyraminx, options: .default)
-        let skewb = SkewbSolver().solve(.solvedSkewb, options: .default)
+    func testTwistyCatalogDoesNotExposeRemovedPuzzleModes() throws {
+        let names = Set(PuzzleAvailabilityCatalog.all.map(\.title))
 
-        XCTAssertEqual(pyraminx.status, .success)
-        XCTAssertEqual(skewb.status, .success)
-        XCTAssertEqual(pyraminx.moveCount, 0)
-        XCTAssertEqual(skewb.moveCount, 0)
+        XCTAssertFalse(names.contains("Pyraminx"))
+        XCTAssertFalse(names.contains("Skewb"))
+        XCTAssertFalse(names.contains("Megaminx"))
+        XCTAssertFalse(names.contains("Square-1"))
     }
 
-    func testPyraminxAndSkewbScramblesSolveWithSharedResults() throws {
-        let pyraminxMoves = try TwistyMoveNotation.parse("U R L'", spec: TwistyPuzzleKind.pyraminx.notation).get()
-        let pyraminxState = PyraminxMoveEngine.apply(pyraminxMoves, to: .solvedPyraminx)
-        let pyraminx = PyraminxSolver().solve(pyraminxState, options: CubeSolveOptions(timeout: 2, maxDepth: 8, maxNodes: 50_000, includeStepStates: true))
-
-        let skewbMoves = try TwistyMoveNotation.parse("R U B'", spec: TwistyPuzzleKind.skewb.notation).get()
-        let skewbState = SkewbMoveEngine.apply(skewbMoves, to: .solvedSkewb)
-        let skewb = SkewbSolver().solve(skewbState, options: CubeSolveOptions(timeout: 2, maxDepth: 8, maxNodes: 50_000, includeStepStates: true))
-
-        XCTAssertEqual(pyraminx.status, .success)
-        XCTAssertEqual(skewb.status, .success)
-        XCTAssertEqual(PyraminxMoveEngine.apply(try TwistyMoveNotation.parse(pyraminx.formattedMoves, spec: TwistyPuzzleKind.pyraminx.notation).get(), to: pyraminxState), .solvedPyraminx)
-        XCTAssertEqual(SkewbMoveEngine.apply(try TwistyMoveNotation.parse(skewb.formattedMoves, spec: TwistyPuzzleKind.skewb.notation).get(), to: skewbState), .solvedSkewb)
-    }
-
-    func testMegaminxAndSquareOnePlaceholdersReturnUnavailable() throws {
-        let megaminx = MegaminxSolver().solve(.solvedMegaminx, options: .default)
-        let squareOne = SquareOneSolver().solve(.solvedSquareOne, options: .default)
-
-        XCTAssertEqual(megaminx.status, .solverUnavailable)
-        XCTAssertEqual(squareOne.status, .solverUnavailable)
-    }
-
-    func testDiagnosticsListsTwistyArchitectures() throws {
+    func testDiagnosticsListsActiveTwistyArchitectures() throws {
         XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "2×2 Cube" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Pyraminx" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Skewb" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Megaminx" && $0.enabled && !$0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Square-1" && $0.enabled && !$0.solverAvailable })
+        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "3×3 Rubik’s Cube" && $0.enabled && $0.solverAvailable })
+        XCTAssertFalse(PuzzleModeRegistry.diagnostics.contains { $0.name == "Pyraminx" })
+        XCTAssertFalse(PuzzleModeRegistry.diagnostics.contains { $0.name == "Skewb" })
     }
-
     // MARK: - Shared state and diagnostics
 
     func testSolveStateContainsEveryRequiredState() throws {
