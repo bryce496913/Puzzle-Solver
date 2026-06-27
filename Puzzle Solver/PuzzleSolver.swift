@@ -398,23 +398,33 @@ private extension Array {
 }
 
 enum CubeStickerValidator {
+    struct ValidationError: LocalizedError {
+        let message: String
+
+        var errorDescription: String? { message }
+
+        init(_ message: String) {
+            self.message = message
+        }
+    }
+
     static let colors = CubeColor.defaultFaceOrder.map(\.rawValue)
 
-    static func validate(_ state: CubeState) -> Result<Void, String> {
+    static func validate(_ state: CubeState) -> Result<Void, ValidationError> {
         guard let expectedCount = state.puzzle.stickerCount, state.stickers.count == expectedCount else {
-            return .failure("Some stickers are missing.")
+            return .failure(ValidationError("Some stickers are missing."))
         }
         guard state.stickers.allSatisfy({ colors.contains($0) }) else {
-            return .failure("This cube state is not valid.")
+            return .failure(ValidationError("This cube state is not valid."))
         }
         let perColor = expectedCount / 6
         let counts = Dictionary(grouping: state.stickers, by: { $0 }).mapValues(\.count)
         guard colors.allSatisfy({ counts[$0] == perColor }) else {
-            return .failure("Each color must appear exactly \(perColor) times.")
+            return .failure(ValidationError("Each color must appear exactly \(perColor) times."))
         }
         if state.puzzle == .threeByThree {
             let centers = [4, 13, 22, 31, 40, 49].map { state.stickers[$0] }
-            guard centers == colors else { return .failure("This cube state is not valid.") }
+            guard centers == colors else { return .failure(ValidationError("This cube state is not valid.")) }
         }
         return .success(())
     }
@@ -1046,8 +1056,8 @@ final class Cube3x3Solver: CubeSolverProtocol {
             return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "Expected a 3×3 cube state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         }
         switch CubeStickerValidator.validate(state) {
-        case .failure(let message):
-            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: message, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
+        case .failure(let error):
+            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: error.localizedDescription, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
         case .success: break
         }
         guard state != solvedState else {
