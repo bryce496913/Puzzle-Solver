@@ -111,6 +111,8 @@ struct TwistyPuzzleState: Hashable {
     let puzzle: TwistyPuzzleKind
     let stickers: [String]
 
+    var isSolved: Bool { self == TwistyPuzzleState.solved(puzzle) }
+
     var isSolvedByFace: Bool {
         guard let stickerCount = puzzle.stickerCount, stickers.count == stickerCount else { return false }
         let perFace = stickerCount / puzzle.faces.count
