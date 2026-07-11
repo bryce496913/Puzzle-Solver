@@ -71,7 +71,14 @@ No deferred puzzle modes were reactivated. Pyraminx, Skewb, Megaminx, Square-1, 
 - The selected row, column, and 3×3 box receive softer related-cell highlights.
 - Matching values are highlighted when the selected cell has a number.
 - A selected-cell label shows the active row and column so keypad and clear/delete input clearly target one cell.
-- Existing Sudoku validation, input, and solver behavior are preserved.
+- Sudoku image import is available as a V1 beta on the active Sudoku entry screen only.
+- Supported Sudoku import sources are camera scanning and photo-library image selection.
+- The import flow uses local on-device image processing and Vision OCR; images are not uploaded externally.
+- Imported Sudoku images are orientation-normalized, checked for a board-like rectangle when possible, read for digits 1–9, and converted into Sudoku givens with confidence metadata.
+- A review/correction screen appears before applying imported numbers, highlights low-confidence cells, validates row/column/box conflicts, and allows tap-to-correct or clear input.
+- Known limitations: V1 OCR is most reliable for clear screenshot-style boards or straight, well-lit paper photos; skewed or cluttered images may fail gracefully with a crop/manual-entry message.
+- Internal smoke-test notes cover screenshot boards, paper photos, no-board images, low-confidence OCR, duplicate/conflict imports, manual correction, and solving imported puzzles.
+- Existing Sudoku validation, manual input, reset, editing, and solver behavior are preserved.
 
 ## Rush Hour rebuilt status
 
