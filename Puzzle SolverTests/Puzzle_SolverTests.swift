@@ -277,6 +277,15 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.moveCount, 0)
     }
 
+    func testTwistyPuzzleStateReportsSolvedState() throws {
+        XCTAssertTrue(CubeState.solved2x2.isSolved)
+        XCTAssertTrue(CubeState.solved3x3.isSolved)
+
+        let scrambled = makeTwoByTwoState(after: ["R"])
+
+        XCTAssertFalse(scrambled.isSolved)
+    }
+
     func testTwoByTwoTimeoutIsBounded() throws {
         let solver = Cube2x2Solver()
         let scrambled = makeTwoByTwoState(after: ["U", "R", "F"])
