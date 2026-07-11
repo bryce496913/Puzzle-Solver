@@ -800,3 +800,59 @@ final class Puzzle_SolverTests: XCTestCase {
     }
 
 }
+
+extension Puzzle_SolverTests {
+    func testSudokuScanDigitOCRRejectsNonSingleDigits() {
+        XCTAssertEqual(SudokuCellOCRService.recognizedDigit(from: "1"), 1)
+        XCTAssertNil(SudokuCellOCRService.recognizedDigit(from: "0"))
+        XCTAssertNil(SudokuCellOCRService.recognizedDigit(from: "12"))
+        XCTAssertNil(SudokuCellOCRService.recognizedDigit(from: "A"))
+    }
+
+    func testSudokuScanResultMapsDetectedCellsToRowsAndColumns() {
+        let cells = (0..<9).flatMap { row in
+            (0..<9).map { column in SudokuDetectedCell(row: row, column: column, recognizedValue: nil, confidence: nil) }
+        }
+        var editable = cells
+        editable[0] = SudokuDetectedCell(row: 0, column: 0, recognizedValue: 5, confidence: 0.95, sourceType: .detected, reviewState: .highConfidence)
+        editable[80] = SudokuDetectedCell(row: 8, column: 8, recognizedValue: 9, confidence: 0.95, sourceType: .detected, reviewState: .highConfidence)
+
+        let board = SudokuScanResult(cells: editable).board
+
+        XCTAssertEqual(board.values[0][0], 5)
+        XCTAssertEqual(board.values[8][8], 9)
+        XCTAssertNil(board.values[0][1])
+        XCTAssertTrue(board.givens.contains(LogicGridCoordinate(row: 0, column: 0)))
+        XCTAssertTrue(board.givens.contains(LogicGridCoordinate(row: 8, column: 8)))
+    }
+
+    func testSudokuScanValidatorMarksConflictingOCRCells() {
+        var cells = (0..<9).flatMap { row in
+            (0..<9).map { column in SudokuDetectedCell(row: row, column: column, recognizedValue: nil, confidence: nil) }
+        }
+        cells[0] = SudokuDetectedCell(row: 0, column: 0, recognizedValue: 7, confidence: 0.95, sourceType: .detected, reviewState: .highConfidence)
+        cells[1] = SudokuDetectedCell(row: 0, column: 1, recognizedValue: 7, confidence: 0.95, sourceType: .detected, reviewState: .highConfidence)
+
+        let validated = SudokuScanValidator.markReviewStates(cells)
+
+        XCTAssertEqual(validated[0].reviewState, .conflict)
+        XCTAssertEqual(validated[1].reviewState, .conflict)
+        XCTAssertEqual(SudokuScanResult(cells: validated).conflictCount, 2)
+    }
+
+    func testSudokuScanManualCorrectionClearsConflict() {
+        var cells = (0..<9).flatMap { row in
+            (0..<9).map { column in SudokuDetectedCell(row: row, column: column, recognizedValue: nil, confidence: nil) }
+        }
+        cells[0] = SudokuDetectedCell(row: 0, column: 0, recognizedValue: 7, confidence: 0.95, sourceType: .detected, reviewState: .highConfidence)
+        cells[1] = SudokuDetectedCell(row: 0, column: 1, recognizedValue: 7, confidence: 0.95, sourceType: .detected, reviewState: .highConfidence)
+        var validated = SudokuScanValidator.markReviewStates(cells)
+        validated[1].recognizedValue = 8
+        validated[1].sourceType = .manual
+        validated[1].reviewState = .highConfidence
+        validated = SudokuScanValidator.markReviewStates(validated)
+
+        XCTAssertTrue(SudokuValidator.conflictingCoordinates(in: SudokuScanResult(cells: validated).board).isEmpty)
+        XCTAssertEqual(validated[1].recognizedValue, 8)
+    }
+}
