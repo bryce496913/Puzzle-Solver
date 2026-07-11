@@ -105,15 +105,22 @@ final class SudokuImageImportViewModel: ObservableObject {
 
     func begin(_ source: Source) { errorMessage = nil; source == .camera ? requestCamera() : requestPhotoLibrary() }
     func process(_ image: UIImage?) {
-        guard let image else { scanState = .cancelled; errorMessage = SudokuImageImportError.importCancelled.localizedDescription; return }
+        selectedSource = nil
+        guard let image else {
+            scanState = .cancelled
+            statusText = scanState.progressText
+            isProcessing = false
+            errorMessage = SudokuImageImportError.importCancelled.localizedDescription
+            return
+        }
         isProcessing = true; updateState(.loadingImage)
         Task {
+            defer { isProcessing = false }
             do {
                 reviewResult = try await processor.process(image: image) { [weak self] state in Task { @MainActor in self?.updateState(state) } }
                 updateState(.readyForReview)
             } catch let error as SudokuImageImportError { updateState(.failed); errorMessage = error.localizedDescription }
             catch { updateState(.failed); errorMessage = SudokuImageImportError.processingFailure(error.localizedDescription).localizedDescription }
-            isProcessing = false; selectedSource = nil
         }
     }
     private func updateState(_ state: SudokuScanState) { scanState = state; statusText = state.progressText }
@@ -158,7 +165,17 @@ struct SudokuImagePicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onImage: onImage) }
     func makeUIViewController(context: Context) -> UIImagePickerController { let picker = UIImagePickerController(); picker.sourceType = sourceType; picker.delegate = context.coordinator; return picker }
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate { let onImage: (UIImage?) -> Void; init(onImage: @escaping (UIImage?) -> Void) { self.onImage = onImage }; func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) { picker.dismiss(animated: true); onImage(info[.originalImage] as? UIImage) }; func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { picker.dismiss(animated: true); onImage(nil) } }
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let onImage: (UIImage?) -> Void
+        init(onImage: @escaping (UIImage?) -> Void) { self.onImage = onImage }
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            let image = info[.originalImage] as? UIImage
+            picker.dismiss(animated: true) { [onImage] in onImage(image) }
+        }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true) { [onImage] in onImage(nil) }
+        }
+    }
 }
 
 final class SudokuScanCoordinator {
@@ -249,12 +266,13 @@ final class SudokuGridSegmenter {
 
 final class SudokuCellOCRService {
     func recognize(cells: [SudokuSegmentedCell]) async throws -> [SudokuDetectedCell] {
-        try await withThrowingTaskGroup(of: SudokuDetectedCell.self) { group in
-            for cell in cells { group.addTask { try await self.recognize(cell) } }
-            var output: [SudokuDetectedCell] = []
-            for try await cell in group { output.append(cell) }
-            return output.sorted { $0.row == $1.row ? $0.column < $1.column : $0.row < $1.row }
+        var output: [SudokuDetectedCell] = []
+        output.reserveCapacity(cells.count)
+        for cell in cells {
+            try Task.checkCancellation()
+            output.append(try await recognize(cell))
         }
+        return output.sorted { $0.row == $1.row ? $0.column < $1.column : $0.row < $1.row }
     }
     private func recognize(_ cell: SudokuSegmentedCell) async throws -> SudokuDetectedCell {
         guard cell.inkDensity >= SudokuScanConfiguration.maximumBlankInkDensity else { return SudokuDetectedCell(row: cell.row, column: cell.column, recognizedValue: nil, confidence: nil, reviewState: .blank) }
