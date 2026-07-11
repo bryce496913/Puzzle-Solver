@@ -33,6 +33,7 @@ No deferred puzzle modes were reactivated. Pyraminx, Skewb, Megaminx, Square-1, 
 - Maze Solver
 - Chess Puzzles
 - Jigsaw Solver
+- Sudoku Photo Scan
 
 ## Twisty puzzle V1 status
 
@@ -71,14 +72,14 @@ No deferred puzzle modes were reactivated. Pyraminx, Skewb, Megaminx, Square-1, 
 - The selected row, column, and 3×3 box receive softer related-cell highlights.
 - Matching values are highlighted when the selected cell has a number.
 - A selected-cell label shows the active row and column so keypad and clear/delete input clearly target one cell.
-- Sudoku image import is available as a V1 beta on the active Sudoku entry screen only.
-- Supported Sudoku import sources are camera scanning and photo-library image selection.
-- The import flow uses local on-device image processing and Vision OCR; images are not uploaded externally.
-- Imported Sudoku images are orientation-normalized, checked for a board-like rectangle when possible, read for digits 1–9, and converted into Sudoku givens with confidence metadata.
-- A review/correction screen appears before applying imported numbers, highlights low-confidence cells, validates row/column/box conflicts, and allows tap-to-correct or clear input.
-- Known limitations: V1 OCR is most reliable for clear screenshot-style boards or straight, well-lit paper photos; skewed or cluttered images may fail gracefully with a crop/manual-entry message.
-- Internal smoke-test notes cover screenshot boards, paper photos, no-board images, low-confidence OCR, duplicate/conflict imports, manual correction, and solving imported puzzles.
-- Existing Sudoku validation, manual input, reset, editing, and solver behavior are preserved.
+- Manual Sudoku entry remains the only active Sudoku release flow.
+- The active Sudoku screen keeps selected-cell, row, column, 3×3 box, duplicate, and matching-value highlighting.
+- Example loading, validation, reset, editing, and solving remain active and unchanged.
+- Sudoku Photo Scan has been removed from the active release UI because the image scanner is not reliable enough for App Store release.
+- Camera/photo scanning, image import, OCR review, scanner loading states, and scanner error messages are not reachable from the active Sudoku experience.
+- The scanner implementation was removed instead of retained because it depended on camera/photo permissions and unfinished OCR UI that should not ship in this release.
+- Camera and photo-library usage descriptions were removed from the app target because no active feature uses those permissions.
+- Sudoku Photo Scan is listed as Coming Soon only with the description “Scan a paper Sudoku or import a photo to fill the puzzle grid automatically.”
 
 ## Rush Hour rebuilt status
 
@@ -127,7 +128,7 @@ No deferred puzzle modes were reactivated. Pyraminx, Skewb, Megaminx, Square-1, 
 - Confirm solving always leaves the loading state through solved, already-solved, invalid, no-solution, timed-out, failed, cancelled, or unavailable handling.
 - Run unit tests, a clean app build, simulator smoke testing, and archive validation before submission.
 
-## V1 Stability Update — Launch Screen and Sudoku Scanning
+## V1 Stability Update — Launch Screen and Sudoku Photo Scan Rollback
 
 ### Launch screen configuration
 - Confirmed the bundled launch artwork exists at `Assets.xcassets/LaunchScreen.imageset/launch.png` with a valid `Contents.json` that exposes the asset name `launch`.
@@ -135,30 +136,15 @@ No deferred puzzle modes were reactivated. Pyraminx, Skewb, Megaminx, Square-1, 
 - The storyboard uses a black full-screen root view and a centered `launch` image view with `scaleAspectFit` and safe-area margins so the artwork remains readable on small, 6.1-inch, and 6.7-inch iPhone portrait launch screens.
 - Disabled generated launch-screen configuration to avoid conflicts with the static storyboard launch screen.
 
-### Sudoku scan changes
-- Reworked scanning into a staged local pipeline: orientation normalization, stable resizing, grayscale/contrast preprocessing, rectangle-based board detection, perspective correction, 9×9 segmentation, inner-cell cropping, empty-cell detection, per-cell OCR, Sudoku validation, and review presentation.
-- OCR now runs on individual cell crops instead of the full board, compares original/enhanced/inverted variants, accepts only single digits 1–9, and centralizes confidence thresholds.
-- Blank detection uses foreground density before OCR so genuinely empty cells stay blank instead of receiving invented numbers.
-- Sudoku-specific safeguards mark duplicate row, column, and 3×3 box readings as conflicts for user review; the solver is not used to infer missing clues.
-- The review screen now summarizes detected numbers, cells needing review, and conflicts; distinguishes high-confidence, low-confidence, blank, and conflict cells; and supports correction, clearing, rescanning, choosing another photo, retaking a photo, or manual entry.
-- Capture guidance now reminds users to keep the full board in frame, hold the phone above the puzzle, avoid glare/shadows, and keep all corners visible.
-- Scanning work runs off the main thread with progress states for loading, board detection, perspective correction, cell reading, validation, and review preparation.
+### Sudoku Photo Scan release decision
+- The recent Sudoku image-upload and photo-scanning rewrite has been rolled back for the current release.
+- Active Sudoku is restored to the stable manual implementation: grid entry, keypad input, clear/delete, example loading, validation, solving, solved-result display, reset, and back navigation.
+- Scanner UI routes were removed from the release build, including camera/photo picker presentation, OCR review, rescan/retake/choose-another actions, scanner progress copy, and scanner error copy.
+- No isolated scanner implementation is retained in the app target for this release; future Sudoku Photo Scan work should restart in an isolated future-feature area before being exposed again.
+- Camera and photo-library permissions were removed because no active release feature uses them.
+- Sudoku Photo Scan is now represented only as a Coming Soon catalog item under Logic Puzzles.
 
-### Current OCR limitations
-- Accuracy depends on image sharpness, lighting, puzzle print quality, and whether all four board corners are visible.
-- Very stylized or faint handwriting may still require manual correction.
-- Low-confidence digits are intentionally left blank or highlighted rather than silently committed.
-- Manual corner adjustment is not included in this V1 update; users can rescan, crop externally, choose another photo, or enter manually if automatic detection is uncertain.
-
-### Supported image types
-- Clear Sudoku screenshots are supported and usually need minimal perspective correction.
-- Paper Sudoku photos are supported when the board is reasonably square in frame, well lit, and not heavily blurred or shadowed.
-- Dark, blurry, cropped, or glare-heavy images may be rejected with a next-step message instead of producing unsafe OCR results.
-
-### Privacy note
-- Sudoku image processing uses local Apple frameworks (Vision, Core Image, Core Graphics) on device. Photos are not uploaded by the scanner.
-
-### Remaining known issues
-- OCR is confidence-aware but not guaranteed to be perfect; the review step remains required before solving.
-- Manual board-corner adjustment is still a future improvement for difficult paper photos.
+### Current known limitations
+- Sudoku Photo Scan is planned for a future update and is not an active feature.
+- Manual Sudoku solving remains available, but users must enter puzzle givens by hand for this release.
 - Simulator coverage should still be checked manually across small, 6.1-inch, and 6.7-inch iPhone devices before release because launch-screen rendering is device-size dependent.
