@@ -7,7 +7,7 @@
 
 import SwiftUI
 import UIKit
-import Vision
+@preconcurrency import Vision
 import CoreImage
 import AVFoundation
 import PhotosUI
@@ -227,22 +227,22 @@ final class SudokuOCRService {
     func recognizeCells(in image: UIImage) async throws -> [SudokuDetectedCell] {
         guard let cgImage = image.cgImage else { throw SudokuImageImportError.imageCouldNotBeLoaded }
         return try await withCheckedThrowingContinuation { continuation in
-            let request = VNRecognizeTextRequest { request, error in
-                if let error { continuation.resume(throwing: error); return }
-                let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
-                continuation.resume(returning: self.cells(from: observations))
-            }
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = false
-            request.recognitionLanguages = ["en-US"]
-            request.customWords = (1...9).map(String.init)
             DispatchQueue.global(qos: .userInitiated).async {
+                let request = VNRecognizeTextRequest { request, error in
+                    if let error { continuation.resume(throwing: error); return }
+                    let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
+                    continuation.resume(returning: SudokuOCRService.cells(from: observations))
+                }
+                request.recognitionLevel = .accurate
+                request.usesLanguageCorrection = false
+                request.recognitionLanguages = ["en-US"]
+                request.customWords = (1...9).map(String.init)
                 do { try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request]) } catch { continuation.resume(throwing: error) }
             }
         }
     }
 
-    private func cells(from observations: [VNRecognizedTextObservation]) -> [SudokuDetectedCell] {
+    private static func cells(from observations: [VNRecognizedTextObservation]) -> [SudokuDetectedCell] {
         var cells = (0..<9).flatMap { row in (0..<9).map { SudokuDetectedCell(row: row, column: $0, recognizedValue: nil, confidence: nil) } }
         for observation in observations {
             guard let text = observation.topCandidates(3).first, let digit = recognizedDigit(from: text.string) else { continue }
@@ -260,7 +260,7 @@ final class SudokuOCRService {
         return cells
     }
 
-    private func recognizedDigit(from text: String) -> Int? {
+    private static func recognizedDigit(from text: String) -> Int? {
         let digits = text.compactMap { Int(String($0)) }.filter { SudokuBoard.validDigits.contains($0) }
         return digits.count == 1 ? digits[0] : nil
     }
@@ -279,12 +279,7 @@ struct SudokuImageReviewView: View {
         NavigationView { ScrollView { VStack(spacing: 14) {
             Text("Review detected numbers. Low-confidence cells are highlighted; tap any cell to correct or clear it.").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text)
             LogicGridView(rows: 9, columns: 9, majorLineFrequency: 3) { coordinate in
-                let cell = cells[coordinate.row * 9 + coordinate.column]
-                Text(cell.recognizedValue.map(String.init) ?? "")
-                    .font(AppTextStyle.h2).fontWeight(.bold).foregroundColor(AppTheme.text).frame(width: 34, height: 34)
-                    .background(conflicts.contains(coordinate) ? AppTheme.highlight.opacity(0.8) : (cell.needsReview ? Color.yellow.opacity(0.45) : AppTheme.surface))
-                    .overlay(Rectangle().stroke(selected == coordinate ? AppTheme.highlight : AppTheme.text.opacity(0.2), lineWidth: selected == coordinate ? 2.5 : 0.5))
-                    .onTapGesture { selected = coordinate }
+                reviewCell(at: coordinate)
             }.padding(3).background(AppTheme.background)
             Text(SudokuValidator.validate(board).summary).font(AppTextStyle.paragraph).foregroundColor(conflicts.isEmpty ? AppTheme.text : AppTheme.highlight).frame(maxWidth: .infinity, alignment: .leading)
             SudokuKeypadView { value in cells[selected.row * 9 + selected.column].recognizedValue = value; cells[selected.row * 9 + selected.column].confidence = 1 }
@@ -292,6 +287,18 @@ struct SudokuImageReviewView: View {
             HStack { Button("Retake Photo") { onRetake() }.buttonStyle(AppSecondaryButtonStyle()); Button("Choose Another Photo") { onChooseAnother() }.buttonStyle(AppSecondaryButtonStyle()) }
             Button("Enter Manually") { onManual() }.buttonStyle(AppResetButtonStyle())
         }.padding().background(AppTheme.background) } .navigationTitle("Review Sudoku") }
+    }
+
+    private func reviewCell(at coordinate: LogicGridCoordinate) -> some View {
+        let cell = cells[coordinate.row * 9 + coordinate.column]
+        return Text(cell.recognizedValue.map(String.init) ?? "")
+            .font(AppTextStyle.h2)
+            .fontWeight(.bold)
+            .foregroundColor(AppTheme.text)
+            .frame(width: 34, height: 34)
+            .background(conflicts.contains(coordinate) ? AppTheme.highlight.opacity(0.8) : (cell.needsReview ? Color.yellow.opacity(0.45) : AppTheme.surface))
+            .overlay(Rectangle().stroke(selected == coordinate ? AppTheme.highlight : AppTheme.text.opacity(0.2), lineWidth: selected == coordinate ? 2.5 : 0.5))
+            .onTapGesture { selected = coordinate }
     }
 }
 
