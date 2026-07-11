@@ -78,12 +78,6 @@ struct SudokuInputView: View {
         AppScreenContainer(title: "Sudoku", subtitle: "Enter givens, validate conflicts, then solve with bounded feedback.") {
                 VStack(spacing: 14) {
 
-                    SudokuImageImportView { importedBoard in
-                        board = importedBoard
-                        selectedCoordinate = LogicGridCoordinate(row: 0, column: 0)
-                        refreshValidation()
-                    }
-
                     SudokuGridView(board: board, selectedCoordinate: selectedCoordinate, conflictingCoordinates: conflicts) { coordinate in
                         selectedCoordinate = coordinate
                     }
