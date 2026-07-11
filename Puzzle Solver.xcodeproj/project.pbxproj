@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD0000032B00000100000001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AD0000042B00000100000001 /* LaunchScreen.storyboard */; };
 		AD0000012B00000100000001 /* SudokuImageImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000022B00000100000001 /* SudokuImageImport.swift */; };
 		AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000022B00000100000001 /* LogicPuzzleModels.swift */; };
 		AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000042B00000100000001 /* LogicPuzzleViews.swift */; };
@@ -90,7 +91,7 @@
 		EE82B6632B69931500B2BC49 /* Puzzle Solver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Puzzle Solver.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverApp.swift; sourceTree = "<group>"; };
 		EE82B6682B69931500B2BC49 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		EE82B66A2B69931600B2BC49 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EE82B66A2B69931600B2BC49 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = ../Assets.xcassets; sourceTree = "<group>"; };
 		EE82B66D2B69931600B2BC49 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		EE82B6732B69931700B2BC49 /* Puzzle SolverTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Puzzle SolverTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EE82B6772B69931700B2BC49 /* Puzzle_SolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Puzzle_SolverTests.swift; sourceTree = "<group>"; };
@@ -164,6 +165,7 @@
 				AA0000022B00000100000001 /* LogicPuzzleModels.swift */,
 				AA0000042B00000100000001 /* LogicPuzzleViews.swift */,
 				AD0000022B00000100000001 /* SudokuImageImport.swift */,
+				AD0000042B00000100000001 /* LaunchScreen.storyboard */,
 				AB0000022B00000100000001 /* KillerSudokuModels.swift */,
 				AB0000042B00000100000001 /* KillerSudokuSolver.swift */,
 				AB0000062B00000100000001 /* NonogramModels.swift */,
@@ -321,6 +323,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD0000032B00000100000001 /* LaunchScreen.storyboard in Resources */,
 				EE82B66E2B69931600B2BC49 /* Preview Assets.xcassets in Resources */,
 				EE82B66B2B69931600B2BC49 /* Assets.xcassets in Resources */,
 			);
@@ -551,7 +554,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Puzzle Solver uses your photo library so you can import Sudoku screenshots or photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
@@ -591,7 +594,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Puzzle Solver uses your photo library so you can import Sudoku screenshots or photos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
