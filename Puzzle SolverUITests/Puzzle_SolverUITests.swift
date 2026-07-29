@@ -23,11 +23,11 @@ final class Puzzle_SolverUITests: XCTestCase {
     }
 
     func testExample() throws {
-        // UI tests must launch the application that they test.
         let app = XCUIApplication()
         app.launch()
-
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        XCTAssertTrue(app.otherElements["splash-screen"].waitForExistence(timeout: 1))
+        XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.otherElements["splash-screen"].exists)
     }
 
     func testLaunchPerformance() throws {

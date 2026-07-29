@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD1000012B00000100000001 /* SudokuImageImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000022B00000100000001 /* SudokuImageImport.swift */; };
+		AD1000032B00000100000001 /* TwistySolverFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000042B00000100000001 /* TwistySolverFixtures.swift */; };
+		AD1000052B00000100000001 /* StabilizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000062B00000100000001 /* StabilizationTests.swift */; };
+		AD1000072B00000100000001 /* SudokuImages in Resources */ = {isa = PBXBuildFile; fileRef = AD1000082B00000100000001 /* SudokuImages */; };
 		AD0000032B00000100000001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AD0000042B00000100000001 /* LaunchScreen.storyboard */; };
 		AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000022B00000100000001 /* LogicPuzzleModels.swift */; };
 		AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000042B00000100000001 /* LogicPuzzleViews.swift */; };
@@ -64,6 +68,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD1000022B00000100000001 /* SudokuImageImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SudokuImageImport.swift; sourceTree = "<group>"; };
+		AD1000042B00000100000001 /* TwistySolverFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixtures/TwistySolverFixtures.swift; sourceTree = "<group>"; };
+		AD1000062B00000100000001 /* StabilizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StabilizationTests.swift; sourceTree = "<group>"; };
+		AD1000082B00000100000001 /* SudokuImages */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fixtures/SudokuImages; sourceTree = "<group>"; };
 		AA0000022B00000100000001 /* LogicPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleModels.swift; sourceTree = "<group>"; };
 		AA0000042B00000100000001 /* LogicPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleViews.swift; sourceTree = "<group>"; };
 		AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleModels.swift; sourceTree = "<group>"; };
@@ -154,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */,
+				AD1000022B00000100000001 /* SudokuImageImport.swift */,
 				EE82B6682B69931500B2BC49 /* ContentView.swift */,
 				EE82B6902B69973D00B2BC49 /* MainMenuView.swift */,
 				EE82B6922B699B1D00B2BC49 /* NewPuzzleView.swift */,
@@ -203,6 +212,9 @@
 			isa = PBXGroup;
 			children = (
 				EE82B6772B69931700B2BC49 /* Puzzle_SolverTests.swift */,
+				AD1000042B00000100000001 /* TwistySolverFixtures.swift */,
+				AD1000062B00000100000001 /* StabilizationTests.swift */,
+				AD1000082B00000100000001 /* SudokuImages */,
 			);
 			path = "Puzzle SolverTests";
 			sourceTree = "<group>";
@@ -330,6 +342,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD1000072B00000100000001 /* SudokuImages in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -348,6 +361,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EE18DB782B939DD000B3843E /* PuzzleSolver.swift in Sources */,
+				AD1000012B00000100000001 /* SudokuImageImport.swift in Sources */,
 				AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */,
 				AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */,
 				AB0000012B00000100000001 /* KillerSudokuModels.swift in Sources */,
@@ -386,6 +400,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				EE82B6782B69931700B2BC49 /* Puzzle_SolverTests.swift in Sources */,
+				AD1000032B00000100000001 /* TwistySolverFixtures.swift in Sources */,
+				AD1000052B00000100000001 /* StabilizationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,6 +560,8 @@
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph a Sudoku puzzle for on-device recognition.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a Sudoku image for on-device recognition.";
 				INFOPLIST_KEY_CFBundleDisplayName = "Puzzle Solver";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -582,6 +600,8 @@
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph a Sudoku puzzle for on-device recognition.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a Sudoku image for on-device recognition.";
 				INFOPLIST_KEY_CFBundleDisplayName = "Puzzle Solver";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
