@@ -14,7 +14,7 @@ final class Puzzle_SolverTests: XCTestCase {
 
         XCTAssertEqual(active, Set([
             "3×3 Sliding Puzzle", "4×4 Sliding Puzzle", "5×5 Sliding Puzzle",
-            "2×2 Cube", "3×3 Rubik’s Cube", "Sudoku", "Rush Hour"
+            "2×2 Cube", "3×3 Rubik’s Cube", "Sudoku", "Sudoku Photo Scan", "Rush Hour"
         ]))
     }
 
@@ -23,7 +23,7 @@ final class Puzzle_SolverTests: XCTestCase {
 
         XCTAssertEqual(comingSoon, Set([
             "Pyraminx", "Skewb", "Megaminx", "Square-1",
-            "Killer Sudoku", "Sudoku Photo Scan", "Nonogram", "Kakuro", "Slitherlink",
+            "Killer Sudoku", "Nonogram", "Kakuro", "Slitherlink",
             "Klotski", "Peg Solitaire", "Maze Solver", "Chess Puzzles", "Jigsaw Solver"
         ]))
     }

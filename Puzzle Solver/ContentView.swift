@@ -7,44 +7,63 @@
 
 import SwiftUI
 
-struct ContentView: View {
-    @AppStorage("HasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("PreferredAppearance") private var preferredAppearance = AppAppearanceOption.system.rawValue
+@MainActor
+final class LaunchStateController: ObservableObject {
+    enum Phase: Equatable { case splash, main }
+
+    @Published private(set) var phase: Phase = .splash
+
+    @discardableResult
+    func completeSplash() -> Bool {
+        guard phase == .splash else { return false }
+        phase = .main
+        return true
+    }
+}
+
+struct AppRootView: View {
+    @ObservedObject var launchState: LaunchStateController
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showSplash = true
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                if hasCompletedOnboarding {
-                    MainMenuView()
-                } else {
-                    OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
-                }
-
-                if showSplash {
-                    SplashView()
-                        .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
-                        .zIndex(1)
-                }
-            }
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-        .preferredColorScheme(AppAppearanceOption(rawValue: preferredAppearance)?.colorScheme)
-        .onAppear(perform: dismissSplash)
-    }
-
-    private func dismissSplash() {
-        let delay = reduceMotion ? 0.2 : 0.9
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            withAnimation(.easeOut(duration: reduceMotion ? 0.1 : 0.35)) {
-                showSplash = false
+        Group {
+            switch launchState.phase {
+            case .splash:
+                SplashView()
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
+                    .task {
+                        try? await Task.sleep(nanoseconds: reduceMotion ? 200_000_000 : 900_000_000)
+                        guard !Task.isCancelled else { return }
+                        withAnimation(.easeOut(duration: reduceMotion ? 0.1 : 0.35)) {
+                            launchState.completeSplash()
+                        }
+                    }
+            case .main:
+                ContentView()
             }
         }
     }
 }
 
-private struct SplashView: View {
+struct ContentView: View {
+    @AppStorage("HasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("PreferredAppearance") private var preferredAppearance = AppAppearanceOption.system.rawValue
+
+    var body: some View {
+        NavigationView {
+            if hasCompletedOnboarding {
+                MainMenuView()
+            } else {
+                OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
+            }
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .accessibilityIdentifier("main-content")
+        .preferredColorScheme(AppAppearanceOption(rawValue: preferredAppearance)?.colorScheme)
+    }
+}
+
+struct SplashView: View {
     var body: some View {
         ZStack {
             AppTheme.backgroundGradient
@@ -58,6 +77,7 @@ private struct SplashView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Puzzle Solver")
+            .accessibilityIdentifier("splash-screen")
         }
     }
 }

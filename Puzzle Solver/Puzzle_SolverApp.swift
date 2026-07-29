@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct Puzzle_SolverApp: App {
+    @StateObject private var launchState = LaunchStateController()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppRootView(launchState: launchState)
         }
     }
 }
