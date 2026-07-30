@@ -465,40 +465,7 @@ final class Puzzle_SolverTests: XCTestCase {
     }
 
     private func makeTwoByTwoState(after moves: [String]) -> CubeState {
-        moves.reduce(CubeState.solved2x2) { state, move in
-            applyTwoByTwo(move, to: state)
-        }
-    }
-
-    private func applyTwoByTwo(_ move: String, to state: CubeState) -> CubeState {
-        let turns: Int
-        switch move.last {
-        case "'": turns = 3
-        case "2": turns = 2
-        default: turns = 1
-        }
-
-        var result = state
-        for _ in 0..<turns {
-            switch move.first {
-            case "U": result = quarterTurn(result, cycles: [[0, 2, 3, 1], [8, 4, 20, 16], [9, 5, 21, 17]])
-            case "R": result = quarterTurn(result, cycles: [[4, 6, 7, 5], [1, 9, 13, 23], [3, 11, 15, 21]])
-            case "F": result = quarterTurn(result, cycles: [[8, 10, 11, 9], [2, 16, 13, 7], [3, 18, 12, 5]])
-            default: break
-            }
-        }
-        return result
-    }
-
-    private func quarterTurn(_ state: CubeState, cycles: [[Int]]) -> CubeState {
-        var stickers = state.stickers
-        let old = stickers
-        for cycle in cycles {
-            for index in 0..<cycle.count {
-                stickers[cycle[(index + 1) % cycle.count]] = old[cycle[index]]
-            }
-        }
-        return CubeState(puzzle: state.puzzle, stickers: stickers)
+        TwoByTwoMoveEngine.apply(moves, to: .solved2x2)
     }
     // MARK: - Logic puzzle architecture
 

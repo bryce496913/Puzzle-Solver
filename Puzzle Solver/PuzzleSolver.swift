@@ -501,8 +501,10 @@ enum TwoByTwoMoveEngine {
         for _ in 0..<turns {
             switch move.first {
             case "U": result = quarterTurn(result, cycles: [[0, 2, 3, 1], [8, 4, 20, 16], [9, 5, 21, 17]])
-            case "R": result = quarterTurn(result, cycles: [[4, 6, 7, 5], [1, 9, 13, 23], [3, 11, 15, 21]])
-            case "F": result = quarterTurn(result, cycles: [[8, 10, 11, 9], [2, 16, 13, 7], [3, 18, 12, 5]])
+            // Faces are stored row-by-row as U, R, F, D, L, B. In the UI's
+            // unfolded net, R meets Back positions 22 and 20, not 23 and 21.
+            case "R": result = quarterTurn(result, cycles: [[4, 6, 7, 5], [1, 9, 13, 22], [3, 11, 15, 20]])
+            case "F": result = quarterTurn(result, cycles: [[8, 9, 11, 10], [2, 4, 13, 19], [3, 6, 12, 17]])
             default: break
             }
         }
