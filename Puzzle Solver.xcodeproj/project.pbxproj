@@ -68,6 +68,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AD0000042B00000100000001 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		AD1000022B00000100000001 /* SudokuImageImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SudokuImageImport.swift; sourceTree = "<group>"; };
 		AD1000042B00000100000001 /* TwistySolverFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixtures/TwistySolverFixtures.swift; sourceTree = "<group>"; };
 		AD1000062B00000100000001 /* StabilizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StabilizationTests.swift; sourceTree = "<group>"; };
@@ -559,7 +560,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Puzzle Solver/Preview Content\"";
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Puzzle Solver/Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph a Sudoku puzzle for on-device recognition.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a Sudoku image for on-device recognition.";
 				INFOPLIST_KEY_CFBundleDisplayName = "Puzzle Solver";
@@ -599,7 +601,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Puzzle Solver/Preview Content\"";
 				DEVELOPMENT_TEAM = 7ZAXQ2686Z;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Puzzle Solver/Info.plist";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph a Sudoku puzzle for on-device recognition.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a Sudoku image for on-device recognition.";
 				INFOPLIST_KEY_CFBundleDisplayName = "Puzzle Solver";
