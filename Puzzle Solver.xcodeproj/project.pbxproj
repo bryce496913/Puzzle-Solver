@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AE0000012B00000100000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AE0000022B00000100000001 /* PrivacyInfo.xcprivacy */; };
 		AD1000012B00000100000001 /* SudokuImageImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000022B00000100000001 /* SudokuImageImport.swift */; };
 		AD1000032B00000100000001 /* TwistySolverFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000042B00000100000001 /* TwistySolverFixtures.swift */; };
 		AD1000052B00000100000001 /* StabilizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000062B00000100000001 /* StabilizationTests.swift */; };
@@ -68,6 +69,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AE0000022B00000100000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AD0000042B00000100000001 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		AD1000022B00000100000001 /* SudokuImageImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SudokuImageImport.swift; sourceTree = "<group>"; };
 		AD1000042B00000100000001 /* TwistySolverFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixtures/TwistySolverFixtures.swift; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 		EE82B6652B69931500B2BC49 /* Puzzle Solver */ = {
 			isa = PBXGroup;
 			children = (
+				AE0000022B00000100000001 /* PrivacyInfo.xcprivacy */,
 				EE82B6662B69931500B2BC49 /* Puzzle_SolverApp.swift */,
 				AD1000022B00000100000001 /* SudokuImageImport.swift */,
 				EE82B6682B69931500B2BC49 /* ContentView.swift */,
@@ -333,6 +336,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AE0000012B00000100000001 /* PrivacyInfo.xcprivacy in Resources */,
 				AD0000032B00000100000001 /* LaunchScreen.storyboard in Resources */,
 				EE82B66E2B69931600B2BC49 /* Preview Assets.xcassets in Resources */,
 				EE82B66B2B69931600B2BC49 /* Assets.xcassets in Resources */,
