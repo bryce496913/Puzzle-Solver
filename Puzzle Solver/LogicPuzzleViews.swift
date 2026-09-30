@@ -84,9 +84,13 @@ struct SudokuInputView: View {
                     SudokuGridView(board: board, selectedCoordinate: selectedCoordinate, conflictingCoordinates: conflicts) { coordinate in
                         selectedCoordinate = coordinate
                     }
+                    // Reclaim the card's inset for the board. On wider phones this lets
+                    // every cell reach the recommended 44-point target without making
+                    // the board wider than the safe-area content on compact phones.
+                    .padding(.horizontal, -14)
 
                     Text("Selected: row \(selectedCoordinate.row + 1), column \(selectedCoordinate.column + 1)")
-                        .font(AppTextStyle.h3)
+                        .font(.headline)
                         .foregroundColor(AppTheme.text)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -96,13 +100,9 @@ struct SudokuInputView: View {
 
                     validationSummary
 
-                    HStack(spacing: 12) {
-                        Button("Example") { loadExample() }
-                            .buttonStyle(AppSecondaryButtonStyle())
-                            .frame(maxWidth: .infinity)
-                        Button("Validate") { refreshValidation() }
-                            .buttonStyle(AppSecondaryButtonStyle())
-                            .frame(maxWidth: .infinity)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) { secondaryActions }
+                        VStack(spacing: 10) { secondaryActions }
                     }
 
                     NavigationLink(destination: SudokuResultView(initialBoard: board)) {
@@ -123,19 +123,31 @@ struct SudokuInputView: View {
         .onAppear { refreshValidation() }
     }
 
+    @ViewBuilder
+    private var secondaryActions: some View {
+        Button("Example") { loadExample() }
+            .buttonStyle(AppSecondaryButtonStyle())
+            .frame(maxWidth: .infinity)
+        Button("Validate") { refreshValidation() }
+            .buttonStyle(AppSecondaryButtonStyle())
+            .frame(maxWidth: .infinity)
+    }
+
     private var validationSummary: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(validation.isValid ? "Board is valid" : "Validation issues")
-                .font(AppTextStyle.h3)
+                .font(.headline)
                 .foregroundColor(validation.isValid ? AppTheme.text : AppTheme.highlight)
             Text(validation.summary)
-                .font(AppTextStyle.paragraph)
+                .font(.body)
                 .foregroundColor(AppTheme.text)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(10)
         .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("sudoku-validation-summary")
     }
 
     private func setSelectedValue(_ value: Int?) {
@@ -168,18 +180,43 @@ struct SudokuGridView: View {
     let onSelect: (LogicGridCoordinate) -> Void
 
     var body: some View {
-        LogicGridView(rows: SudokuBoard.dimension, columns: SudokuBoard.dimension, majorLineFrequency: SudokuBoard.boxSize) { coordinate in
-            SudokuCellView(
-                cell: board.cells[coordinate.row][coordinate.column],
-                isSelected: selectedCoordinate == coordinate,
-                isRelated: isRelated(coordinate),
-                isMatchingValue: isMatchingValue(coordinate),
-                isConflicting: conflictingCoordinates.contains(coordinate)
-            )
-            .onTapGesture { onSelect(coordinate) }
+        GeometryReader { proxy in
+            let boardSide = SudokuLayout.boardSide(for: proxy.size.width)
+            let cellSide = boardSide / CGFloat(SudokuBoard.dimension)
+
+            LogicGridView(rows: SudokuBoard.dimension, columns: SudokuBoard.dimension, majorLineFrequency: SudokuBoard.boxSize) { coordinate in
+                Button { onSelect(coordinate) } label: {
+                    SudokuCellView(
+                        cell: board.cells[coordinate.row][coordinate.column],
+                        side: cellSide,
+                        isSelected: selectedCoordinate == coordinate,
+                        isRelated: isRelated(coordinate),
+                        isMatchingValue: isMatchingValue(coordinate),
+                        isConflicting: conflictingCoordinates.contains(coordinate)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("sudoku-cell-\(coordinate.row + 1)-\(coordinate.column + 1)")
+                .accessibilityLabel(accessibilityLabel(for: coordinate))
+                .accessibilityHint("Double tap to select this cell for number entry.")
+                .accessibilityAddTraits(selectedCoordinate == coordinate ? .isSelected : [])
+            }
+            .frame(width: boardSide, height: boardSide)
+            .padding(SudokuLayout.boardBorderInset)
+            .background(AppTheme.background)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(3)
-        .background(AppTheme.background)
+        .aspectRatio(1, contentMode: .fit)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Sudoku board")
+    }
+
+    private func accessibilityLabel(for coordinate: LogicGridCoordinate) -> String {
+        let cell = board.cells[coordinate.row][coordinate.column]
+        var parts = ["Row \(coordinate.row + 1)", "column \(coordinate.column + 1)", cell.value.map { "value \($0)" } ?? "empty"]
+        if cell.isGiven { parts.append("given") }
+        if conflictingCoordinates.contains(coordinate) { parts.append("invalid conflict") }
+        return parts.joined(separator: ", ")
     }
 
     private func isRelated(_ coordinate: LogicGridCoordinate) -> Bool {
@@ -200,22 +237,34 @@ struct SudokuGridView: View {
 
 struct SudokuCellView: View {
     let cell: SudokuCell
+    let side: CGFloat
     let isSelected: Bool
     let isRelated: Bool
     let isMatchingValue: Bool
     let isConflicting: Bool
 
     var body: some View {
-        Text(cell.value.map(String.init) ?? "")
-            .font(AppTextStyle.h2)
-            .fontWeight(cell.isGiven ? .bold : .regular)
-            .foregroundColor(foregroundColor)
-            .frame(width: 34, height: 34)
-            .background(backgroundColor)
-            .overlay(
-                Rectangle()
-                    .stroke(isSelected ? AppTheme.highlight : AppTheme.text.opacity(0.18), lineWidth: isSelected ? 2.5 : 0.5)
-            )
+        ZStack(alignment: .topTrailing) {
+            Text(cell.value.map(String.init) ?? "")
+                .font(.system(.title3, design: .rounded, weight: cell.isGiven ? .bold : .regular))
+                .minimumScaleFactor(0.65)
+                .foregroundColor(foregroundColor)
+
+            if isConflicting {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: max(9, side * 0.25), weight: .bold))
+                    .foregroundColor(AppTheme.text)
+                    .padding(2)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(width: side, height: side)
+        .background(backgroundColor)
+        .overlay(
+            Rectangle()
+                .stroke(isSelected ? AppTheme.text : AppTheme.text.opacity(0.18), lineWidth: isSelected ? 3 : 0.5)
+        )
+        .contentShape(Rectangle())
     }
 
     private var foregroundColor: Color {
@@ -236,14 +285,31 @@ struct SudokuKeypadView: View {
     let onSelect: (Int?) -> Void
 
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 8), count: 5), spacing: 8) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 44), spacing: 8), count: 3), spacing: 8) {
             ForEach(1...9, id: \.self) { value in
-                Button("\(value)") { onSelect(value) }
+                Button { onSelect(value) } label: {
+                    Text("\(value)").frame(maxWidth: .infinity)
+                }
                     .buttonStyle(AppSecondaryButtonStyle())
+                    .accessibilityLabel("Enter \(value)")
+                    .accessibilityIdentifier("sudoku-key-\(value)")
             }
-            Button("x") { onSelect(nil) }
+            Button { onSelect(nil) } label: {
+                Label("Delete", systemImage: "delete.left").frame(maxWidth: .infinity)
+            }
                 .buttonStyle(AppDangerButtonStyle())
+                .accessibilityHint("Clears the selected cell.")
+                .accessibilityIdentifier("sudoku-delete")
         }
+    }
+}
+
+enum SudokuLayout {
+    static let maximumBoardSide: CGFloat = 468
+    static let boardBorderInset: CGFloat = 3
+
+    static func boardSide(for availableWidth: CGFloat) -> CGFloat {
+        min(max(0, availableWidth - boardBorderInset * 2), maximumBoardSide)
     }
 }
 
