@@ -20,7 +20,7 @@ final class Puzzle_SolverTests: XCTestCase {
         CatalogExpectation(id: "sliding-4x4", title: "4×4 Sliding Puzzle", status: .active),
         CatalogExpectation(id: "sliding-5x5", title: "5×5 Sliding Puzzle", status: .active),
         CatalogExpectation(id: "cube-2x2", title: "2×2 Cube", status: .active),
-        CatalogExpectation(id: "cube-3x3", title: "3×3 Rubik’s Cube", status: .active),
+        CatalogExpectation(id: "cube-3x3", title: "3×3 Rubik’s Cube", status: .comingSoon),
         CatalogExpectation(id: "pyraminx", title: "Pyraminx", status: .comingSoon),
         CatalogExpectation(id: "skewb", title: "Skewb", status: .comingSoon),
         CatalogExpectation(id: "megaminx", title: "Megaminx", status: .comingSoon),
@@ -445,8 +445,23 @@ final class Puzzle_SolverTests: XCTestCase {
         let active = PuzzleAvailabilityCatalog.activeDescriptors(in: .twisty)
         let comingSoon = PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .twisty)
 
-        XCTAssertEqual(active.map(\.id), ["cube-2x2", "cube-3x3"])
-        XCTAssertEqual(comingSoon.map(\.id), ["pyraminx", "skewb", "megaminx", "square-1"])
+        XCTAssertEqual(active.map(\.id), ["cube-2x2"])
+        XCTAssertEqual(comingSoon.map(\.id), ["cube-3x3", "pyraminx", "skewb", "megaminx", "square-1"])
+    }
+
+    func testThreeByThreeCubeCannotEnterActiveV1SolveFlow() throws {
+        let twoByTwo = PuzzleAvailabilityCatalog.descriptor(id: "cube-2x2")
+        let threeByThree = PuzzleAvailabilityCatalog.descriptor(id: "cube-3x3")
+        let activeTwistyIDs = Set(PuzzleAvailabilityCatalog.activeDescriptors(in: .twisty).map(\.id))
+
+        XCTAssertEqual(twoByTwo.status, .active)
+        XCTAssertTrue(twoByTwo.status.isInteractive)
+        XCTAssertTrue(activeTwistyIDs.contains(twoByTwo.id))
+
+        XCTAssertEqual(threeByThree.status, .comingSoon)
+        XCTAssertFalse(threeByThree.status.isInteractive)
+        XCTAssertFalse(activeTwistyIDs.contains(threeByThree.id))
+        XCTAssertTrue(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .twisty).contains(threeByThree))
     }
     // MARK: - Shared state and diagnostics
 

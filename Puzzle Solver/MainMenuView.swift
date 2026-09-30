@@ -203,7 +203,7 @@ struct TwistyPuzzleMenuView: View {
     @ViewBuilder
     private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
         switch descriptor.id {
-        case "cube-2x2", "cube-3x3":
+        case "cube-2x2":
             CubeInputView(descriptor: descriptor)
         default:
             AppPlaceholderScreen(descriptor: descriptor)
