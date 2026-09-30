@@ -1,51 +1,79 @@
 # Puzzle Solver
 
-Puzzle Solver is a Swift application with a shared cube-solving service layer for twisty puzzles.
+Puzzle Solver is a SwiftUI app for iPhone that provides a focused set of puzzle solvers. The lists below mirror the production `PuzzleAvailabilityCatalog`: **Available in V1** means the puzzle has a user-accessible input and solve flow, while **Coming Soon** means it is listed in the app but cannot be opened as a solver.
 
-## Features
+## Available in V1
 
-- Shared `CubeSolvingService` and `CubeSolverProtocol` abstractions for cube solvers.
-- Common `CubeSolveResult` responses for success, invalid input, timeout, unsupported puzzles, and unavailable solvers.
-- Bounded 2×2 IDA* solver path with timeout, max-depth, and max-node safety limits.
-- Cubie-level 3×3 solver with edge orientation/permutation and corner orientation/permutation tracking, all face turns, validity checks, bounded two-phase search, pruning tables, and timeout handling.
-- 4×4 and 5×5 reduction-method placeholders that avoid naive full-state solving.
-- Onboarding, settings, Dynamic Type-friendly UI, dark-mode polish, bounded loading states, and TestFlight release metadata.
+| Category | Puzzle | Production behavior |
+| --- | --- | --- |
+| Sliding | 3×3 Sliding Puzzle | Enter the eight numbered tiles and blank, validate solvability, and view ordered solution playback. |
+| Sliding | 4×4 Sliding Puzzle | Enter a board and run bounded, memory-conscious search with explicit timeout/limit feedback. |
+| Sliding | 5×5 Sliding Puzzle | Enter a board and receive a result within the configured search safety limits; difficult layouts may stop without a solution rather than search indefinitely. |
+| Twisty | 2×2 Cube | Enter stickers with guided or net input and solve bounded scrambles. Sticker counts and physical cubie constraints are validated, so impossible 2×2 states are rejected. |
+| Logic | Sudoku | Enter givens manually, check row/column/box conflicts, and solve with bounded feedback. An example board and solution display are included. |
+| Mechanical | Rush Hour | Build or load a 6×6 vehicle layout, validate it, and search for an ordered escape solution. |
 
-## Solver Status
+All active searches use time, depth, node, or memory safeguards appropriate to the solver. An active catalog entry therefore means that its production flow is available—not that every valid, arbitrarily difficult input is guaranteed to finish with a solution.
 
-| Puzzle | Status |
-| --- | --- |
-| 2×2 Cube | Bounded IDA* search path available. |
-| 3×3 Cube | Cubie-level two-phase solver available with pruning tables and sticker-input UI. |
-| 4×4 Cube | Reduction-method placeholder. |
-| 5×5 Cube | Reduction-method placeholder. |
-| Pyraminx / Skewb | Bounded model-layer solver paths are available. |
+## Coming Soon
 
-## Getting Started
+These entries are visible through the app's **Coming Soon** screen and are not production solver flows in V1:
+
+- **Twisty:** 3×3 Rubik’s Cube, Pyraminx, Skewb, Megaminx, and Square-1.
+- **Logic:** Sudoku Photo Scan, Killer Sudoku, Nonogram, Kakuro, and Slitherlink.
+- **Mechanical:** Klotski and Peg Solitaire.
+- **Visual / Experimental:** Maze Solver, Chess Puzzles, and Jigsaw Solver.
+
+Sudoku Photo Scan is specifically **not available in V1**. V1 Sudoku puzzles must be entered manually; camera import, photo import, and OCR review are not reachable from the production Sudoku screen.
+
+The 3×3 cube is also **not available in V1**. The repository contains an experimental cubie representation, move engine, pruning tables, and bounded two-phase search work, but that development infrastructure is disconnected from production navigation and must not be treated as a shipping 3×3 solver.
+
+## Using the App
+
+1. Choose one of the four production categories: Sliding, Twisty, Logic, or Mechanical.
+2. Select an active puzzle. Category screens are generated from active catalog entries only.
+3. Enter a state or load an included example, validate it, and start the solver.
+4. Review the result, ordered moves, or playback offered by that puzzle's flow. If a safety limit is reached, the app reports that outcome instead of continuing an unbounded search.
+
+The separate **Coming Soon** screen groups every planned catalog entry by category so unavailable modes are not presented as active controls.
+
+## Requirements and Local Development
+
+- macOS with Xcode and an iOS Simulator, or an iPhone configured for local development.
+- The app target is configured for iOS 16.0 or later.
+- Swift 5 language mode is configured in the Xcode project.
+
+To build locally:
 
 1. Clone or download the repository.
 2. Open `Puzzle Solver.xcodeproj` in Xcode.
-3. Build and run the application on a simulator or device.
-4. Open the solver screen to see a guaranteed terminal solve status.
+3. Select the shared **Puzzle Solver** scheme and an iOS 16+ simulator or device.
+4. Build and run.
+
+The project has no third-party package dependency required by the production app.
+
+## Architecture and Development-Only Work
+
+The production UI derives availability from `PuzzleAvailabilityCatalog`, which is the source of truth for whether a mode is active or Coming Soon. Shared result types give active solvers explicit success, validation, timeout, unsolvable, unsupported, and failure outcomes.
+
+The repository also retains model-layer and experimental code for future modes. This code is useful for continued development and tests, but its presence does not make a puzzle available in V1:
+
+- The experimental 3×3 cube code includes cubie coordinates, legal moves, validity checks, pruning tables, and a bounded two-phase search implementation.
+- Larger cube and other twisty-puzzle types include placeholder architecture or unavailable-result paths.
+- Killer Sudoku, Nonogram, Kakuro, Slitherlink, Klotski, and Peg Solitaire have varying amounts of model or solver groundwork while remaining outside production navigation.
+- Reusable graph search plus maze, chess, and jigsaw models live in the experimental layer; all three remain Coming Soon.
+- Sudoku image-import/OCR development code and test fixtures may be present, but Photo Scan is intentionally excluded from the V1 user flow.
+
+## Testing and CI
+
+The XCTest target covers catalog status, validation, representative solver outcomes, safety limits, move playback, and model-layer work. The XCUITest target includes launch and production-flow checks, including verification that Sudoku is manual-entry only. Test coverage describes exercised behavior; it is not a guarantee that every possible puzzle state can be solved within V1 limits.
+
+The repository's GitHub Actions workflow builds Debug and Release simulator configurations and runs the unit-test target on pushes and pull requests to `main`. UI tests are maintained separately but are not run by that workflow.
+
+## Privacy
+
+Production puzzle entry and solving happen on device and do not require an account or network service. The privacy manifest declares UserDefaults access used for lightweight settings such as appearance and onboarding state. Because Sudoku Photo Scan is not part of the V1 production flow, V1 does not ask users to capture or import Sudoku images through the app.
 
 ## Contributing
 
-Contributions to improve pruning-table coverage, add more twisty-puzzle solvers, or add reduction-method solvers for larger cubes are welcome.
-
-## Experimental Puzzle Architecture
-
-The experimental layer keeps new puzzle families modular and separate from the established cube, sliding, logic, and mechanical systems.
-
-- `GraphSearch` and `GraphPath` provide reusable breadth-first pathfinding for unweighted puzzle state spaces.
-- `VisualPuzzleResult`, `VisualPuzzleStep`, and `VisualPuzzleAnnotation` provide shared result/playback models for grid- and image-oriented solvers.
-- `MazeSolver` solves `MazeBoard` layouts with `S` start, `G` goal, `#` walls, and `.` open cells using the shared graph utilities.
-- `ChessPuzzleSolver` supports legal-move chess puzzle searches for mate-in-N and material/checkmate-oriented best-move puzzles from `ChessBoard` FEN input.
-- `JigsawPuzzleSolver` defines placeholder board, piece, and edge models while returning an unsupported result until image detection and piece-matching heuristics are added.
-
-## TestFlight Checklist
-
-- Version is set to `1.0` and build is set to `1` in the Xcode project for the app target.
-- The generated Info.plist includes the `Puzzle Solver` display name and Games App Store category.
-- App icon, accent color, and launch screen assets are present in the asset catalogs.
-- First launch presents onboarding; Settings can replay onboarding and switch System/Light/Dark appearance for review screenshots.
-- Release UI removes debug/diagnostics controls and uses bounded loading states for active solvers.
+Contributions are welcome. When activating a puzzle, update `PuzzleAvailabilityCatalog`, production navigation, tests, and this README together so repository experiments are never mistaken for shipping features.
