@@ -9,23 +9,57 @@ import XCTest
 @testable import Puzzle_Solver
 
 final class Puzzle_SolverTests: XCTestCase {
-    func testAvailabilityCatalogContainsOnlyApprovedActiveModes() {
-        let active = Set(PuzzleAvailabilityCatalog.all.filter { $0.status == .active }.map(\.title))
-
-        XCTAssertEqual(active, Set([
-            "3×3 Sliding Puzzle", "4×4 Sliding Puzzle", "5×5 Sliding Puzzle",
-            "2×2 Cube", "3×3 Rubik’s Cube", "Sudoku", "Sudoku Photo Scan", "Rush Hour"
-        ]))
+    private struct CatalogExpectation: Equatable {
+        let id: String
+        let title: String
+        let status: PuzzleAvailability
     }
 
-    func testComingSoonCatalogContainsAllDeferredModes() {
-        let comingSoon = Set(PuzzleAvailabilityCatalog.all.filter { $0.status == .comingSoon }.map(\.title))
+    private let expectedV1Catalog = [
+        CatalogExpectation(id: "sliding-3x3", title: "3×3 Sliding Puzzle", status: .active),
+        CatalogExpectation(id: "sliding-4x4", title: "4×4 Sliding Puzzle", status: .active),
+        CatalogExpectation(id: "sliding-5x5", title: "5×5 Sliding Puzzle", status: .active),
+        CatalogExpectation(id: "cube-2x2", title: "2×2 Cube", status: .active),
+        CatalogExpectation(id: "cube-3x3", title: "3×3 Rubik’s Cube", status: .active),
+        CatalogExpectation(id: "pyraminx", title: "Pyraminx", status: .comingSoon),
+        CatalogExpectation(id: "skewb", title: "Skewb", status: .comingSoon),
+        CatalogExpectation(id: "megaminx", title: "Megaminx", status: .comingSoon),
+        CatalogExpectation(id: "square-1", title: "Square-1", status: .comingSoon),
+        CatalogExpectation(id: "sudoku", title: "Sudoku", status: .active),
+        CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .active),
+        CatalogExpectation(id: "killer-sudoku", title: "Killer Sudoku", status: .comingSoon),
+        CatalogExpectation(id: "nonogram", title: "Nonogram", status: .comingSoon),
+        CatalogExpectation(id: "kakuro", title: "Kakuro", status: .comingSoon),
+        CatalogExpectation(id: "slitherlink", title: "Slitherlink", status: .comingSoon),
+        CatalogExpectation(id: "rush-hour", title: "Rush Hour", status: .active),
+        CatalogExpectation(id: "klotski", title: "Klotski", status: .comingSoon),
+        CatalogExpectation(id: "peg-solitaire", title: "Peg Solitaire", status: .comingSoon),
+        CatalogExpectation(id: "maze-solver", title: "Maze Solver", status: .comingSoon),
+        CatalogExpectation(id: "chess-puzzles", title: "Chess Puzzles", status: .comingSoon),
+        CatalogExpectation(id: "jigsaw-solver", title: "Jigsaw Solver", status: .comingSoon)
+    ]
 
-        XCTAssertEqual(comingSoon, Set([
-            "Pyraminx", "Skewb", "Megaminx", "Square-1",
-            "Killer Sudoku", "Nonogram", "Kakuro", "Slitherlink",
-            "Klotski", "Peg Solitaire", "Maze Solver", "Chess Puzzles", "Jigsaw Solver"
-        ]))
+    func testV1AvailabilityCatalogMatchesApprovedReleaseSnapshot() {
+        let actual = PuzzleAvailabilityCatalog.all.map {
+            CatalogExpectation(id: $0.id, title: $0.title, status: $0.status)
+        }
+
+        XCTAssertEqual(actual, expectedV1Catalog)
+    }
+
+    func testAvailabilityCatalogDescriptorsAreInternallyConsistent() {
+        let descriptors = PuzzleAvailabilityCatalog.all
+
+        XCTAssertEqual(Set(descriptors.map(\.id)).count, descriptors.count)
+        XCTAssertEqual(Set(descriptors.map(\.title)).count, descriptors.count)
+        XCTAssertTrue(descriptors.allSatisfy { !$0.id.isEmpty && !$0.title.isEmpty && !$0.shortDescription.isEmpty && !$0.icon.isEmpty })
+        XCTAssertTrue(descriptors.filter { $0.status == .active }.allSatisfy { $0.status.isInteractive })
+        XCTAssertTrue(descriptors.filter { $0.status == .comingSoon }.allSatisfy { !$0.status.isInteractive })
+
+        for category in PuzzleCategory.allCases {
+            XCTAssertEqual(PuzzleAvailabilityCatalog.activeDescriptors(in: category), descriptors.filter { $0.category == category && $0.status == .active })
+            XCTAssertEqual(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: category), descriptors.filter { $0.category == category && $0.status == .comingSoon })
+        }
     }
 
     // MARK: - 3×3 sliding puzzle
@@ -408,43 +442,28 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertThrowsError(try parsed.get())
     }
 
-    func testTwistyCatalogDoesNotExposeRemovedPuzzleModes() throws {
-        let names = Set(PuzzleAvailabilityCatalog.all.map(\.title))
+    func testTwistyCatalogSeparatesActiveAndComingSoonModes() throws {
+        let active = PuzzleAvailabilityCatalog.activeDescriptors(in: .twisty)
+        let comingSoon = PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .twisty)
 
-        XCTAssertFalse(names.contains("Pyraminx"))
-        XCTAssertFalse(names.contains("Skewb"))
-        XCTAssertFalse(names.contains("Megaminx"))
-        XCTAssertFalse(names.contains("Square-1"))
-    }
-
-    func testDiagnosticsListsActiveTwistyArchitectures() throws {
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "2×2 Cube" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "3×3 Rubik’s Cube" && $0.enabled && $0.solverAvailable })
-        XCTAssertFalse(PuzzleModeRegistry.diagnostics.contains { $0.name == "Pyraminx" })
-        XCTAssertFalse(PuzzleModeRegistry.diagnostics.contains { $0.name == "Skewb" })
+        XCTAssertEqual(active.map(\.id), ["cube-2x2", "cube-3x3"])
+        XCTAssertEqual(comingSoon.map(\.id), ["pyraminx", "skewb", "megaminx", "square-1"])
     }
     // MARK: - Shared state and diagnostics
 
     func testSolveStateContainsEveryRequiredState() throws {
-        XCTAssertEqual(Set(SolveState.allCases.map(\.rawValue)), ["idle", "validating", "solving", "solved", "invalid", "unsolvable", "noSolution", "timedOut", "failed", "unsupported"])
+        XCTAssertEqual(Set(SolveState.allCases.map(\.rawValue)), ["idle", "validating", "solving", "solved", "alreadySolved", "invalid", "unsolvable", "noSolution", "timedOut", "failed", "unsupported"])
     }
 
-    func testDiagnosticsListsEnabledSlidingPuzzleMode() throws {
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "3×3 Sliding Puzzle" && $0.enabled && $0.solverAvailable })
-    }
+    func testPuzzleModeRegistryExactlyReflectsAvailabilityCatalog() throws {
+        let diagnosticsByName = Dictionary(uniqueKeysWithValues: PuzzleModeRegistry.diagnostics.map { ($0.name, $0) })
 
-    func testDiagnosticsListsEnabledFourByFourSlidingPuzzleMode() throws {
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "4×4 Sliding Puzzle" && $0.enabled && $0.solverAvailable })
-    }
-
-    func testPuzzleModeRegistryCoversEveryCatalogEntry() throws {
-        let registeredNames = Set(PuzzleModeRegistry.diagnostics.map(\.name))
-
-        XCTAssertTrue(Set(SlidingPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
-        XCTAssertTrue(Set(TwistyPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
-        XCTAssertTrue(Set(LogicPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
-        XCTAssertTrue(Set(MechanicalPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
-        XCTAssertTrue(Set(ExperimentalPuzzleKind.allCases.map(\.displayName)).isSubset(of: registeredNames))
+        XCTAssertEqual(Set(diagnosticsByName.keys), Set(PuzzleAvailabilityCatalog.all.map(\.title)))
+        for descriptor in PuzzleAvailabilityCatalog.all {
+            let diagnostic = try XCTUnwrap(diagnosticsByName[descriptor.title])
+            XCTAssertEqual(diagnostic.enabled, descriptor.status.isActive)
+            XCTAssertEqual(diagnostic.solverAvailable, descriptor.status.isActive)
+        }
     }
 
     // MARK: - Helpers
@@ -505,13 +524,11 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertTrue(SudokuValidator.validate(result.solvedBoard ?? .empty).isValid)
     }
 
-    func testLogicPuzzleCatalogKeepsPlaceholdersSeparateFromPlayableSudoku() throws {
-        let sudoku = try XCTUnwrap(LogicPuzzleCatalog.descriptors.first { $0.kind == .sudoku })
-        let placeholders = LogicPuzzleCatalog.descriptors.filter { $0.kind != .sudoku }
+    func testLogicPuzzleReleaseAvailabilityComesFromV1Catalog() throws {
+        let logicDescriptors = PuzzleAvailabilityCatalog.descriptors(in: .logic)
 
-        XCTAssertTrue(sudoku.enabled)
-        XCTAssertTrue(sudoku.solverAvailable)
-        XCTAssertTrue(placeholders.allSatisfy { !$0.enabled && !$0.solverAvailable })
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku", "sudoku-photo-scan"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["killer-sudoku", "nonogram", "kakuro", "slitherlink"])
     }
 
 
@@ -559,26 +576,17 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.steps.count, 1)
     }
 
-    func testExperimentalPuzzleCatalogKeepsJigsawPlaceholderSeparate() throws {
-        let jigsaw = try XCTUnwrap(ExperimentalPuzzleCatalog.descriptors.first { $0.kind == .jigsawSolver })
-        let playable = ExperimentalPuzzleCatalog.descriptors.filter { $0.kind != .jigsawSolver }
+    func testVisualPuzzleSolversRemainComingSoonForV1() throws {
+        let visualDescriptors = PuzzleAvailabilityCatalog.descriptors(in: .visual)
 
-        XCTAssertFalse(jigsaw.enabled)
-        XCTAssertFalse(jigsaw.solverAvailable)
-        XCTAssertTrue(playable.allSatisfy { $0.enabled && $0.solverAvailable })
-    }
-
-    func testDiagnosticsListsExperimentalPuzzleModes() throws {
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Maze" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Mate-in-N" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Chess Best Move" && $0.enabled && $0.solverAvailable })
-        XCTAssertTrue(PuzzleModeRegistry.diagnostics.contains { $0.name == "Jigsaw Solver" && !$0.enabled && !$0.solverAvailable })
+        XCTAssertEqual(visualDescriptors.map(\.id), ["maze-solver", "chess-puzzles", "jigsaw-solver"])
+        XCTAssertTrue(visualDescriptors.allSatisfy { $0.status == .comingSoon && !$0.status.isInteractive })
     }
 
 
     // MARK: - Production stability additions
 
-    func testExamplePuzzlePresetsCoverActivePuzzleFamilies() throws {
+    func testExamplePuzzlePresetsCoverSolverEngineFamilies() throws {
         let categories = Set(ExamplePuzzlePresets.all.map(\.category))
 
         XCTAssertTrue(categories.isSuperset(of: ["Sliding", "Twisty", "Logic", "Mechanical", "Experimental"]))
@@ -664,20 +672,15 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertLessThan(result.elapsedTime, 1)
     }
 
-    func testComingSoonPuzzleDescriptorsRouteThroughSharedScreenContract() throws {
-        let logicComingSoon = LogicPuzzleCatalog.descriptors.filter { !$0.enabled }
-        let mechanicalComingSoon = MechanicalPuzzleCatalog.descriptors.filter { !$0.enabled }
-        let experimentalComingSoon = ExperimentalPuzzleCatalog.descriptors.filter { !$0.enabled }
+    func testComingSoonDescriptorsUseSharedNonInteractiveContract() throws {
+        let comingSoon = PuzzleAvailabilityCatalog.all.filter { $0.status == .comingSoon }
 
-        XCTAssertEqual(Set(logicComingSoon.map(\.kind)), Set([.killerSudoku, .nonogram, .kakuro, .slitherlink]))
-        XCTAssertEqual(Set(mechanicalComingSoon.map(\.kind)), Set([.klotski, .pegSolitaire]))
-        XCTAssertEqual(experimentalComingSoon.map(\.kind), [.jigsawSolver])
-        XCTAssertTrue(logicComingSoon.allSatisfy { !$0.enabled && !$0.solverAvailable })
-        XCTAssertTrue(mechanicalComingSoon.allSatisfy { !$0.enabled && !$0.solverAvailable })
-        XCTAssertTrue(experimentalComingSoon.allSatisfy { !$0.enabled && !$0.solverAvailable })
+        XCTAssertFalse(comingSoon.isEmpty)
+        XCTAssertTrue(comingSoon.allSatisfy { !$0.status.isActive && !$0.status.isInteractive })
+        XCTAssertEqual(comingSoon, PuzzleCategory.allCases.flatMap { PuzzleAvailabilityCatalog.comingSoonDescriptors(in: $0) })
     }
 
-    func testActivePuzzleFamiliesSolveOrReturnBoundedFailureStates() throws {
+    func testImplementedSolverEnginesSolveOrReturnBoundedFailureStates() throws {
         let sliding = SlidingPuzzleSolver().solve(PuzzlePresets.sliding4x4Medium, options: SlidingPuzzleSolveOptions(timeout: 3, maxNodes: 120_000, maxDepth: 60))
         let sudoku = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 500_000, timeout: 5))
         let rushHour = RushHourSolver().solve(.example, options: RushHourSolveOptions(timeout: 5, maxStates: 100_000))
