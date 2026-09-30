@@ -184,7 +184,6 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.state, .timedOut)
     }
 
-
     // MARK: - 5×5 sliding puzzle solver coverage
 
     func testOneMoveFiveByFiveSlidingPuzzleSolves() throws {
@@ -541,6 +540,27 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertFalse(photoScan.status.isInteractive)
         XCTAssertFalse(LogicPuzzleMenuView.productionDescriptors.contains(photoScan))
         XCTAssertTrue(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .logic).contains(photoScan))
+    }
+
+    func testOCRImplementationDoesNotAffectProductionSudokuInitialization() {
+        let retainedScanResult = SudokuScanResult(cells: [
+            SudokuDetectedCell(row: 0, column: 0, recognizedValue: 9, confidence: 0.99)
+        ])
+        let board = SudokuInputView.initialBoard
+
+        XCTAssertEqual(retainedScanResult.board.value(at: LogicGridCoordinate(row: 0, column: 0)), 9)
+        XCTAssertEqual(board, .empty)
+        XCTAssertTrue(board.cells.flatMap { $0 }.allSatisfy { $0.value == nil && !$0.isGiven })
+        XCTAssertTrue(SudokuValidator.validate(board).isValid)
+    }
+
+    func testManualSudokuEntryRemainsEditableAndValidatable() {
+        let coordinate = LogicGridCoordinate(row: 0, column: 0)
+        let entered = SudokuInputView.initialBoard.settingValue(7, at: coordinate, markGiven: true)
+
+        XCTAssertEqual(entered.value(at: coordinate), 7)
+        XCTAssertTrue(entered.cells[coordinate.row][coordinate.column].isGiven)
+        XCTAssertTrue(SudokuValidator.validate(entered).canSolve)
     }
 
 

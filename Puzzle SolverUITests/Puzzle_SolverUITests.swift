@@ -30,6 +30,31 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertFalse(app.otherElements["splash-screen"].exists)
     }
 
+    func testSudokuProductionFlowIsManualEntryOnly() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
+        if app.buttons["Skip"].exists {
+            app.buttons["Skip"].tap()
+        }
+
+        let logicPuzzles = app.staticTexts["Logic Puzzles"].firstMatch
+        XCTAssertTrue(logicPuzzles.waitForExistence(timeout: 2))
+        logicPuzzles.tap()
+
+        let sudoku = app.staticTexts["Sudoku"].firstMatch
+        XCTAssertTrue(sudoku.waitForExistence(timeout: 2))
+        sudoku.tap()
+
+        XCTAssertTrue(app.otherElements["sudoku-manual-input"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Validate"].exists)
+        XCTAssertTrue(app.buttons["Solve Sudoku"].exists)
+        XCTAssertFalse(app.buttons["Scan Sudoku"].exists)
+        XCTAssertFalse(app.buttons["Choose Photo"].exists)
+        XCTAssertFalse(app.buttons["Camera"].exists)
+    }
+
     func testLaunchPerformance() throws {
         if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
             // This measures how long it takes to launch your application.

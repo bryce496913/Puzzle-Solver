@@ -68,7 +68,11 @@ struct LogicGridView<CellContent: View>: View {
 }
 
 struct SudokuInputView: View {
-    @State private var board = SudokuBoard.empty
+    /// The production Sudoku flow always starts from a clean, manually editable grid.
+    /// Image import remains implemented separately for post-V1 development.
+    static let initialBoard = SudokuBoard.empty
+
+    @State private var board = SudokuInputView.initialBoard
     @State private var selectedCoordinate = LogicGridCoordinate(row: 0, column: 0)
     @State private var validation = SudokuValidator.validate(.empty)
 
@@ -77,13 +81,6 @@ struct SudokuInputView: View {
     var body: some View {
         AppScreenContainer(title: "Sudoku", subtitle: "Enter givens, validate conflicts, then solve with bounded feedback.") {
                 VStack(spacing: 14) {
-
-                    SudokuImageImportView { importedBoard in
-                        board = importedBoard
-                        selectedCoordinate = LogicGridCoordinate(row: 0, column: 0)
-                        refreshValidation()
-                    }
-
                     SudokuGridView(board: board, selectedCoordinate: selectedCoordinate, conflictingCoordinates: conflicts) { coordinate in
                         selectedCoordinate = coordinate
                     }
@@ -121,6 +118,7 @@ struct SudokuInputView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .appCardStyle()
+                .accessibilityIdentifier("sudoku-manual-input")
         }
         .onAppear { refreshValidation() }
     }
