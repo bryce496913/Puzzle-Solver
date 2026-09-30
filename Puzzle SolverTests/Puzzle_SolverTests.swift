@@ -26,7 +26,7 @@ final class Puzzle_SolverTests: XCTestCase {
         CatalogExpectation(id: "megaminx", title: "Megaminx", status: .comingSoon),
         CatalogExpectation(id: "square-1", title: "Square-1", status: .comingSoon),
         CatalogExpectation(id: "sudoku", title: "Sudoku", status: .active),
-        CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .active),
+        CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .comingSoon),
         CatalogExpectation(id: "killer-sudoku", title: "Killer Sudoku", status: .comingSoon),
         CatalogExpectation(id: "nonogram", title: "Nonogram", status: .comingSoon),
         CatalogExpectation(id: "kakuro", title: "Kakuro", status: .comingSoon),
@@ -527,8 +527,20 @@ final class Puzzle_SolverTests: XCTestCase {
     func testLogicPuzzleReleaseAvailabilityComesFromV1Catalog() throws {
         let logicDescriptors = PuzzleAvailabilityCatalog.descriptors(in: .logic)
 
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku", "sudoku-photo-scan"])
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["killer-sudoku", "nonogram", "kakuro", "slitherlink"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["sudoku-photo-scan", "killer-sudoku", "nonogram", "kakuro", "slitherlink"])
+    }
+
+    func testSudokuPhotoScanUsesComingSoonMenuBehavior() throws {
+        let sudoku = PuzzleAvailabilityCatalog.descriptor(id: "sudoku")
+        let photoScan = PuzzleAvailabilityCatalog.descriptor(id: "sudoku-photo-scan")
+
+        XCTAssertEqual(sudoku.status, .active)
+        XCTAssertTrue(sudoku.status.isInteractive)
+        XCTAssertEqual(photoScan.status, .comingSoon)
+        XCTAssertFalse(photoScan.status.isInteractive)
+        XCTAssertFalse(LogicPuzzleMenuView.productionDescriptors.contains(photoScan))
+        XCTAssertTrue(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .logic).contains(photoScan))
     }
 
 
