@@ -36,7 +36,7 @@ struct AppRootView: View {
                         try? await Task.sleep(nanoseconds: reduceMotion ? 200_000_000 : 900_000_000)
                         guard !Task.isCancelled else { return }
                         withAnimation(.easeOut(duration: reduceMotion ? 0.1 : 0.35)) {
-                            launchState.completeSplash()
+                            _ = launchState.completeSplash()
                         }
                     }
             case .main:
