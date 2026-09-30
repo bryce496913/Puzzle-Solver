@@ -24,6 +24,7 @@ final class LaunchStateController: ObservableObject {
 struct AppRootView: View {
     @ObservedObject var launchState: LaunchStateController
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("PreferredAppearance") private var preferredAppearance = AppAppearanceOption.system.rawValue
 
     var body: some View {
         Group {
@@ -42,12 +43,14 @@ struct AppRootView: View {
                 ContentView()
             }
         }
+        // Apply the persisted choice above every production screen, including splash.
+        // A nil scheme is intentional: it lets System track the device appearance.
+        .preferredColorScheme(AppAppearanceOption.resolve(preferredAppearance).colorScheme)
     }
 }
 
 struct ContentView: View {
     @AppStorage("HasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("PreferredAppearance") private var preferredAppearance = AppAppearanceOption.system.rawValue
 
     var body: some View {
         NavigationView {
@@ -59,7 +62,6 @@ struct ContentView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .accessibilityIdentifier("main-content")
-        .preferredColorScheme(AppAppearanceOption(rawValue: preferredAppearance)?.colorScheme)
     }
 }
 

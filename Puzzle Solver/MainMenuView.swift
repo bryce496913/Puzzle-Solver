@@ -141,7 +141,7 @@ struct SettingsView: View {
     var body: some View {
         AppScreenContainer(title: "Settings", subtitle: "Keep the app experience predictable during review and QA.") {
             VStack(alignment: .leading, spacing: 14) {
-                AppSectionHeader("Appearance", subtitle: "Choose a preferred presentation while preserving the black, purple, and pink palette.")
+                AppSectionHeader("Appearance", subtitle: "Follow the device appearance for system controls, or keep them dark. The V1 puzzle canvas keeps its black, purple, and pink palette.")
                 HStack(spacing: 6) {
                     ForEach(AppAppearanceOption.allCases) { option in
                         Button {
@@ -152,11 +152,12 @@ struct SettingsView: View {
                                 .foregroundColor(AppTheme.text)
                                 .frame(maxWidth: .infinity)
                                 .frame(minHeight: 42)
-                                .background(preferredAppearance == option.rawValue ? AppTheme.accent : Color.clear)
+                                .background(selectedAppearance == option ? AppTheme.accent : Color.clear)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .accessibilityValue(preferredAppearance == option.rawValue ? "Selected" : "Not selected")
+                        .accessibilityIdentifier("appearance-\(option.rawValue)")
+                        .accessibilityValue(selectedAppearance == option ? "Selected" : "Not selected")
                     }
                 }
                 .padding(4)
@@ -181,6 +182,15 @@ struct SettingsView: View {
             }
             .appCardStyle()
         }
+        .onAppear {
+            // Normalize unsupported persisted values (including the former Light
+            // option) so a visible V1 choice is always selected after relaunch.
+            preferredAppearance = selectedAppearance.rawValue
+        }
+    }
+
+    private var selectedAppearance: AppAppearanceOption {
+        AppAppearanceOption.resolve(preferredAppearance)
     }
 }
 

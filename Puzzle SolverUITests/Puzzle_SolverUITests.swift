@@ -30,6 +30,26 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertFalse(app.otherElements["splash-screen"].exists)
     }
 
+    func testDarkAppearanceSelectionPersistsAfterRelaunch() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-HasCompletedOnboarding", "YES"]
+        app.launch()
+        openSettings(in: app)
+
+        let dark = app.buttons["appearance-dark"]
+        XCTAssertTrue(dark.waitForExistence(timeout: 2))
+        dark.tap()
+        XCTAssertEqual(dark.value as? String, "Selected")
+
+        app.terminate()
+        app.launch()
+        openSettings(in: app)
+        XCTAssertEqual(app.buttons["appearance-dark"].value as? String, "Selected")
+
+        app.buttons["appearance-system"].tap()
+        XCTAssertEqual(app.buttons["appearance-system"].value as? String, "Selected")
+    }
+
     func testSudokuProductionFlowIsManualEntryOnly() throws {
         let app = XCUIApplication()
         app.launch()
@@ -94,6 +114,14 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertTrue(sudoku.waitForExistence(timeout: 2))
         sudoku.tap()
         XCTAssertTrue(app.otherElements["sudoku-manual-input"].waitForExistence(timeout: 2))
+    }
+
+    private func openSettings(in app: XCUIApplication) {
+        XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
+        let settings = app.staticTexts["Settings"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 2))
+        settings.tap()
+        XCTAssertTrue(app.buttons["appearance-system"].waitForExistence(timeout: 2))
     }
 
     func testLaunchPerformance() throws {
