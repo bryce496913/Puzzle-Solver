@@ -195,9 +195,12 @@ struct SudokuValidationIssue: Identifiable, Equatable, Hashable {
 struct SudokuValidationResult: Equatable {
     let issues: [SudokuValidationIssue]
     let isComplete: Bool
+    let hasEntries: Bool
 
     var isValid: Bool { issues.isEmpty }
-    var canSolve: Bool { isValid }
+    /// Manual-entry eligibility is distinct from structural validity. The solver
+    /// remains the authority on whether a non-empty puzzle has one solution.
+    var canSolve: Bool { isValid && hasEntries }
     var summary: String {
         if issues.isEmpty { return isComplete ? "Valid complete Sudoku." : "Valid puzzle so far." }
         return issues.map(\.message).joined(separator: "\n")
@@ -207,6 +210,12 @@ struct SudokuValidationResult: Equatable {
 enum SudokuValidator {
     static func validate(_ board: SudokuBoard) -> SudokuValidationResult {
         var issues: [SudokuValidationIssue] = []
+
+        guard board.cells.count == SudokuBoard.dimension,
+              board.cells.allSatisfy({ $0.count == SudokuBoard.dimension }) else {
+            let issue = SudokuValidationIssue(scope: .cell, index: 0, message: "Sudoku must have a 9×9 grid.", coordinates: [])
+            return SudokuValidationResult(issues: [issue], isComplete: false, hasEntries: false)
+        }
 
         for row in 0..<SudokuBoard.dimension {
             let coordinates = (0..<SudokuBoard.dimension).map { LogicGridCoordinate(row: row, column: $0) }
@@ -239,7 +248,7 @@ enum SudokuValidator {
             }
         }
 
-        return SudokuValidationResult(issues: issues, isComplete: board.isComplete)
+        return SudokuValidationResult(issues: issues, isComplete: board.isComplete, hasEntries: board.filledCount > 0)
     }
 
     static func conflictingCoordinates(in board: SudokuBoard) -> Set<LogicGridCoordinate> {
@@ -296,47 +305,57 @@ final class SudokuSolver: LogicPuzzleSolving {
         }
 
         var values = board.values().map { row in row.map { $0 ?? 0 } }
-        var steps: [SudokuSolveStep] = []
+        var firstSolution: [[Int]]?
+        var firstSteps: [SudokuSolveStep] = []
+        var currentSteps: [SudokuSolveStep] = []
+        var solutionCount = 0
+        var interrupted = false
         var nodes = 0
         let deadline = start.addingTimeInterval(options.timeout)
 
-        let solved = search(values: &values, steps: &steps, nodes: &nodes, maxNodes: options.maxNodes, deadline: deadline)
-        if solved {
+        search(values: &values, steps: &currentSteps, nodes: &nodes, maxNodes: options.maxNodes, deadline: deadline, solutionCount: &solutionCount, firstSolution: &firstSolution, firstSteps: &firstSteps, interrupted: &interrupted)
+        if interrupted {
+            let reason = Date() >= deadline
+                ? "Sudoku solve exceeded \(options.timeout)s timeout."
+                : "Sudoku solve exceeded \(options.maxNodes) node safety limit."
+            return finish(.timedOut, initialBoard: board, solvedBoard: nil, steps: [], reason: reason, start: start, nodes: nodes)
+        }
+        if solutionCount >= 2 {
+            return finish(.multipleSolutions, initialBoard: board, solvedBoard: nil, steps: [], reason: SolveState.multipleSolutions.friendlyMessage, start: start, nodes: nodes)
+        }
+        if solutionCount == 1, let firstSolution {
             let givens = Set(board.cells.enumerated().flatMap { rowIndex, row in
                 row.enumerated().compactMap { columnIndex, cell in
                     cell.isGiven ? LogicGridCoordinate(row: rowIndex, column: columnIndex) : nil
                 }
             })
-            return finish(.solved, initialBoard: board, solvedBoard: SudokuBoard(values: values.map { $0.map { Optional($0) } }, givens: givens), steps: steps, reason: nil, start: start, nodes: nodes)
+            return finish(.solved, initialBoard: board, solvedBoard: SudokuBoard(values: firstSolution.map { $0.map { Optional($0) } }, givens: givens), steps: firstSteps, reason: nil, start: start, nodes: nodes)
         }
-
-        let state: SolveState = Date() >= deadline ? .timedOut : (nodes >= options.maxNodes ? .failed : .unsolvable)
-        let reason: String
-        switch state {
-        case .timedOut: reason = "Sudoku solve exceeded \(options.timeout)s timeout."
-        case .failed: reason = "Sudoku solve exceeded \(options.maxNodes) node safety limit."
-        default: reason = "No solution exists for this Sudoku."
-        }
-        return finish(state, initialBoard: board, solvedBoard: nil, steps: [], reason: reason, start: start, nodes: nodes)
+        return finish(.unsolvable, initialBoard: board, solvedBoard: nil, steps: [], reason: "No solution exists for this Sudoku.", start: start, nodes: nodes)
     }
 
-    private func search(values: inout [[Int]], steps: inout [SudokuSolveStep], nodes: inout Int, maxNodes: Int, deadline: Date) -> Bool {
-        guard Date() < deadline, nodes < maxNodes else { return false }
-        guard let candidate = bestEmptyCell(in: values) else { return true }
+    private func search(values: inout [[Int]], steps: inout [SudokuSolveStep], nodes: inout Int, maxNodes: Int, deadline: Date, solutionCount: inout Int, firstSolution: inout [[Int]]?, firstSteps: inout [SudokuSolveStep], interrupted: inout Bool) {
+        guard solutionCount < 2, !interrupted else { return }
+        guard let candidate = bestEmptyCell(in: values) else {
+            solutionCount += 1
+            if firstSolution == nil {
+                firstSolution = values
+                firstSteps = steps
+            }
+            return
+        }
+        guard Date() < deadline, nodes < maxNodes else { interrupted = true; return }
         let coordinate = candidate.coordinate
 
         for value in candidate.values {
+            guard solutionCount < 2, !interrupted else { return }
             nodes += 1
             values[coordinate.row][coordinate.column] = value
             steps.append(SudokuSolveStep(coordinate: coordinate, value: value))
-            if search(values: &values, steps: &steps, nodes: &nodes, maxNodes: maxNodes, deadline: deadline) {
-                return true
-            }
+            search(values: &values, steps: &steps, nodes: &nodes, maxNodes: maxNodes, deadline: deadline, solutionCount: &solutionCount, firstSolution: &firstSolution, firstSteps: &firstSteps, interrupted: &interrupted)
             steps.removeLast()
             values[coordinate.row][coordinate.column] = 0
         }
-
-        return false
     }
 
     private func bestEmptyCell(in values: [[Int]]) -> (coordinate: LogicGridCoordinate, values: [Int])? {
