@@ -424,11 +424,102 @@ enum CubeStickerValidator {
         guard colors.allSatisfy({ counts[$0] == perColor }) else {
             return .failure(ValidationError("Each color must appear exactly \(perColor) times."))
         }
+        if state.puzzle == .twoByTwo {
+            return TwoByTwoCubieConverter.validate(state).map { _ in () }
+        }
         if state.puzzle == .threeByThree {
             let centers = [4, 13, 22, 31, 40, 49].map { state.stickers[$0] }
             guard centers == colors else { return .failure(ValidationError("This cube state is not valid.")) }
         }
         return .success(())
+    }
+}
+
+// MARK: - 2×2 sticker-to-cubie conversion
+
+/// A physical corner location. Sticker storage is six row-major faces in
+/// U, R, F, D, L, B order, with every face viewed straight on. The facelets
+/// below are cyclically ordered around each corner. Consequently the index of
+/// that corner's U/D-colored facelet is its twist (0, 1, or 2).
+enum TwoByTwoCornerPosition: String, CaseIterable {
+    case upRightFront = "URF"
+    case upFrontLeft = "UFL"
+    case upLeftBack = "ULB"
+    case upBackRight = "UBR"
+    case downFrontRight = "DFR"
+    case downLeftFront = "DLF"
+    case downBackLeft = "DBL"
+    case downRightBack = "DRB"
+
+    var stickerIndices: [Int] {
+        switch self {
+        case .upRightFront: return [3, 4, 9]
+        case .upFrontLeft: return [2, 8, 17]
+        case .upLeftBack: return [0, 16, 21]
+        case .upBackRight: return [1, 20, 5]
+        case .downFrontRight: return [13, 11, 6]
+        case .downLeftFront: return [12, 19, 10]
+        case .downBackLeft: return [14, 23, 18]
+        case .downRightBack: return [15, 7, 22]
+        }
+    }
+
+    var solvedColors: Set<String> {
+        Set(stickerIndices.map { CubeState.solved2x2.stickers[$0] })
+    }
+}
+
+struct TwoByTwoCornerCubie: Equatable {
+    let position: TwoByTwoCornerPosition
+    let identity: Set<String>
+    let orientation: Int
+}
+
+struct TwoByTwoCubieState: Equatable {
+    let corners: [TwoByTwoCornerCubie]
+}
+
+enum TwoByTwoCubieConverter {
+    static func validate(_ state: CubeState) -> Result<TwoByTwoCubieState, CubeStickerValidator.ValidationError> {
+        guard state.puzzle == .twoByTwo, state.stickers.count == 24 else {
+            return .failure(.init("A 2×2 cube must contain exactly 24 stickers."))
+        }
+
+        let expectedColors = Set(CubeStickerValidator.colors)
+        guard state.stickers.allSatisfy(expectedColors.contains) else {
+            return .failure(.init("This cube contains an unknown sticker color."))
+        }
+        let counts = Dictionary(grouping: state.stickers, by: { $0 }).mapValues(\.count)
+        guard expectedColors.allSatisfy({ counts[$0] == 4 }) else {
+            return .failure(.init("Each color must appear exactly 4 times."))
+        }
+
+        let expectedIdentities = Set(TwoByTwoCornerPosition.allCases.map(\.solvedColors))
+        var seenIdentities = Set<Set<String>>()
+        var corners: [TwoByTwoCornerCubie] = []
+
+        for position in TwoByTwoCornerPosition.allCases {
+            let colors = position.stickerIndices.map { state.stickers[$0] }
+            let identity = Set(colors)
+            guard identity.count == 3, expectedIdentities.contains(identity) else {
+                return .failure(.init("Corner \(position.rawValue) has an impossible color combination."))
+            }
+            guard seenIdentities.insert(identity).inserted else {
+                return .failure(.init("Corner \(position.rawValue) duplicates another corner cubie."))
+            }
+            guard let orientation = colors.firstIndex(where: { $0 == "U" || $0 == "D" }) else {
+                return .failure(.init("Corner \(position.rawValue) has no Up or Down sticker."))
+            }
+            corners.append(.init(position: position, identity: identity, orientation: orientation))
+        }
+
+        guard seenIdentities == expectedIdentities else {
+            return .failure(.init("The cube is missing one or more physical corner cubies."))
+        }
+        guard corners.reduce(0, { $0 + $1.orientation }) % 3 == 0 else {
+            return .failure(.init("The corner twists are physically impossible."))
+        }
+        return .success(TwoByTwoCubieState(corners: corners))
     }
 }
 
@@ -544,8 +635,8 @@ final class Cube2x2Solver: CubeSolverProtocol {
         guard state.puzzle == supportedPuzzle else {
             return finish(status: .unsupportedPuzzle, state: state, reason: "2×2 solver received \(state.puzzle.rawValue).", start: start, nodes: 0)
         }
-        guard validate(state) else {
-            return finish(status: .invalidInput, state: state, reason: "Expected exactly 24 stickers with four stickers of each cube color.", start: start, nodes: 0)
+        if case .failure(let error) = CubeStickerValidator.validate(state) {
+            return finish(status: .invalidInput, state: state, reason: error.message, start: start, nodes: 0)
         }
         guard state != solvedState else {
             return CubeSolveResult(status: .alreadySolved, puzzle: state.puzzle, moves: [], steps: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
@@ -621,12 +712,6 @@ final class Cube2x2Solver: CubeSolverProtocol {
     private func heuristic(_ state: CubeState) -> Int {
         let mismatched = zip(state.stickers, solvedState.stickers).filter { pair in pair.0 != pair.1 }.count
         return Int(ceil(Double(mismatched) / 8.0))
-    }
-
-    private func validate(_ state: CubeState) -> Bool {
-        guard state.stickers.count == 24 else { return false }
-        let counts = Dictionary(grouping: state.stickers, by: { $0 }).mapValues(\.count)
-        return counts.count == 6 && counts.values.allSatisfy { $0 == 4 }
     }
 
     private func replaySteps(from state: CubeState, moves: [String]) -> [CubeSolutionStep] {

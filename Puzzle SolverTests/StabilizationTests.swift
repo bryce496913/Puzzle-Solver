@@ -135,6 +135,65 @@ final class StabilizationTests: XCTestCase {
         }
     }
 
+    func testPhysicalCornerValidationAcceptsSolvedMovesAndScrambles() {
+        let legalStates = [
+            CubeState.solved2x2,
+            TwoByTwoMoveEngine.apply("R", to: .solved2x2),
+            TwoByTwoMoveEngine.apply(["U", "R", "F"], to: .solved2x2),
+            TwoByTwoMoveEngine.apply(["F2", "U", "R2", "F'"], to: .solved2x2),
+            TwoByTwoMoveEngine.apply(["R", "U", "R'", "U'", "F2"], to: .solved2x2)
+        ]
+
+        for state in legalStates {
+            guard case .success(let cubies) = TwoByTwoCubieConverter.validate(state) else {
+                return XCTFail("Production moves must always produce a valid physical cubie state")
+            }
+            XCTAssertEqual(cubies.corners.count, 8)
+            XCTAssertEqual(cubies.corners.reduce(0) { $0 + $1.orientation } % 3, 0)
+        }
+    }
+
+    func testPhysicalCornerValidationRejectsDuplicateAndMissingReplacement() {
+        var stickers = CubeState.solved2x2.stickers
+        // Exchanging R and L stickers turns URF/ULB into duplicate UFL/UBR
+        // identities, so the original two cubies are simultaneously missing.
+        stickers.swapAt(4, 16)
+        let state = CubeState(puzzle: .twoByTwo, stickers: stickers)
+
+        assertInvalidPhysicalState(state)
+    }
+
+    func testPhysicalCornerValidationRejectsImpossibleColorCombination() {
+        var stickers = CubeState.solved2x2.stickers
+        stickers.swapAt(4, 14) // Produces a corner containing both U and D.
+
+        assertInvalidPhysicalState(CubeState(puzzle: .twoByTwo, stickers: stickers))
+    }
+
+    func testPhysicalCornerValidationRejectsOneTwistedCornerBeforeSearch() {
+        var stickers = CubeState.solved2x2.stickers
+        let corner = TwoByTwoCornerPosition.upRightFront.stickerIndices
+        let old = stickers
+        stickers[corner[0]] = old[corner[2]]
+        stickers[corner[1]] = old[corner[0]]
+        stickers[corner[2]] = old[corner[1]]
+        let state = CubeState(puzzle: .twoByTwo, stickers: stickers)
+
+        assertInvalidPhysicalState(state)
+        let result = Cube2x2Solver().solve(state, options: .default)
+        XCTAssertEqual(result.status, .invalidInput)
+        XCTAssertEqual(result.nodesExplored, 0)
+    }
+
+    func testPhysicalCornerValidationRejectsStickerAndColorCounts() {
+        let short = CubeState(puzzle: .twoByTwo, stickers: Array(CubeState.solved2x2.stickers.dropLast()))
+        var wrongColors = CubeState.solved2x2.stickers
+        wrongColors[0] = "R"
+
+        assertInvalidPhysicalState(short)
+        assertInvalidPhysicalState(CubeState(puzzle: .twoByTwo, stickers: wrongColors))
+    }
+
     func testInvalidAndNormalizedScrambleFormatting() {
         let spec = TwistyPuzzleKind.twoByTwo.notation
         for invalid in ["X", "r", "R3", "Rw", "R,U", "R!!"] {
@@ -170,6 +229,13 @@ final class StabilizationTests: XCTestCase {
         }
         for index in labelled.stickers.indices where !affected.contains(index) {
             XCTAssertEqual(moved.stickers[index], labelled.stickers[index], "\(move): unaffected sticker \(index)", file: file, line: line)
+        }
+    }
+
+
+    private func assertInvalidPhysicalState(_ state: CubeState, file: StaticString = #filePath, line: UInt = #line) {
+        guard case .failure = TwoByTwoCubieConverter.validate(state) else {
+            return XCTFail("Expected a physically invalid 2×2 state", file: file, line: line)
         }
     }
 }
