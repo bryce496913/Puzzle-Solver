@@ -14,10 +14,9 @@ permissions:
 jobs:
   build-and-test:
     name: Build and unit test
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
     env:
-      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       PROJECT: Puzzle Solver.xcodeproj
       SCHEME: Puzzle Solver
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
@@ -31,6 +30,11 @@ jobs:
           set -euo pipefail
           sw_vers
           xcodebuild -version
+          xcode_major="$(xcodebuild -version | awk '/Xcode/ { split($2, version, "."); print version[1] }')"
+          if [[ -z "$xcode_major" || "$xcode_major" -lt 26 ]]; then
+            echo "Xcode 26 or later is required; found: $(xcodebuild -version | head -n 1)" >&2
+            exit 1
+          fi
           xcodebuild -project "$PROJECT" -scheme "$SCHEME" -list
 
       - name: Resolve dependencies

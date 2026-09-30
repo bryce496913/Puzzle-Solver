@@ -221,8 +221,20 @@ final class SudokuBoardDetector {
         let imageArea = image.size.width * image.size.height
         let candidates = (request.results ?? []).map { observation -> SudokuBoardDetection in
             let corners = [observation.topLeft, observation.topRight, observation.bottomRight, observation.bottomLeft].map { CGPoint(x: $0.x * image.size.width, y: (1 - $0.y) * image.size.height) }
-            let rect = CGRect(x: corners.map(\.x).min() ?? 0, y: corners.map(\.y).min() ?? 0, width: (corners.map(\.x).max() ?? 0) - (corners.map(\.x).min() ?? 0), height: (corners.map(\.y).max() ?? 0) - (corners.map(\.y).min() ?? 0))
-            let aspectScore = Float(1 - min(abs(rect.width / max(rect.height, 1) - 1), 1)); let areaScore = Float(min((rect.width * rect.height) / max(imageArea, 1), 1)); return SudokuBoardDetection(corners: corners, confidence: observation.confidence * 0.55 + aspectScore * 0.25 + areaScore * 0.20)
+            let minimumX: CGFloat = corners.map(\.x).min() ?? 0
+            let maximumX: CGFloat = corners.map(\.x).max() ?? 0
+            let minimumY: CGFloat = corners.map(\.y).min() ?? 0
+            let maximumY: CGFloat = corners.map(\.y).max() ?? 0
+            let boundingWidth: CGFloat = maximumX - minimumX
+            let boundingHeight: CGFloat = maximumY - minimumY
+            let boundingRect: CGRect = CGRect(x: minimumX, y: minimumY, width: boundingWidth, height: boundingHeight)
+
+            let normalizedAspectDifference: CGFloat = min(abs(boundingRect.width / max(boundingRect.height, 1) - 1), 1)
+            let aspectScore = Float(1 - normalizedAspectDifference)
+            let normalizedArea: CGFloat = min((boundingRect.width * boundingRect.height) / max(imageArea, 1), 1)
+            let areaScore = Float(normalizedArea)
+            let confidence: Float = observation.confidence * 0.55 + aspectScore * 0.25 + areaScore * 0.20
+            return SudokuBoardDetection(corners: corners, confidence: confidence)
         }.sorted { $0.confidence > $1.confidence }
         if let best = candidates.first, best.confidence >= 0.35 { return best }
         throw SudokuImageImportError.boardCouldNotBeDetected
