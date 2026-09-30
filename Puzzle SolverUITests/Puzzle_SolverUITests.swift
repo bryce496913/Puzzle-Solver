@@ -34,10 +34,57 @@ final class Puzzle_SolverUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        openSudoku(in: app)
+
+        XCTAssertTrue(app.otherElements["sudoku-manual-input"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Validate"].exists)
+        XCTAssertTrue(app.buttons["Solve Sudoku"].exists)
+        XCTAssertFalse(app.buttons["Scan Sudoku"].exists)
+        XCTAssertFalse(app.buttons["Choose Photo"].exists)
+        XCTAssertFalse(app.buttons["Camera"].exists)
+    }
+
+    func testSudokuCellSelectionKeypadInputAndValidationFeedback() throws {
+        let app = XCUIApplication()
+        app.launch()
+        openSudoku(in: app)
+
+        let firstCell = app.buttons["sudoku-cell-1-1"]
+        XCTAssertTrue(firstCell.waitForExistence(timeout: 2))
+        firstCell.tap()
+
+        let sevenKey = app.buttons["sudoku-key-7"]
+        if !sevenKey.isHittable { app.swipeUp() }
+        XCTAssertTrue(sevenKey.isHittable)
+        sevenKey.tap()
+
+        let secondCell = app.buttons["sudoku-cell-1-2"]
+        if !secondCell.isHittable { app.swipeDown() }
+        secondCell.tap()
+        if !sevenKey.isHittable { app.swipeUp() }
+        sevenKey.tap()
+
+        XCTAssertTrue(firstCell.label.contains("value 7"))
+        XCTAssertTrue(firstCell.label.contains("invalid conflict"))
+        XCTAssertTrue(app.otherElements["sudoku-validation-summary"].exists)
+    }
+
+    func testSudokuRemainsUsableWithAccessibilityText() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge"]
+        app.launch()
+        openSudoku(in: app)
+
+        XCTAssertTrue(app.buttons["sudoku-cell-9-9"].waitForExistence(timeout: 2))
+        let delete = app.buttons["sudoku-delete"]
+        if !delete.isHittable { app.swipeUp() }
+        XCTAssertTrue(delete.isHittable)
+        XCTAssertTrue(app.buttons["Solve Sudoku"].exists)
+    }
+
+    private func openSudoku(in app: XCUIApplication) {
         XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
-        if app.buttons["Skip"].exists {
-            app.buttons["Skip"].tap()
-        }
+        if app.buttons["Skip"].exists { app.buttons["Skip"].tap() }
 
         let logicPuzzles = app.staticTexts["Logic Puzzles"].firstMatch
         XCTAssertTrue(logicPuzzles.waitForExistence(timeout: 2))
@@ -46,13 +93,7 @@ final class Puzzle_SolverUITests: XCTestCase {
         let sudoku = app.staticTexts["Sudoku"].firstMatch
         XCTAssertTrue(sudoku.waitForExistence(timeout: 2))
         sudoku.tap()
-
         XCTAssertTrue(app.otherElements["sudoku-manual-input"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Validate"].exists)
-        XCTAssertTrue(app.buttons["Solve Sudoku"].exists)
-        XCTAssertFalse(app.buttons["Scan Sudoku"].exists)
-        XCTAssertFalse(app.buttons["Choose Photo"].exists)
-        XCTAssertFalse(app.buttons["Camera"].exists)
     }
 
     func testLaunchPerformance() throws {

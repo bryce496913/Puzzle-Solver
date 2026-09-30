@@ -62,6 +62,22 @@ final class Puzzle_SolverTests: XCTestCase {
         }
     }
 
+    func testSudokuBoardLayoutFitsCompactAndStandardWidths() {
+        for availableWidth in [288.0, 358.0, 398.0] {
+            let side = SudokuLayout.boardSide(for: availableWidth)
+
+            XCTAssertLessThanOrEqual(side + SudokuLayout.boardBorderInset * 2, availableWidth)
+            XCTAssertEqual(side / 9 * 9, side, accuracy: 0.001)
+        }
+
+        XCTAssertEqual(
+            SudokuLayout.boardSide(for: 398) / 9,
+            43.56,
+            accuracy: 0.01,
+            "A wider supported iPhone should provide approximately 44-point cell targets."
+        )
+    }
+
     // MARK: - 3×3 sliding puzzle
 
     func testSolvedThreeByThreeSlidingPuzzleReturnsSolvedWithoutMoves() throws {
