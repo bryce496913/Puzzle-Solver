@@ -473,6 +473,87 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertLessThan(result.elapsedTime, 2)
     }
 
+    // MARK: - Isolated 3×3 two-phase solver regression coverage
+
+    func testKociembaSolvedCubeHasZeroLengthSolutionAndMetrics() throws {
+        let result = Cube3x3KociembaSolver().solve(.solved, options: kociembaOptions())
+
+        XCTAssertEqual(result.status, .success)
+        XCTAssertEqual(result.termination, .solved)
+        XCTAssertEqual(result.moves, [])
+        XCTAssertEqual(result.phaseOneDepth, 0)
+        XCTAssertEqual(result.phaseTwoDepth, 0)
+        XCTAssertEqual(result.totalSolutionLength, 0)
+        XCTAssertEqual(result.nodes, 0)
+        XCTAssertGreaterThanOrEqual(result.elapsedSearchTime, 0)
+        XCTAssertGreaterThanOrEqual(result.pruningTablePreparationTime, 0)
+    }
+
+    func testKociembaSolvesAndIndependentlyReplaysShallowScrambles() throws {
+        let scrambles: [[Cube3x3Move]] = [
+            [.R], [.U, .F], [.Li, .D2, .B],
+            [.F, .Ri, .U2, .L], [.D, .B2, .Ui, .R, .F2]
+        ]
+
+        for scramble in scrambles {
+            try assertKociembaReplaySolves(scramble, options: kociembaOptions(maxNodes: 1_000_000))
+        }
+    }
+
+    func testKociembaSolvesAndIndependentlyReplaysMixedScrambles() throws {
+        let scrambles: [[Cube3x3Move]] = [
+            [.U, .D, .Ri, .L2, .F, .Bi, .U2, .R, .D2, .Fi, .L, .B2],
+            [.B, .Fi, .L2, .R, .Di, .U, .F2, .L, .B2, .Ui, .R2, .D]
+        ]
+
+        for scramble in scrambles {
+            try assertKociembaReplaySolves(scramble, options: kociembaOptions(maxNodes: 5_000_000, timeout: 30))
+        }
+    }
+
+    func testKociembaCanonicalMoveFilterKeepsExactlyOneOppositeFaceOrder() throws {
+        XCTAssertTrue(Cube3x3KociembaSolver.shouldTry(.D, after: "U"))
+        XCTAssertFalse(Cube3x3KociembaSolver.shouldTry(.U, after: "D"))
+        XCTAssertTrue(Cube3x3KociembaSolver.shouldTry(.R, after: "L"))
+        XCTAssertFalse(Cube3x3KociembaSolver.shouldTry(.L, after: "R"))
+        XCTAssertTrue(Cube3x3KociembaSolver.shouldTry(.B, after: "F"))
+        XCTAssertFalse(Cube3x3KociembaSolver.shouldTry(.F, after: "B"))
+        XCTAssertFalse(Cube3x3KociembaSolver.shouldTry(.Ui, after: "U"))
+        XCTAssertTrue(Cube3x3KociembaSolver.shouldTry(.R, after: nil))
+    }
+
+    func testKociembaHonorsExactNodeLimit() throws {
+        let start = cubieState(after: [.R, .U])
+        let result = Cube3x3KociembaSolver().solve(start, options: kociembaOptions(maxNodes: 1))
+
+        XCTAssertEqual(result.status, .failure)
+        XCTAssertEqual(result.termination, .nodeLimit)
+        XCTAssertEqual(result.nodes, 1)
+        XCTAssertTrue(result.moves.isEmpty)
+    }
+
+    func testKociembaReportsDeterministicZeroTimeout() throws {
+        let start = cubieState(after: [.R])
+        let result = Cube3x3KociembaSolver().solve(start, options: kociembaOptions(timeout: 0))
+
+        XCTAssertEqual(result.status, .timeout)
+        XCTAssertEqual(result.termination, .timeout)
+        XCTAssertEqual(result.nodes, 0)
+    }
+
+    func testKociembaSmallSufficientAndGenerousLimitsSolve() throws {
+        let start = cubieState(after: [.U])
+        let small = Cube3x3KociembaSolver().solve(start, options: kociembaOptions(maxNodes: 100))
+        let generous = Cube3x3KociembaSolver().solve(start, options: kociembaOptions(maxNodes: 100_000))
+
+        for (result, limit) in [(small, 100), (generous, 100_000)] {
+            XCTAssertEqual(result.status, .success)
+            XCTAssertLessThanOrEqual(result.nodes, limit)
+            let replayed = Cube3x3MoveEngine.apply(result.moves.map(\.rawValue), to: makeThreeByThreeState(after: [.U]))
+            XCTAssertEqual(replayed, .solved3x3)
+        }
+    }
+
     // MARK: - Larger active cube placeholders
 
     func testFourByFourCubeReportsUnavailableInsteadOfHanging() throws {
@@ -562,6 +643,36 @@ final class Puzzle_SolverTests: XCTestCase {
             return Cube3x3MoveTables.shared.apply(move, to: stickers)
         }
         return finalStickers == CubeState.solved3x3.stickers
+    }
+
+    private func cubieState(after moves: [Cube3x3Move]) -> Cube3x3CubieState {
+        try! Cube3x3CubieState.from(stickers: makeThreeByThreeState(after: moves).stickers).get()
+    }
+
+    private func kociembaOptions(maxNodes: Int = 2_000_000, timeout: TimeInterval = 15) -> CubeSolveOptions {
+        CubeSolveOptions(timeout: timeout, maxDepth: 30, maxNodes: maxNodes, includeStepStates: false)
+    }
+
+    private func assertKociembaReplaySolves(
+        _ scramble: [Cube3x3Move],
+        options: CubeSolveOptions,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        let stickerStart = makeThreeByThreeState(after: scramble)
+        let cubieStart = try Cube3x3CubieState.from(stickers: stickerStart.stickers).get()
+        let result = Cube3x3KociembaSolver().solve(cubieStart, options: options)
+
+        XCTAssertEqual(result.status, .success, result.reason ?? "", file: file, line: line)
+        XCTAssertEqual(result.termination, .solved, file: file, line: line)
+        XCTAssertEqual(result.totalSolutionLength, result.moves.count, file: file, line: line)
+        XCTAssertEqual((result.phaseOneDepth ?? 0) + (result.phaseTwoDepth ?? 0), result.moves.count, file: file, line: line)
+        XCTAssertLessThanOrEqual(result.nodes, options.maxNodes, file: file, line: line)
+
+        // Replay through the sticker move engine, independently of cubie-state
+        // search transitions and coordinate/pruning logic.
+        let replayed = Cube3x3MoveEngine.apply(result.moves.map(\.rawValue), to: stickerStart)
+        XCTAssertEqual(replayed, .solved3x3, file: file, line: line)
     }
 
     private func makeTwoByTwoState(after moves: [String]) -> CubeState {

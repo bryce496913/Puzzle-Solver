@@ -1034,34 +1034,62 @@ struct Cube3x3PruningTables {
 
 final class Cube3x3KociembaSolver {
     private let moveTables = Cube3x3MoveTables.shared
-    private let pruningTables = Cube3x3PruningTables.shared
+    private let pruningTables: Cube3x3PruningTables
+    private let pruningTablePreparationTime: TimeInterval
     private let phase1Moves = Cube3x3Move.allCases
     private let phase2Moves = Cube3x3Move.allCases.filter(\.isPhase2Move)
 
     struct SearchResult {
+        enum Termination: Equatable {
+            case solved
+            case nodeLimit
+            case timeout
+            case depthLimit
+        }
+
         let status: CubeSolveStatus
         let moves: [Cube3x3Move]
         let nodes: Int
         let reason: String?
+        let termination: Termination
+        let phaseOneDepth: Int?
+        let phaseTwoDepth: Int?
+        let elapsedSearchTime: TimeInterval
+        let pruningTablePreparationTime: TimeInterval
+
+        var totalSolutionLength: Int { moves.count }
+    }
+
+    init() {
+        let preparationStarted = Date()
+        pruningTables = .shared
+        pruningTablePreparationTime = Date().timeIntervalSince(preparationStarted)
     }
 
     func solve(_ start: Cube3x3CubieState, options: CubeSolveOptions) -> SearchResult {
-        if start.isSolved { return SearchResult(status: .success, moves: [], nodes: 0, reason: nil) }
+        let searchStarted = Date()
+        func result(_ status: CubeSolveStatus, _ termination: SearchResult.Termination, moves: [Cube3x3Move] = [], nodes: Int, reason: String? = nil, phaseOneDepth: Int? = nil) -> SearchResult {
+            SearchResult(status: status, moves: moves, nodes: nodes, reason: reason, termination: termination,
+                         phaseOneDepth: phaseOneDepth, phaseTwoDepth: phaseOneDepth.map { moves.count - $0 },
+                         elapsedSearchTime: Date().timeIntervalSince(searchStarted),
+                         pruningTablePreparationTime: pruningTablePreparationTime)
+        }
+        if start.isSolved { return result(.success, .solved, nodes: 0, phaseOneDepth: 0) }
 
-        let deadline = Date().addingTimeInterval(max(0.1, options.timeout))
-        let maxNodes = max(1_000, options.maxNodes)
-        let phase1Limit = min(max(7, options.maxDepth), 12)
-        let totalLimit = max(20, options.maxDepth)
+        let deadline = searchStarted.addingTimeInterval(max(0, options.timeout))
+        let maxNodes = max(0, options.maxNodes)
+        let totalLimit = max(0, options.maxDepth)
+        let phase1Limit = min(12, totalLimit)
         var nodes = 0
 
         for depth in 0...phase1Limit {
             var path: [Cube3x3Move] = []
             let outcome = searchPhase1(state: start, remainingDepth: depth, previousFace: nil, path: &path, deadline: deadline, maxNodes: maxNodes, nodes: &nodes, totalLimit: totalLimit)
-            if let moves = outcome.moves { return SearchResult(status: .success, moves: moves, nodes: nodes, reason: nil) }
-            if outcome.timedOut { return SearchResult(status: .timeout, moves: [], nodes: nodes, reason: "Timed out during 3×3 two-phase search.") }
-            if outcome.nodeLimited { return SearchResult(status: .failure, moves: [], nodes: nodes, reason: "Stopped at the configured 3×3 search safety limit.") }
+            if let moves = outcome.moves { return result(.success, .solved, moves: moves, nodes: nodes, phaseOneDepth: depth) }
+            if outcome.timedOut { return result(.timeout, .timeout, nodes: nodes, reason: "Timed out during 3×3 two-phase search.") }
+            if outcome.nodeLimited { return result(.failure, .nodeLimit, nodes: nodes, reason: "Stopped at the configured \(maxNodes)-node 3×3 search limit.") }
         }
-        return SearchResult(status: .failure, moves: [], nodes: nodes, reason: "No phase-1 reduction was found within the bounded search depth.")
+        return result(.failure, .depthLimit, nodes: nodes, reason: "No solution was found within the configured total depth of \(totalLimit).")
     }
 
     private struct Outcome { let moves: [Cube3x3Move]?; let timedOut: Bool; let nodeLimited: Bool }
@@ -1083,7 +1111,7 @@ final class Cube3x3KociembaSolver {
             return Outcome(moves: nil, timedOut: false, nodeLimited: false)
         }
 
-        for move in phase1Moves where shouldTry(move, after: previousFace) {
+        for move in phase1Moves where Self.shouldTry(move, after: previousFace) {
             nodes += 1
             path.append(move)
             let outcome = searchPhase1(state: state.applying(move, tables: moveTables), remainingDepth: remainingDepth - 1, previousFace: move.face, path: &path, deadline: deadline, maxNodes: maxNodes, nodes: &nodes, totalLimit: totalLimit)
@@ -1099,7 +1127,7 @@ final class Cube3x3KociembaSolver {
         if state.isSolved { return Outcome(moves: path, timedOut: false, nodeLimited: false) }
         if remainingDepth == 0 || pruningTables.phase2LowerBound(state) > remainingDepth { return Outcome(moves: nil, timedOut: false, nodeLimited: false) }
 
-        for move in phase2Moves where shouldTry(move, after: previousFace) {
+        for move in phase2Moves where Self.shouldTry(move, after: previousFace) {
             nodes += 1
             path.append(move)
             let outcome = searchPhase2(state: state.applying(move, tables: moveTables), remainingDepth: remainingDepth - 1, previousFace: move.face, path: &path, deadline: deadline, maxNodes: maxNodes, nodes: &nodes)
@@ -1109,12 +1137,15 @@ final class Cube3x3KociembaSolver {
         return Outcome(moves: nil, timedOut: false, nodeLimited: false)
     }
 
-    private func shouldTry(_ move: Cube3x3Move, after previousFace: Character?) -> Bool {
+    /// Removes adjacent moves on the same face and chooses one ordering for
+    /// commuting opposite faces. U-before-D, L-before-R, and F-before-B are
+    /// retained; only their equivalent reverse order is pruned.
+    static func shouldTry(_ move: Cube3x3Move, after previousFace: Character?) -> Bool {
         guard let previousFace else { return true }
         if move.face == previousFace { return false }
-        if (previousFace == "U" && move.face == "D") || (previousFace == "D" && move.face == "U") { return false }
-        if (previousFace == "L" && move.face == "R") || (previousFace == "R" && move.face == "L") { return false }
-        if (previousFace == "F" && move.face == "B") || (previousFace == "B" && move.face == "F") { return false }
+        if (previousFace == "D" && move.face == "U") ||
+            (previousFace == "R" && move.face == "L") ||
+            (previousFace == "B" && move.face == "F") { return false }
         return true
     }
 }
