@@ -451,7 +451,7 @@ final class Puzzle_SolverTests: XCTestCase {
     // MARK: - Shared state and diagnostics
 
     func testSolveStateContainsEveryRequiredState() throws {
-        XCTAssertEqual(Set(SolveState.allCases.map(\.rawValue)), ["idle", "validating", "solving", "solved", "alreadySolved", "invalid", "unsolvable", "noSolution", "timedOut", "failed", "unsupported"])
+        XCTAssertEqual(Set(SolveState.allCases.map(\.rawValue)), ["idle", "validating", "solving", "solved", "alreadySolved", "invalid", "unsolvable", "multipleSolutions", "noSolution", "timedOut", "failed", "unsupported"])
     }
 
     func testPuzzleModeRegistryExactlyReflectsAvailabilityCatalog() throws {
@@ -521,6 +521,61 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertNotNil(result.solvedBoard)
         XCTAssertTrue(result.solvedBoard?.isComplete ?? false)
         XCTAssertTrue(SudokuValidator.validate(result.solvedBoard ?? .empty).isValid)
+        XCTAssertEqual(result.solvedBoard?.values(), [
+            [5, 3, 4, 6, 7, 8, 9, 1, 2], [6, 7, 2, 1, 9, 5, 3, 4, 8], [1, 9, 8, 3, 4, 2, 5, 6, 7],
+            [8, 5, 9, 7, 6, 1, 4, 2, 3], [4, 2, 6, 8, 5, 3, 7, 9, 1], [7, 1, 3, 9, 2, 4, 8, 5, 6],
+            [9, 6, 1, 5, 3, 7, 2, 8, 4], [2, 8, 7, 4, 1, 9, 6, 3, 5], [3, 4, 5, 2, 8, 6, 1, 7, 9]
+        ])
+    }
+
+    func testSudokuSolverRejectsAmbiguousAndEmptyPuzzlesWithoutPresentingABoard() {
+        let solvedValues: [[Int?]] = [
+            [5, 3, 4, 6, 7, 8, 9, 1, 2], [6, 7, 2, 1, 9, 5, 3, 4, 8], [1, 9, 8, 3, 4, 2, 5, 6, 7],
+            [8, 5, 9, 7, 6, 1, 4, 2, 3], [4, 2, 6, 8, 5, 3, 7, 9, 1], [7, 1, 3, 9, 2, 4, 8, 5, 6],
+            [9, 6, 1, 5, 3, 7, 2, 8, 4], [2, 8, 7, 4, 1, 9, 6, 3, 5], [3, 4, 5, 2, 8, 6, 1, 7, 9]
+        ]
+        let ambiguous = [LogicGridCoordinate(row: 0, column: 3), LogicGridCoordinate(row: 0, column: 4), LogicGridCoordinate(row: 3, column: 3), LogicGridCoordinate(row: 3, column: 4)]
+            .reduce(SudokuBoard(values: solvedValues)) { $0.settingValue(nil, at: $1) }
+        let ambiguousResult = SudokuSolver().solve(ambiguous, options: SudokuSolveOptions(maxNodes: 500_000, timeout: 2))
+        let emptyResult = SudokuSolver().solve(.empty, options: SudokuSolveOptions(maxNodes: 500_000, timeout: 2))
+
+        XCTAssertEqual(ambiguousResult.state, .multipleSolutions)
+        XCTAssertNil(ambiguousResult.solvedBoard)
+        XCTAssertEqual(emptyResult.state, .multipleSolutions)
+        XCTAssertNil(emptyResult.solvedBoard)
+        XCTAssertFalse(SudokuValidator.validate(.empty).canSolve)
+    }
+
+    func testSudokuSolverReportsValidButUnsolvablePuzzle() {
+        let board = SudokuBoard.example.settingValue(1, at: LogicGridCoordinate(row: 0, column: 2))
+        let result = SudokuSolver().solve(board)
+
+        XCTAssertTrue(SudokuValidator.validate(board).isValid)
+        XCTAssertEqual(result.state, .unsolvable)
+        XCTAssertNil(result.solvedBoard)
+    }
+
+    func testSudokuSolverRecognizesAlreadyCompleteValidBoardAsUnique() throws {
+        let solved = try XCTUnwrap(SudokuSolver().solve(.example).solvedBoard)
+        let result = SudokuSolver().solve(solved)
+
+        XCTAssertEqual(result.state, .solved)
+        XCTAssertEqual(result.solvedBoard, solved)
+        XCTAssertTrue(result.steps.isEmpty)
+    }
+
+    func testSudokuValidatorFindsDuplicateColumnAndBoxValues() {
+        let column = SudokuBoard.empty
+            .settingValue(2, at: LogicGridCoordinate(row: 0, column: 0))
+            .settingValue(2, at: LogicGridCoordinate(row: 3, column: 0))
+        let box = SudokuBoard.empty
+            .settingValue(4, at: LogicGridCoordinate(row: 0, column: 0))
+            .settingValue(4, at: LogicGridCoordinate(row: 1, column: 1))
+
+        XCTAssertTrue(SudokuValidator.validate(column).issues.contains { $0.scope == .column })
+        XCTAssertTrue(SudokuValidator.validate(box).issues.contains { $0.scope == .box })
+        XCTAssertEqual(SudokuSolver().solve(column).state, .invalid)
+        XCTAssertEqual(SudokuSolver().solve(box).state, .invalid)
     }
 
     func testLogicPuzzleReleaseAvailabilityComesFromV1Catalog() throws {
@@ -643,7 +698,7 @@ final class Puzzle_SolverTests: XCTestCase {
     func testSudokuNodeLimitIsBounded() throws {
         let result = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 0, timeout: 2))
 
-        XCTAssertEqual(result.state, .failed)
+        XCTAssertEqual(result.state, .timedOut)
         XCTAssertLessThan(result.elapsedTime, 1)
     }
 
