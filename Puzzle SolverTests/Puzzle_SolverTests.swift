@@ -122,6 +122,18 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.state, .timedOut)
     }
 
+    func testThreeByThreeSlidingPuzzleRejectsHeuristicBeyondMaxDepthWithoutSearch() throws {
+        let result = SlidingPuzzleSolver().solve(
+            PuzzlePresets.sliding3x3Medium,
+            options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 100_000, maxDepth: 3)
+        )
+
+        XCTAssertGreaterThan(SlidingPuzzleAnalyzer.manhattan(PuzzlePresets.sliding3x3Medium), 3)
+        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertEqual(result.failureReason, "Puzzle exceeds the safe search depth.")
+        XCTAssertEqual(result.nodesExplored, 0)
+    }
+
     // MARK: - 4×4 sliding puzzle solver coverage
 
 
@@ -184,6 +196,26 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(result.state, .timedOut)
     }
 
+    func testFourByFourIDAStarHonorsLowerEqualAndHigherHeuristicBounds() throws {
+        let board = PuzzlePresets.sliding4x4Medium
+        let heuristic = SlidingPuzzleAnalyzer.manhattan(board)
+        XCTAssertEqual(heuristic, 2)
+
+        let above = SlidingPuzzleSolver().solve(board, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: heuristic + 1))
+        XCTAssertEqual(above.state, .solved)
+        XCTAssertTrue(above.searchBounds.allSatisfy { $0 <= heuristic + 1 })
+
+        let equal = SlidingPuzzleSolver().solve(board, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: heuristic))
+        XCTAssertEqual(equal.state, .solved)
+        XCTAssertEqual(equal.searchBounds, [heuristic])
+
+        let below = SlidingPuzzleSolver().solve(board, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: heuristic - 1))
+        XCTAssertEqual(below.state, .timedOut)
+        XCTAssertEqual(below.failureReason, "Puzzle exceeds the safe search depth.")
+        XCTAssertEqual(below.nodesExplored, 0)
+        XCTAssertTrue(below.searchBounds.isEmpty)
+    }
+
     // MARK: - 5×5 sliding puzzle solver coverage
 
     func testOneMoveFiveByFiveSlidingPuzzleSolves() throws {
@@ -201,6 +233,25 @@ final class Puzzle_SolverTests: XCTestCase {
         let result = SlidingPuzzleSolver().solve(unsolvable, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: 10))
 
         XCTAssertEqual(result.state, .unsolvable)
+        XCTAssertEqual(result.nodesExplored, 0)
+        XCTAssertTrue(result.searchBounds.isEmpty)
+    }
+
+    func testFiveByFiveIDAStarNeverStartsAboveMaxDepth() throws {
+        let twoMoves = SlidingPuzzleBoard(size: 5, tiles: Array(1...22) + [0, 23, 24])
+        let heuristic = SlidingPuzzleAnalyzer.manhattan(twoMoves)
+        XCTAssertEqual(heuristic, 2)
+
+        let capped = SlidingPuzzleSolver().solve(twoMoves, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: heuristic))
+        XCTAssertEqual(capped.state, .solved)
+        XCTAssertEqual(capped.searchBounds, [heuristic])
+        XCTAssertTrue(capped.searchBounds.allSatisfy { $0 <= heuristic })
+
+        let rejected = SlidingPuzzleSolver().solve(twoMoves, options: SlidingPuzzleSolveOptions(timeout: 1, maxNodes: 10_000, maxDepth: heuristic - 1))
+        XCTAssertEqual(rejected.state, .timedOut)
+        XCTAssertEqual(rejected.failureReason, "Puzzle exceeds the safe search depth.")
+        XCTAssertEqual(rejected.nodesExplored, 0)
+        XCTAssertTrue(rejected.searchBounds.isEmpty)
     }
 
     // MARK: - Rush Hour mechanical puzzle solver coverage
