@@ -2,6 +2,19 @@ import XCTest
 @testable import Puzzle_Solver
 
 final class StabilizationTests: XCTestCase {
+    func testV1AppearanceChoicesOnlyAdvertiseSupportedModes() {
+        XCTAssertEqual(AppAppearanceOption.allCases, [.system, .dark])
+        XCTAssertNil(AppAppearanceOption.system.colorScheme, "System must inherit the device color scheme")
+        XCTAssertEqual(AppAppearanceOption.dark.colorScheme, .dark)
+    }
+
+    func testPersistedAppearanceResolvesAcrossRelaunchesAndLegacyValues() {
+        XCTAssertEqual(AppAppearanceOption.resolve(AppAppearanceOption.dark.rawValue), .dark)
+        XCTAssertEqual(AppAppearanceOption.resolve(AppAppearanceOption.system.rawValue), .system)
+        XCTAssertEqual(AppAppearanceOption.resolve("light"), .system)
+        XCTAssertEqual(AppAppearanceOption.resolve("unexpected-value"), .system)
+    }
+
     @MainActor
     func testLaunchStateStartsAtSplashAndCompletesExactlyOnce() {
         let state = LaunchStateController()

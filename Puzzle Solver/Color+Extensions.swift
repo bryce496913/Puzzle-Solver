@@ -49,7 +49,6 @@ enum AppTheme {
 
 enum AppAppearanceOption: String, CaseIterable, Identifiable {
     case system
-    case light
     case dark
 
     var id: String { rawValue }
@@ -57,15 +56,19 @@ enum AppAppearanceOption: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .system: return "System"
-        case .light: return "Light"
         case .dark: return "Dark"
         }
+    }
+
+    /// Converts persisted values into a supported V1 appearance. In particular,
+    /// installations that saved the retired `light` value safely return to System.
+    static func resolve(_ storedValue: String) -> AppAppearanceOption {
+        AppAppearanceOption(rawValue: storedValue) ?? .system
     }
 
     var colorScheme: ColorScheme? {
         switch self {
         case .system: return nil
-        case .light: return .light
         case .dark: return .dark
         }
     }
