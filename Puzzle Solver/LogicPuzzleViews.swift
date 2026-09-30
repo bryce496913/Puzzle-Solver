@@ -8,12 +8,12 @@
 import SwiftUI
 
 struct LogicPuzzleMenuView: View {
-    private let descriptors = PuzzleAvailabilityCatalog.activeDescriptors(in: .logic)
+    static let productionDescriptors = PuzzleAvailabilityCatalog.activeDescriptors(in: .logic)
 
     var body: some View {
         AppScreenContainer(title: PuzzleCategory.logic.rawValue, subtitle: PuzzleCategory.logic.subtitle) {
             LazyVStack(spacing: 12) {
-                ForEach(descriptors) { descriptor in
+                ForEach(Self.productionDescriptors) { descriptor in
                     NavigationLink(destination: destination(for: descriptor)) {
                         AppPuzzleCard(descriptor: descriptor)
                     }
