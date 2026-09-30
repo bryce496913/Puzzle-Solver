@@ -1779,6 +1779,8 @@ struct SlidingPuzzleSolveResult: Equatable {
     let failureReason: String?
     let elapsedTime: TimeInterval
     let nodesExplored: Int
+    /// The IDA* thresholds that were actually searched, in iteration order.
+    let searchBounds: [Int]
 
     var succeeded: Bool { state == .solved }
 
@@ -1788,7 +1790,8 @@ struct SlidingPuzzleSolveResult: Equatable {
         path: [SlidingPuzzleBoard] = [],
         failureReason: String?,
         elapsedTime: TimeInterval,
-        nodesExplored: Int
+        nodesExplored: Int,
+        searchBounds: [Int] = []
     ) {
         self.state = state
         self.moves = state == .solved ? moves : []
@@ -1797,6 +1800,7 @@ struct SlidingPuzzleSolveResult: Equatable {
         self.failureReason = failureReason
         self.elapsedTime = elapsedTime
         self.nodesExplored = nodesExplored
+        self.searchBounds = searchBounds
     }
 
     private static func makeSteps(path: [SlidingPuzzleBoard], moves: [String]) -> [SlidingPuzzleStep] {
@@ -1907,7 +1911,11 @@ final class SlidingPuzzleAStarSolver: SlidingPuzzleSolving {
 
     func solve(_ board: SlidingPuzzleBoard, options: SlidingPuzzleSolveOptions, start: Date) -> SlidingPuzzleSolveResult {
         let deadline = start.addingTimeInterval(max(0, options.timeout))
-        var frontier = [SearchNode(board: board, moves: [], path: [board], cost: 0, priority: SlidingPuzzleAnalyzer.manhattan(board))]
+        let initialHeuristic = SlidingPuzzleAnalyzer.manhattan(board)
+        guard initialHeuristic <= options.maxDepth else {
+            return finish(.timedOut, reason: "Puzzle exceeds the safe search depth.", start: start, nodes: 0)
+        }
+        var frontier = [SearchNode(board: board, moves: [], path: [board], cost: 0, priority: initialHeuristic)]
         var bestCost: [SlidingPuzzleBoard: Int] = [board: 0]
         var nodes = 0
 
@@ -1929,14 +1937,16 @@ final class SlidingPuzzleAStarSolver: SlidingPuzzleSolving {
             for neighbor in SlidingPuzzleAnalyzer.neighbors(of: current.board) {
                 let nextCost = current.cost + 1
                 guard nextCost < (bestCost[neighbor.board] ?? Int.max) else { continue }
+                let priority = nextCost + SlidingPuzzleAnalyzer.manhattan(neighbor.board)
+                guard priority <= options.maxDepth else { continue }
                 bestCost[neighbor.board] = nextCost
                 let nextMoves = current.moves + [neighbor.move]
                 let nextPath = current.path + [neighbor.board]
-                frontier.append(SearchNode(board: neighbor.board, moves: nextMoves, path: nextPath, cost: nextCost, priority: nextCost + SlidingPuzzleAnalyzer.manhattan(neighbor.board)))
+                frontier.append(SearchNode(board: neighbor.board, moves: nextMoves, path: nextPath, cost: nextCost, priority: priority))
             }
         }
 
-        return finish(.failed, reason: "Could not find a solution.", start: start, nodes: nodes)
+        return finish(.timedOut, reason: "Puzzle exceeds the safe search depth.", start: start, nodes: nodes)
     }
 }
 
@@ -1964,23 +1974,28 @@ final class SlidingPuzzleIDAStarSolver: SlidingPuzzleSolving {
     func solve(_ board: SlidingPuzzleBoard, options: SlidingPuzzleSolveOptions, start: Date) -> SlidingPuzzleSolveResult {
         var context = SearchContext(deadline: start.addingTimeInterval(max(0, options.timeout)), maxNodes: options.maxNodes)
         var bound = SlidingPuzzleAnalyzer.manhattan(board)
-        let maximumBound = max(bound, options.maxDepth)
+        guard bound <= options.maxDepth else {
+            return finish(.timedOut, reason: "Puzzle exceeds the safe search depth.", start: start, nodes: 0)
+        }
+        let maximumBound = options.maxDepth
+        var searchBounds: [Int] = []
 
         while bound <= maximumBound {
+            searchBounds.append(bound)
             var path: Set<SlidingPuzzleBoard> = [board]
             switch search(board, g: 0, bound: bound, previousMove: nil, moves: [], boards: [board], path: &path, context: &context) {
             case .found(let moves, let boards):
                 SolverDebugLogger.shared.log("solve finished: solved in \(moves.count) moves")
-                return success(moves: moves, path: boards, start: start, nodes: context.nodes)
+                return success(moves: moves, path: boards, start: start, nodes: context.nodes, searchBounds: searchBounds)
             case .nextBound(let nextBound):
-                if context.timedOut { return finish(.timedOut, reason: timeoutReason, start: start, nodes: context.nodes) }
-                if context.nodeLimited { return finish(.timedOut, reason: timeoutReason, start: start, nodes: context.nodes) }
-                if nextBound == Int.max { return finish(.failed, reason: "Could not find a solution.", start: start, nodes: context.nodes) }
+                if context.timedOut { return finish(.timedOut, reason: timeoutReason, start: start, nodes: context.nodes, searchBounds: searchBounds) }
+                if context.nodeLimited { return finish(.timedOut, reason: timeoutReason, start: start, nodes: context.nodes, searchBounds: searchBounds) }
+                if nextBound == Int.max { return finish(.failed, reason: "Could not find a solution.", start: start, nodes: context.nodes, searchBounds: searchBounds) }
                 bound = nextBound
             }
         }
 
-        return finish(.timedOut, reason: supportedKind == .fiveByFive ? timeoutReason : "Solver reached the safe depth limit for this 4×4 puzzle.", start: start, nodes: context.nodes)
+        return finish(.timedOut, reason: supportedKind == .fiveByFive ? timeoutReason : "Solver reached the safe depth limit for this 4×4 puzzle.", start: start, nodes: context.nodes, searchBounds: searchBounds)
     }
 
     private var timeoutReason: String {
@@ -2038,13 +2053,13 @@ final class SlidingPuzzleIDAStarSolver: SlidingPuzzleSolving {
     }
 }
 
-private func success(moves: [SlidingPuzzleMove], path: [SlidingPuzzleBoard], start: Date, nodes: Int) -> SlidingPuzzleSolveResult {
-    SlidingPuzzleSolveResult(state: .solved, moves: moves.map(\.rawValue), path: path, failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+private func success(moves: [SlidingPuzzleMove], path: [SlidingPuzzleBoard], start: Date, nodes: Int, searchBounds: [Int] = []) -> SlidingPuzzleSolveResult {
+    SlidingPuzzleSolveResult(state: .solved, moves: moves.map(\.rawValue), path: path, failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes, searchBounds: searchBounds)
 }
 
-private func finish(_ state: SolveState, reason: String, start: Date, nodes: Int) -> SlidingPuzzleSolveResult {
+private func finish(_ state: SolveState, reason: String, start: Date, nodes: Int, searchBounds: [Int] = []) -> SlidingPuzzleSolveResult {
     SolverDebugLogger.shared.log("failure reason: \(reason)")
-    return SlidingPuzzleSolveResult(state: state, moves: [], path: [], failureReason: reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
+    return SlidingPuzzleSolveResult(state: state, moves: [], path: [], failureReason: reason, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes, searchBounds: searchBounds)
 }
 
 enum PuzzlePresets {
