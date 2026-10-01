@@ -422,6 +422,9 @@ final class RushHourSolver {
         var cursor = 0
 
         while cursor < queue.count {
+            if Task.isCancelled {
+                return RushHourSolveResult(status: .failed, steps: [], message: "Solving cancelled.")
+            }
             if Date() >= deadline {
                 return RushHourSolveResult(status: .timedOut, steps: [], message: "This puzzle took too long to solve. Try simplifying the board.")
             }

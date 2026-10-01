@@ -172,6 +172,8 @@ struct KillerSudokuGridView: View {
 struct KillerSudokuResultView: View {
     let initialBoard: KillerSudokuBoard
     @State private var result: KillerSudokuSolveResult?
+    @State private var solveTask: Task<Void, Never>?
+    @State private var solveID = UUID()
 
     var body: some View {
         AppScreenContainer(title: "Killer Sudoku Result", subtitle: "Cage totals remain visible with the solution.") {
@@ -180,6 +182,29 @@ struct KillerSudokuResultView: View {
                 Text(result?.message ?? "Running bounded search…").appParagraph()
                 KillerSudokuGridView(board: result?.solvedBoard ?? initialBoard, selection: [], invalidCages: [], onSelect: { _ in })
             }.appCardStyle().accessibilityIdentifier("killer-sudoku-result")
-        }.task { guard result == nil else { return }; result = await Task.detached { KillerSudokuSolver().solve(initialBoard) }.value }
+        }
+        .onAppear { startSolve() }
+        .onDisappear { cancelSolve() }
+    }
+
+    private func startSolve() {
+        guard result == nil else { return }
+        cancelSolve()
+        let requestID = UUID()
+        solveID = requestID
+        let board = initialBoard
+        solveTask = Task {
+            let worker = Task.detached(priority: .userInitiated) { KillerSudokuSolver().solve(board) }
+            let value = await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
+            guard !Task.isCancelled, solveID == requestID else { return }
+            result = value
+            solveTask = nil
+        }
+    }
+
+    private func cancelSolve() {
+        solveTask?.cancel()
+        solveTask = nil
+        solveID = UUID()
     }
 }

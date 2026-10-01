@@ -336,6 +336,7 @@ final class SudokuSolver: LogicPuzzleSolving {
 
     private func search(values: inout [[Int]], steps: inout [SudokuSolveStep], nodes: inout Int, maxNodes: Int, deadline: Date, solutionCount: inout Int, firstSolution: inout [[Int]]?, firstSteps: inout [SudokuSolveStep], interrupted: inout Bool) {
         guard solutionCount < 2, !interrupted else { return }
+        guard !Task.isCancelled else { interrupted = true; return }
         guard let candidate = bestEmptyCell(in: values) else {
             solutionCount += 1
             if firstSolution == nil {
@@ -348,7 +349,7 @@ final class SudokuSolver: LogicPuzzleSolving {
         let coordinate = candidate.coordinate
 
         for value in candidate.values {
-            guard solutionCount < 2, !interrupted else { return }
+            guard solutionCount < 2, !interrupted, !Task.isCancelled else { interrupted = Task.isCancelled; return }
             nodes += 1
             values[coordinate.row][coordinate.column] = value
             steps.append(SudokuSolveStep(coordinate: coordinate, value: value))
