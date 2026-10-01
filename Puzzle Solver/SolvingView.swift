@@ -20,6 +20,8 @@ struct SolvingView: View {
     @State private var didFinish = false
     @State private var didStart = false
     @State private var playbackStepIndex = 0
+    @State private var solveTask: Task<Void, Never>?
+    @State private var solveID = UUID()
     @AppStorage("UseCompactSolutionPreviews") private var useCompactSolutionPreviews = true
 
     private var displayedSolutionSteps: [SlidingPuzzleStep] {
@@ -132,6 +134,7 @@ struct SolvingView: View {
             didStart = true
             solvePuzzle()
         }
+        .onDisappear { cancelSolve() }
     }
 
     private var statusColor: Color {
@@ -149,6 +152,10 @@ struct SolvingView: View {
     }
 
     private func solvePuzzle() {
+        cancelSolve()
+        didFinish = false
+        let requestID = UUID()
+        solveID = requestID
         transition(to: .validating, detail: SolveState.validating.friendlyMessage)
         guard let board = SlidingPuzzleBoard.fromGrid(initialState, size: puzzleSize) else {
             complete(state: .invalid, moves: [], steps: [], reason: "Please fill the board first.", elapsedTime: 0, nodes: 0)
@@ -156,20 +163,22 @@ struct SolvingView: View {
         }
 
         transition(to: .solving, detail: SolveState.solving.friendlyMessage)
-        let timeout = solverTimeout
         let options = solverOptions
-        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {
-            guard !self.didFinish else { return }
-            self.complete(state: .timedOut, moves: [], steps: [], reason: self.puzzleSize == 5 ? "This 5×5 puzzle is too complex to solve quickly. Try a puzzle closer to solved." : "Solver took too long.", elapsedTime: timeout, nodes: 0)
-        }
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            let result = SlidingPuzzleSolver().solve(board, options: options)
-            DispatchQueue.main.async {
-                guard !self.didFinish else { return }
-                self.complete(state: result.state, moves: result.moves, steps: result.steps, reason: result.failureReason, elapsedTime: result.elapsedTime, nodes: result.nodesExplored)
+        solveTask = Task {
+            let worker = Task.detached(priority: .userInitiated) {
+                SlidingPuzzleSolver().solve(board, options: options)
             }
+            let result = await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
+            guard !Task.isCancelled, solveID == requestID else { return }
+            complete(state: result.state, moves: result.moves, steps: result.steps, reason: result.failureReason, elapsedTime: result.elapsedTime, nodes: result.nodesExplored)
+            solveTask = nil
         }
+    }
+
+    private func cancelSolve() {
+        solveTask?.cancel()
+        solveTask = nil
+        solveID = UUID()
     }
 
     private var solverTimeout: TimeInterval {

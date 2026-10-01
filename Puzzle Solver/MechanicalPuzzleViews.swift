@@ -36,6 +36,8 @@ struct RushHourEntryView: View {
     @State private var message = "Choose vehicle details, then tap its starting cell."
     @State private var result: RushHourSolveResult?
     @State private var isSolving = false
+    @State private var solveTask: Task<Void, Never>?
+    @State private var solveID = UUID()
 
     private var selectedVehicle: RushHourVehicle? {
         board.vehicles.first { $0.id == selectedVehicleID }
@@ -109,9 +111,11 @@ struct RushHourEntryView: View {
             }
             .appCardStyle()
         }
+        .onDisappear { cancelSolve() }
     }
 
     private func handleCellTap(_ row: Int, _ column: Int) {
+        cancelSolve()
         let cell = MechanicalBoardCoordinate(row: row, column: column)
         if let vehicle = board.vehicle(at: cell) {
             selectedVehicleID = vehicle.id
@@ -163,6 +167,7 @@ struct RushHourEntryView: View {
     }
 
     private func removeSelected() {
+        cancelSolve()
         guard let selectedVehicleID else { return }
         board = RushHourBoard(vehicles: board.vehicles.filter { $0.id != selectedVehicleID })
         self.selectedVehicleID = nil
@@ -172,6 +177,7 @@ struct RushHourEntryView: View {
     }
 
     private func loadExample() {
+        cancelSolve()
         board = .example
         selectedVehicleID = nil
         result = nil
@@ -180,6 +186,7 @@ struct RushHourEntryView: View {
     }
 
     private func reset() {
+        cancelSolve()
         board = .empty
         selectedVehicleID = nil
         result = nil
@@ -197,13 +204,17 @@ struct RushHourEntryView: View {
             validate()
             return
         }
+        cancelSolve()
         let boardToSolve = board
+        let requestID = UUID()
+        solveID = requestID
         result = nil
         isSolving = true
         message = "Searching for the shortest solution…"
-        DispatchQueue.global(qos: .userInitiated).async {
-            let solved = RushHourSolver().solve(boardToSolve)
-            DispatchQueue.main.async {
+        solveTask = Task {
+            let worker = Task.detached(priority: .userInitiated) { RushHourSolver().solve(boardToSolve) }
+            let solved = await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
+            guard !Task.isCancelled, solveID == requestID else { return }
                 result = solved
                 isSolving = false
                 switch solved.status {
@@ -213,8 +224,15 @@ struct RushHourEntryView: View {
                 case .timedOut: message = "This puzzle took too long to solve. Try simplifying the board."
                 case .failed: message = solved.message ?? "The solver could not finish."
                 }
-            }
+            solveTask = nil
         }
+    }
+
+    private func cancelSolve() {
+        solveTask?.cancel()
+        solveTask = nil
+        solveID = UUID()
+        isSolving = false
     }
 }
 

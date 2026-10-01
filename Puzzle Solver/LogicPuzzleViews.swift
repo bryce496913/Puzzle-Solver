@@ -369,6 +369,8 @@ struct SudokuResultView: View {
     @State private var result: SudokuSolveResult?
     @State private var isSolving = false
     @State private var didFinish = false
+    @State private var solveTask: Task<Void, Never>?
+    @State private var solveID = UUID()
 
     var body: some View {
         AppScreenContainer(title: "Sudoku Result", subtitle: "Every solve ends in a clear result state.") {
@@ -429,6 +431,7 @@ struct SudokuResultView: View {
                 .accessibilityIdentifier("sudoku-result")
         }
         .onAppear { solveSudoku() }
+        .onDisappear { cancelSolve() }
     }
 
     private var statusColor: Color {
@@ -441,33 +444,30 @@ struct SudokuResultView: View {
 
     private func solveSudoku() {
         guard result == nil else { return }
+        cancelSolve()
+        didFinish = false
+        let requestID = UUID()
+        solveID = requestID
         let options = SudokuSolveOptions(maxNodes: 500_000, timeout: 5)
-        let startedAt = Date()
         solveState = .validating
         isSolving = true
         SolverDiagnosticsStore.shared.record(modeName: LogicPuzzleKind.sudoku.displayName, state: .validating, detail: "Validating Sudoku input.")
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + options.timeout + 0.25) {
-            guard !self.didFinish else { return }
-            let timeoutResult = SudokuSolveResult(
-                state: .timedOut,
-                initialBoard: self.initialBoard,
-                solvedBoard: nil,
-                steps: [],
-                failureReason: "Sudoku solver timed out before it could finish.",
-                elapsedTime: Date().timeIntervalSince(startedAt),
-                nodesExplored: 0
-            )
-            self.finish(with: timeoutResult)
+        solveTask = Task {
+            let board = initialBoard
+            let worker = Task.detached(priority: .userInitiated) { SudokuSolver().solve(board, options: options) }
+            let solveResult = await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
+            guard !Task.isCancelled, solveID == requestID else { return }
+            finish(with: solveResult)
+            solveTask = nil
         }
+    }
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            let solveResult = SudokuSolver().solve(self.initialBoard, options: options)
-            DispatchQueue.main.async {
-                guard !self.didFinish else { return }
-                self.finish(with: solveResult)
-            }
-        }
+    private func cancelSolve() {
+        solveTask?.cancel()
+        solveTask = nil
+        solveID = UUID()
+        isSolving = false
     }
 
     private func finish(with solveResult: SudokuSolveResult) {

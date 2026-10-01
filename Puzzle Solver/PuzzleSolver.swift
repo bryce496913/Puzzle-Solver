@@ -707,6 +707,7 @@ final class Cube2x2Solver: CubeSolverProtocol {
         maxNodes: Int,
         nodes: inout Int
     ) -> SearchOutcome {
+        if Task.isCancelled { return SearchOutcome(moves: nil, timedOut: false, nodeLimited: true) }
         if Date() >= deadline { return SearchOutcome(moves: nil, timedOut: true, nodeLimited: false) }
         if nodes >= maxNodes { return SearchOutcome(moves: nil, timedOut: false, nodeLimited: true) }
         nodes += 1
@@ -1119,6 +1120,7 @@ final class Cube3x3KociembaSolver {
     private struct Outcome { let moves: [Cube3x3Move]?; let timedOut: Bool; let nodeLimited: Bool }
 
     private func searchPhase1(state: Cube3x3CubieState, remainingDepth: Int, previousFace: Character?, path: inout [Cube3x3Move], deadline: Date, maxNodes: Int, nodes: inout Int, totalLimit: Int) -> Outcome {
+        if Task.isCancelled { return Outcome(moves: nil, timedOut: false, nodeLimited: true) }
         if Date() >= deadline { return Outcome(moves: nil, timedOut: true, nodeLimited: false) }
         if nodes >= maxNodes { return Outcome(moves: nil, timedOut: false, nodeLimited: true) }
         if pruningTables.phase1LowerBound(state) > remainingDepth { return Outcome(moves: nil, timedOut: false, nodeLimited: false) }
@@ -1146,6 +1148,7 @@ final class Cube3x3KociembaSolver {
     }
 
     private func searchPhase2(state: Cube3x3CubieState, remainingDepth: Int, previousFace: Character?, path: inout [Cube3x3Move], deadline: Date, maxNodes: Int, nodes: inout Int) -> Outcome {
+        if Task.isCancelled { return Outcome(moves: nil, timedOut: false, nodeLimited: true) }
         if Date() >= deadline { return Outcome(moves: nil, timedOut: true, nodeLimited: false) }
         if nodes >= maxNodes { return Outcome(moves: nil, timedOut: false, nodeLimited: true) }
         if state.isSolved { return Outcome(moves: path, timedOut: false, nodeLimited: false) }
@@ -2084,6 +2087,7 @@ final class SlidingPuzzleAStarSolver: SlidingPuzzleSolving {
         var nodes = 0
 
         while !frontier.isEmpty {
+            if Task.isCancelled { return finish(.failed, reason: "Solving cancelled.", start: start, nodes: nodes) }
             if Date() >= deadline { return finish(.timedOut, reason: "Solver took too long.", start: start, nodes: nodes) }
             if nodes >= options.maxNodes { return finish(.timedOut, reason: "Solver took too long.", start: start, nodes: nodes) }
 
@@ -2145,6 +2149,7 @@ final class SlidingPuzzleIDAStarSolver: SlidingPuzzleSolving {
         var searchBounds: [Int] = []
 
         while bound <= maximumBound {
+            if Task.isCancelled { return finish(.failed, reason: "Solving cancelled.", start: start, nodes: context.nodes, searchBounds: searchBounds) }
             searchBounds.append(bound)
             var path: Set<SlidingPuzzleBoard> = [board]
             switch search(board, g: 0, bound: bound, previousMove: nil, moves: [], boards: [board], path: &path, context: &context) {
@@ -2176,6 +2181,7 @@ final class SlidingPuzzleIDAStarSolver: SlidingPuzzleSolving {
         path: inout Set<SlidingPuzzleBoard>,
         context: inout SearchContext
     ) -> SearchResult {
+        if Task.isCancelled { return .nextBound(Int.max) }
         if Date() >= context.deadline {
             context.timedOut = true
             return .nextBound(Int.max)

@@ -271,6 +271,8 @@ struct CubeInputView: View {
     @State private var compactNotationVisible = true
     @State private var stepModeVisible = false
     @State private var currentSolutionStep = 0
+    @State private var solveTask: Task<Void, Never>?
+    @State private var solveID = UUID()
 
     private let faceOrder: [CubeFace] = [.up, .front, .right, .back, .left, .down]
     private let storageFaceOrder: [CubeFace] = [.up, .right, .front, .down, .left, .back]
@@ -305,6 +307,7 @@ struct CubeInputView: View {
             }
             .appCardStyle()
         }
+        .onDisappear { cancelSolve() }
     }
 
     private var modePicker: some View {
@@ -447,12 +450,27 @@ struct CubeInputView: View {
     private var cubeNet: some View { VStack(spacing: 8) { Text("Top ↑").appH3(); face("Up", faceIndex: index(of: .up)).padding(.leading, CGFloat(faceSize * 34)); HStack(spacing: 8) { face("Left", faceIndex: index(of: .left)); face("Front", faceIndex: index(of: .front)); face("Right", faceIndex: index(of: .right)); face("Back (viewed from behind)", faceIndex: index(of: .back)) }; face("Down", faceIndex: index(of: .down)).padding(.leading, CGFloat(faceSize * 34)); Text("Front faces you • each arrow points to the top of that face").appParagraph() }.frame(maxWidth: .infinity) }
     private func face(_ label: String, faceIndex: Int) -> some View { VStack(spacing: 3) { Text(label).appH3(); stickerGrid(faceIndex: faceIndex, small: true) } }
     private func singleFaceGrid(_ cubeFace: CubeFace) -> some View { stickerGrid(faceIndex: index(of: cubeFace), small: false).frame(maxWidth: .infinity) }
-    private func stickerGrid(faceIndex: Int, small: Bool) -> some View { VStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { row in HStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { column in let idx = faceIndex * stickersPerFace + row * faceSize + column; let isCenter = faceSize == 3 && row == 1 && column == 1; Button { selectedSticker = idx; stickers[idx] = selectedColor; solveResult = nil; solveState = .idle; progressText = "Sticker updated." } label: { RoundedRectangle(cornerRadius: 6).fill(stickerColor(stickers[idx])).frame(width: small ? (faceSize == 2 ? 34 : 24) : 58, height: small ? (faceSize == 2 ? 34 : 24) : 58).overlay(RoundedRectangle(cornerRadius: 6).stroke(selectedSticker == idx ? AppTheme.highlight : Color.white.opacity(0.7), lineWidth: selectedSticker == idx ? 4 : 1)).overlay(isCenter ? Image(systemName: "lock.fill").font(.caption).foregroundColor(.black.opacity(0.65)) : nil) }.buttonStyle(PlainButtonStyle()).disabled(isCenter).accessibilityIdentifier(isCenter ? "cube-locked-center-\(storageFaceOrder[faceIndex].rawValue)" : "cube-sticker-\(idx)").accessibilityLabel(isCenter ? "Locked \(storageFaceOrder[faceIndex].displayName) center" : "\(storageFaceOrder[faceIndex].displayName) sticker row \(row + 1) column \(column + 1)") } } } } }
+    private func stickerGrid(faceIndex: Int, small: Bool) -> some View { VStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { row in HStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { column in let idx = faceIndex * stickersPerFace + row * faceSize + column; let isCenter = faceSize == 3 && row == 1 && column == 1; Button { cancelSolve(); selectedSticker = idx; stickers[idx] = selectedColor; solveResult = nil; solveState = .idle; progressText = "Sticker updated." } label: { RoundedRectangle(cornerRadius: 6).fill(stickerColor(stickers[idx])).frame(width: small ? (faceSize == 2 ? 34 : 24) : 58, height: small ? (faceSize == 2 ? 34 : 24) : 58).overlay(RoundedRectangle(cornerRadius: 6).stroke(selectedSticker == idx ? AppTheme.highlight : Color.white.opacity(0.7), lineWidth: selectedSticker == idx ? 4 : 1)).overlay(isCenter ? Image(systemName: "lock.fill").font(.caption).foregroundColor(.black.opacity(0.65)) : nil) }.buttonStyle(PlainButtonStyle()).disabled(isCenter).accessibilityIdentifier(isCenter ? "cube-locked-center-\(storageFaceOrder[faceIndex].rawValue)" : "cube-sticker-\(idx)").accessibilityLabel(isCenter ? "Locked \(storageFaceOrder[faceIndex].displayName) center" : "\(storageFaceOrder[faceIndex].displayName) sticker row \(row + 1) column \(column + 1)") } } } } }
 
-    private func solve() { guard validationFailure == nil else { solveState = .invalid; progressText = validationFailure ?? "The cube is not physically possible."; return }; solveResult = nil; solveState = .validating; progressText = "Checking colors and pieces…"; solveStartedAt = Date(); let state = CubeState(puzzle: kind, stickers: stickers); if state.isSolved { solveResult = CubeSolveResult(status: .alreadySolved, puzzle: kind, moves: [], steps: [], failureReason: nil, elapsedTime: 0, nodesExplored: 0); solveState = .solved; progressText = "Already solved."; return }; let options = kind == .threeByThree ? CubeSolveOptions.threeByThreeProduction : CubeSolveOptions(timeout: 2, maxDepth: 10, maxNodes: 100_000, includeStepStates: true); DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { solveState = .solving; progressText = "Preparing cube… Solving…"; CubeSolvingService.shared.solve(state, options: options) { result in solveResult = result; solveState = result.status.solveState; progressText = resultMessage(result); solveStartedAt = nil; guidedStage = .solution } } }
+    private func solve() {
+        cancelSolve()
+        guard validationFailure == nil else { solveState = .invalid; progressText = validationFailure ?? "The cube is not physically possible."; return }
+        solveResult = nil; solveState = .solving; progressText = "Preparing cube… Solving…"; solveStartedAt = Date()
+        let state = CubeState(puzzle: kind, stickers: stickers)
+        if state.isSolved { solveResult = CubeSolveResult(status: .alreadySolved, puzzle: kind, moves: [], steps: [], failureReason: nil, elapsedTime: 0, nodesExplored: 0); solveState = .solved; progressText = "Already solved."; return }
+        let options = kind == .threeByThree ? CubeSolveOptions.threeByThreeProduction : CubeSolveOptions(timeout: 2, maxDepth: 10, maxNodes: 100_000, includeStepStates: true)
+        let requestID = UUID(); solveID = requestID; let puzzleKind = kind
+        solveTask = Task {
+            let worker = Task.detached(priority: .userInitiated) { puzzleKind == .threeByThree ? Cube3x3Solver().solve(state, options: options) : Cube2x2Solver().solve(state, options: options) }
+            let result = await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
+            guard !Task.isCancelled, solveID == requestID else { return }
+            solveResult = result; solveState = result.status.solveState; progressText = resultMessage(result); solveStartedAt = nil; guidedStage = .solution; solveTask = nil
+        }
+    }
     private func resultMessage(_ result: CubeSolveResult) -> String { if result.status == .alreadySolved { return "Already solved." }; if let reason = result.failureReason { return reason }; return result.moves.isEmpty ? result.status.userFacingMessage : "Solution ready." }
-    private func resetSolved() { stickers = CubeState.solved(kind).stickers; selectedSticker = 0; solveResult = nil; solveState = .idle; progressText = "Ready to solve."; solveStartedAt = nil; currentSolutionStep = 0 }
-    private func resetFace(_ face: CubeFace) { let start = index(of: face) * stickersPerFace; let color = CubeColor.defaultFaceMapping[face]?.rawValue ?? "U"; for i in start..<(start + stickersPerFace) { stickers[i] = color } }
+    private func resetSolved() { cancelSolve(); stickers = CubeState.solved(kind).stickers; selectedSticker = 0; solveResult = nil; solveState = .idle; progressText = "Ready to solve."; solveStartedAt = nil; currentSolutionStep = 0 }
+    private func cancelSolve() { solveTask?.cancel(); solveTask = nil; solveID = UUID(); solveStartedAt = nil }
+    private func resetFace(_ face: CubeFace) { cancelSolve(); let start = index(of: face) * stickersPerFace; let color = CubeColor.defaultFaceMapping[face]?.rawValue ?? "U"; for i in start..<(start + stickersPerFace) { stickers[i] = color } }
     private func index(of face: CubeFace) -> Int { storageFaceOrder.firstIndex(of: face) ?? 0 }
     private func stickerColor(_ code: String) -> Color { switch code { case "U": return .white; case "R": return .red; case "F": return .green; case "D": return .yellow; case "L": return .orange; default: return .blue } }
     private func colorName(_ code: String) -> String { CubeColor(rawValue: code)?.name ?? code }
