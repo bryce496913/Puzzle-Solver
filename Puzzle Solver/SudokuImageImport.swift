@@ -16,7 +16,8 @@ import PhotosUI
 struct SudokuScanConfiguration {
     static let highConfidence: Float = 0.82
     static let mediumConfidence: Float = 0.58
-    static let minimumCluesForReview = 8
+    /// An OCR quality guard, not a uniqueness test. The solver remains authoritative.
+    static let minimumCluesForReview = 17
     static let processingBoardSize: CGFloat = 900
     static let innerCellPaddingRatio: CGFloat = 0.16
     static let minimumInkDensity: CGFloat = 0.010
@@ -84,7 +85,7 @@ enum SudokuImageImportError: LocalizedError, Equatable {
         case .boardCouldNotBeDetected: return "We could not clearly detect the Sudoku board. Try taking the photo straight above the puzzle."
         case .incorrectCrop: return "We could not find the full Sudoku board. Make sure all four corners are visible."
         case .boardTooBlurry: return "The image is too blurry. Try taking another photo in brighter light."
-        case .ocrCouldNotReadEnoughNumbers: return "Some numbers could not be read. Review the highlighted cells or enter them manually."
+        case .ocrCouldNotReadEnoughNumbers: return "Not enough clues were recognized. Review the image or enter missing digits manually."
         case .detectedPuzzleHasConflicts(let detail): return "Detected puzzle contains conflicts. \(detail) Review highlighted cells or enter them manually."
         case .importCancelled: return "Import cancelled. Manual entry is still available."
         case .processingFailure(let detail): return "Processing failed. \(detail) Try another photo or enter the puzzle manually."
@@ -247,7 +248,8 @@ final class SudokuScanCoordinator {
             progress(.readingCells); var cells = try await ocr.recognize(cells: segmenter.segment(board))
             try Task.checkCancellation()
             progress(.validating); cells = SudokuScanValidator.markReviewStates(cells)
-            guard cells.filter({ $0.recognizedValue != nil }).count >= SudokuScanConfiguration.minimumCluesForReview else { throw SudokuImageImportError.ocrCouldNotReadEnoughNumbers }
+            // Even an incomplete scan belongs in review so uncertain marks are not
+            // discarded and the user can repair false blanks manually.
             return SudokuScanResult(cells: cells, message: SudokuScanValidator.summary(for: cells), diagnostics: SudokuDiagnostics.messages(for: cells))
         }
         return try await withTaskCancellationHandler {
@@ -441,26 +443,71 @@ enum SudokuDiagnostics {
 struct SudokuScanReviewView: View {
     @State private var cells: [SudokuDetectedCell]
     @State private var selected = LogicGridCoordinate(row: 0, column: 0)
+    private let recognizedClueCount: Int
     let onUsePuzzle: (SudokuBoard) -> Void; let onRescan: () -> Void; let onRetake: () -> Void; let onChooseAnother: () -> Void; let onManual: () -> Void
-    init(result: SudokuImageImportResult, onUsePuzzle: @escaping (SudokuBoard) -> Void, onRescan: @escaping () -> Void, onRetake: @escaping () -> Void, onChooseAnother: @escaping () -> Void, onManual: @escaping () -> Void) { _cells = State(initialValue: result.cells); self.onUsePuzzle = onUsePuzzle; self.onRescan = onRescan; self.onRetake = onRetake; self.onChooseAnother = onChooseAnother; self.onManual = onManual }
+    init(result: SudokuImageImportResult, onUsePuzzle: @escaping (SudokuBoard) -> Void, onRescan: @escaping () -> Void, onRetake: @escaping () -> Void, onChooseAnother: @escaping () -> Void, onManual: @escaping () -> Void) { _cells = State(initialValue: result.cells); recognizedClueCount = result.detectedCount; self.onUsePuzzle = onUsePuzzle; self.onRescan = onRescan; self.onRetake = onRetake; self.onChooseAnother = onChooseAnother; self.onManual = onManual }
     private var result: SudokuScanResult { SudokuScanResult(cells: cells) }
     private var board: SudokuBoard { result.board }
     private var conflicts: Set<LogicGridCoordinate> { SudokuValidator.conflictingCoordinates(in: board) }
-    private var status: String { !conflicts.isEmpty ? "Detected puzzle contains conflicts" : (result.reviewCount > 0 ? "Review highlighted cells" : "Ready to use") }
+    private var hasMinimumClues: Bool { board.filledCount >= SudokuScanConfiguration.minimumCluesForReview }
+    private var status: String { !hasMinimumClues ? SudokuImageImportError.ocrCouldNotReadEnoughNumbers.localizedDescription : (!conflicts.isEmpty ? "Detected puzzle contains conflicts" : (result.reviewCount > 0 ? "Review highlighted cells" : "Ready to use")) }
     var body: some View { NavigationView { ScrollView { VStack(spacing: 14) {
-        Text("Review detected numbers. Low-confidence and conflict cells are highlighted; tap any cell to correct or clear it.").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text)
-        Text("\(result.detectedCount) numbers detected • \(result.reviewCount) cells need review • \(result.conflictCount) conflicts found").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text).frame(maxWidth: .infinity, alignment: .leading)
-        Text(status).font(AppTextStyle.h3).foregroundColor(conflicts.isEmpty ? AppTheme.text : AppTheme.highlight).frame(maxWidth: .infinity, alignment: .leading)
-        LogicGridView(rows: 9, columns: 9, majorLineFrequency: 3) { coordinate in reviewCell(at: coordinate) }.padding(3).background(AppTheme.background)
+        Text("Review detected numbers. Cells marked with a question mark or warning need attention. Select any cell to correct or clear it.").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text)
+        Text("\(recognizedClueCount) numbers recognized • \(board.filledCount) currently entered • \(result.reviewCount) cells need review • \(result.conflictCount) conflicts found").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text).frame(maxWidth: .infinity, alignment: .leading)
+        Text(status).font(AppTextStyle.h3).foregroundColor((conflicts.isEmpty && hasMinimumClues) ? AppTheme.text : AppTheme.highlight).frame(maxWidth: .infinity, alignment: .leading).accessibilityIdentifier("sudoku-scan-status")
+        reviewGrid
+            .padding(.horizontal, -14)
         SudokuKeypadView { value in setSelected(value) }
         Button("Clear Cell") { setSelected(nil) }.buttonStyle(AppSecondaryButtonStyle())
-        Button("Use This Puzzle") { onUsePuzzle(board) }.buttonStyle(AppPrimaryButtonStyle()).disabled(!SudokuValidator.validate(board).canSolve || result.reviewCount > 0)
+        Button("Use This Puzzle") { onUsePuzzle(board) }.buttonStyle(AppPrimaryButtonStyle()).disabled(!hasMinimumClues || !SudokuValidator.validate(board).canSolve || result.reviewCount > 0)
         HStack { Button("Rescan") { onRescan() }.buttonStyle(AppSecondaryButtonStyle()); Button("Retake Photo") { onRetake() }.buttonStyle(AppSecondaryButtonStyle()) }
         Button("Choose Another Photo") { onChooseAnother() }.buttonStyle(AppSecondaryButtonStyle())
         Button("Enter Manually") { onManual() }.buttonStyle(AppResetButtonStyle())
     }.padding().background(AppTheme.background) }.navigationTitle("Review Sudoku") } }
-    private func setSelected(_ value: Int?) { var cell = cells[selected.row * 9 + selected.column]; cell.recognizedValue = value; cell.confidence = value == nil ? nil : 1; cell.sourceType = .manual; cell.reviewState = value == nil ? .blank : .highConfidence; cells[selected.row * 9 + selected.column] = cell; cells = SudokuScanValidator.markReviewStates(cells) }
-    private func reviewCell(at coordinate: LogicGridCoordinate) -> some View { let cell = cells[coordinate.row * 9 + coordinate.column]; return Text(cell.recognizedValue.map(String.init) ?? (cell.needsReview ? "?" : "")).font(AppTextStyle.h2).fontWeight(.bold).foregroundColor(AppTheme.text).frame(width: 34, height: 34).background(cellBackground(cell, coordinate: coordinate)).overlay(Rectangle().stroke(selected == coordinate ? AppTheme.highlight : AppTheme.text.opacity(0.2), lineWidth: selected == coordinate ? 2.5 : 0.5)).contentShape(Rectangle()).onTapGesture { selected = coordinate }.accessibilityLabel("Row \(coordinate.row + 1), column \(coordinate.column + 1), \(cell.recognizedValue.map(String.init) ?? "empty")").accessibilityHint(cell.needsReview ? "Needs review. Double tap to select this cell for correction." : "Double tap to select this cell.") }
+    private var reviewGrid: some View {
+        GeometryReader { proxy in
+            let boardSide = SudokuLayout.boardSide(for: proxy.size.width)
+            let cellSide = boardSide / CGFloat(SudokuBoard.dimension)
+            LogicGridView(rows: 9, columns: 9, majorLineFrequency: 3) { coordinate in
+                reviewCell(at: coordinate, side: cellSide)
+            }
+            .frame(width: boardSide, height: boardSide)
+            .padding(SudokuLayout.boardBorderInset)
+            .frame(maxWidth: .infinity)
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Sudoku scan review board")
+    }
+    private func setSelected(_ value: Int?) { guard let index = cells.firstIndex(where: { $0.row == selected.row && $0.column == selected.column }) else { return }; var cell = cells[index]; cell.recognizedValue = value; cell.confidence = value == nil ? nil : 1; cell.sourceType = .manual; cell.reviewState = value == nil ? .blank : .highConfidence; cells[index] = cell; cells = SudokuScanValidator.markReviewStates(cells) }
+    private func reviewCell(at coordinate: LogicGridCoordinate, side: CGFloat) -> some View {
+        let cell = cells.first(where: { $0.row == coordinate.row && $0.column == coordinate.column }) ?? SudokuDetectedCell(row: coordinate.row, column: coordinate.column, recognizedValue: nil, confidence: nil)
+        let isConflict = conflicts.contains(coordinate) || cell.reviewState == .conflict
+        return Button { selected = coordinate } label: {
+            ZStack(alignment: .topTrailing) {
+                Text(cell.recognizedValue.map(String.init) ?? (cell.needsReview ? "?" : ""))
+                    .font(.system(.title3, design: .rounded, weight: .bold)).minimumScaleFactor(0.6)
+                if isConflict { Image(systemName: "exclamationmark.triangle.fill").font(.system(size: max(9, side * 0.24))).padding(2).accessibilityHidden(true) }
+                else if cell.needsReview { Image(systemName: "questionmark.circle.fill").font(.system(size: max(9, side * 0.22))).padding(2).accessibilityHidden(true) }
+            }
+            .foregroundColor(AppTheme.text).frame(width: side, height: side)
+            .background(cellBackground(cell, coordinate: coordinate))
+            .overlay(Rectangle().stroke(selected == coordinate ? AppTheme.text : AppTheme.text.opacity(0.2), lineWidth: selected == coordinate ? 3 : 0.5))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("sudoku-scan-cell-\(coordinate.row + 1)-\(coordinate.column + 1)")
+        .accessibilityLabel(accessibilityLabel(for: cell, coordinate: coordinate, isConflict: isConflict))
+        .accessibilityHint(cell.needsReview || isConflict ? "Needs review. Double tap to select for correction." : "Double tap to select this cell.")
+        .accessibilityAddTraits(selected == coordinate ? .isSelected : [])
+    }
+    private func accessibilityLabel(for cell: SudokuDetectedCell, coordinate: LogicGridCoordinate, isConflict: Bool) -> String {
+        var parts = ["Row \(coordinate.row + 1)", "column \(coordinate.column + 1)", cell.recognizedValue.map { "detected \($0)" } ?? "blank"]
+        if cell.needsReview { parts.append(cell.reviewState == .lowConfidence ? "low confidence" : "review required") }
+        if isConflict { parts.append("conflict") }
+        if selected == coordinate { parts.append("selected") }
+        return parts.joined(separator: ", ")
+    }
     private func cellBackground(_ cell: SudokuDetectedCell, coordinate: LogicGridCoordinate) -> Color { if conflicts.contains(coordinate) || cell.reviewState == .conflict { return AppTheme.highlight.opacity(0.8) }; switch cell.reviewState { case .blank: return AppTheme.background.opacity(0.5); case .highConfidence: return AppTheme.surface; case .needsReview: return Color.yellow.opacity(0.45); case .lowConfidence: return Color.orange.opacity(0.45); case .conflict: return AppTheme.highlight.opacity(0.8) } }
 }
 

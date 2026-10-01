@@ -102,6 +102,58 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Solve Sudoku"].exists)
     }
 
+    func testScanReviewSelectsAndCorrectsLowConfidenceAndConflictCells() throws {
+        let app = launchScanReview()
+        let conflict = app.buttons["sudoku-scan-cell-1-2"]
+        XCTAssertTrue(conflict.waitForExistence(timeout: 2))
+        XCTAssertTrue(conflict.label.localizedCaseInsensitiveContains("conflict"))
+        conflict.tap()
+        XCTAssertTrue(conflict.label.localizedCaseInsensitiveContains("selected"))
+        let seven = app.buttons["sudoku-key-7"]
+        if !seven.isHittable { app.swipeUp() }
+        seven.tap()
+        XCTAssertTrue(conflict.label.contains("detected 7"))
+        XCTAssertFalse(conflict.label.localizedCaseInsensitiveContains("conflict"))
+
+        let lowConfidence = app.buttons["sudoku-scan-cell-4-7"]
+        if !lowConfidence.isHittable { app.swipeDown() }
+        lowConfidence.tap()
+        XCTAssertTrue(lowConfidence.label.contains("low confidence"))
+        let four = app.buttons["sudoku-key-4"]
+        if !four.isHittable { app.swipeUp() }
+        four.tap()
+        XCTAssertTrue(lowConfidence.label.contains("detected 4"))
+        XCTAssertFalse(lowConfidence.label.contains("low confidence"))
+    }
+
+    func testScanReviewExposesMinimumWarningAndVoiceOverSemantics() throws {
+        let app = launchScanReview()
+        XCTAssertTrue(app.staticTexts["sudoku-scan-status"].label.contains("Not enough clues were recognized"))
+        let uncertainBlank = app.buttons["sudoku-scan-cell-5-5"]
+        XCTAssertTrue(uncertainBlank.label.contains("Row 5"))
+        XCTAssertTrue(uncertainBlank.label.contains("column 5"))
+        XCTAssertTrue(uncertainBlank.label.contains("blank"))
+        XCTAssertTrue(uncertainBlank.label.contains("low confidence"))
+        XCTAssertFalse(app.buttons["Use This Puzzle"].isEnabled)
+    }
+
+    func testScanReviewFitsSmallScreenWithLargeDynamicType() throws {
+        let app = launchScanReview(contentSize: "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge")
+        let lastCell = app.buttons["sudoku-scan-cell-9-9"]
+        XCTAssertTrue(lastCell.waitForExistence(timeout: 2))
+        XCTAssertGreaterThan(lastCell.frame.width, 30)
+        XCTAssertLessThanOrEqual(lastCell.frame.maxX, app.windows.firstMatch.frame.maxX + 1)
+        XCTAssertTrue(app.buttons["sudoku-key-1"].exists)
+    }
+
+    private func launchScanReview(contentSize: String? = nil) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments.append("-UITestSudokuScanReview")
+        if let contentSize { app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize] }
+        app.launch()
+        return app
+    }
+
     func testOpenThreeByThreeGuidedAndAdvancedEntryWithLockedCenters() throws {
         let app = XCUIApplication()
         app.launchArguments += ["-HasCompletedOnboarding", "YES"]
