@@ -10,7 +10,9 @@ import Foundation
 struct KillerSudokuCage: Identifiable, Hashable {
     let id = UUID()
     var targetSum: Int
-    var cells: Set<LogicGridCoordinate>
+    /// Kept as an array so malformed imported definitions containing the same
+    /// coordinate twice can be rejected instead of silently de-duplicated.
+    var cells: [LogicGridCoordinate]
 }
 
 struct KillerSudokuBoard: LogicPuzzleBoard, Hashable {

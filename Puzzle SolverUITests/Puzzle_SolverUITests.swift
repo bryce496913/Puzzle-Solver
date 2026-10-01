@@ -64,6 +64,43 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Camera"].exists)
     }
 
+    func testPhotoScanCardIsActiveAndOpensDedicatedImporter() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-HasCompletedOnboarding", "YES"]
+        app.launch()
+        let logic = app.staticTexts["Logic Puzzles"].firstMatch
+        XCTAssertTrue(logic.waitForExistence(timeout: 3))
+        logic.tap()
+
+        let scan = app.staticTexts["Sudoku Photo Scan"].firstMatch
+        XCTAssertTrue(scan.waitForExistence(timeout: 2))
+        scan.tap()
+        XCTAssertTrue(app.otherElements["sudoku-photo-scan-import"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Take Photo"].exists)
+        XCTAssertTrue(app.buttons["Choose from Photo Library"].exists)
+        XCTAssertTrue(app.buttons["Manual fallback"].exists)
+        XCTAssertFalse(app.staticTexts["Coming Soon"].exists)
+    }
+
+    func testBundledPhotoImportReviewCanBeEditedAndSolved() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("-UITestSudokuPhotoScanFixture")
+        app.launch()
+        let reviewCell = app.buttons["sudoku-scan-cell-1-1"]
+        XCTAssertTrue(reviewCell.waitForExistence(timeout: 3))
+        reviewCell.tap()
+        let five = app.buttons["sudoku-key-5"]
+        if !five.isHittable { app.swipeUp() }
+        five.tap()
+        XCTAssertTrue(reviewCell.label.contains("detected 5"))
+        let use = app.buttons["Use This Puzzle"]
+        if !use.isHittable { app.swipeUp() }
+        XCTAssertTrue(use.isEnabled)
+        use.tap()
+        XCTAssertTrue(app.otherElements["sudoku-result"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Coming Soon"].exists)
+    }
+
     func testSudokuCellSelectionKeypadInputAndValidationFeedback() throws {
         let app = XCUIApplication()
         app.launch()
