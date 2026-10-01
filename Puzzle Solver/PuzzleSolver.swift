@@ -441,7 +441,7 @@ enum CubeStickerValidator {
         }
         if state.puzzle == .threeByThree {
             let centers = [4, 13, 22, 31, 40, 49].map { state.stickers[$0] }
-            guard centers == colors else { return .failure(ValidationError("This cube state is not valid.")) }
+            guard centers == colors else { return .failure(ValidationError("Center colors do not match the guided orientation (White Up, Green Front).")) }
             switch Cube3x3CubieState.from(stickers: state.stickers) {
             case .success: return .success(())
             case .failure(let error): return .failure(ValidationError(error.localizedDescription))
@@ -1315,20 +1315,24 @@ extension Cube3x3CubieState {
         case duplicateCenters
         case missingCorner(String)
         case missingEdge(String)
-        case duplicateCubie(String)
-        case invalidOrientation
+        case duplicateCorner(String)
+        case duplicateEdge(String)
+        case cornerOrientation
+        case edgeOrientation
         case parityMismatch
 
         var errorDescription: String? {
             switch self {
             case .wrongStickerCount: return "Expected exactly 54 stickers for a 3×3 cube."
             case .invalidColorCounts: return "Expected exactly nine stickers of each of the six center colors."
-            case .duplicateCenters: return "The six center stickers must be distinct so face colors can be identified."
-            case .missingCorner(let cubie): return "Missing or impossible corner cubie: \(cubie)."
-            case .missingEdge(let cubie): return "Missing or impossible edge cubie: \(cubie)."
-            case .duplicateCubie(let cubie): return "Duplicate cubie detected: \(cubie)."
-            case .invalidOrientation: return "The cube has impossible cubie orientation."
-            case .parityMismatch: return "The cube has impossible permutation parity."
+            case .duplicateCenters: return "Center colors do not match the guided orientation (White Up, Green Front)."
+            case .missingCorner: return "A corner piece is impossible, duplicated, or missing. Check the three colors at each corner."
+            case .missingEdge: return "An edge piece is impossible, duplicated, or missing. Check the two colors at each edge."
+            case .duplicateCorner: return "A corner piece is duplicated or missing."
+            case .duplicateEdge: return "An edge piece is duplicated or missing."
+            case .cornerOrientation: return "Corner orientation is impossible. One or more corners are twisted."
+            case .edgeOrientation: return "One edge appears flipped."
+            case .parityMismatch: return "The cube's permutation parity is invalid. Two pieces may have been swapped."
             }
         }
     }
@@ -1360,7 +1364,7 @@ extension Cube3x3CubieState {
         for position in 0..<8 {
             let colors = cornerFacelets[position].map { normalized[$0] }
             guard let cubie = cornerLookup[Set(colors)] else { return .failure(.missingCorner(colors.joined())) }
-            guard seenCorners.insert(cubie).inserted else { return .failure(.duplicateCubie(colors.joined())) }
+            guard seenCorners.insert(cubie).inserted else { return .failure(.duplicateCorner(colors.joined())) }
             cp[position] = cubie
             guard let orientation = colors.firstIndex(where: { $0 == "U" || $0 == "D" }) else { return .failure(.missingCorner(colors.joined())) }
             co[position] = orientation % 3
@@ -1372,7 +1376,7 @@ extension Cube3x3CubieState {
         for position in 0..<12 {
             let colors = edgeFacelets[position].map { normalized[$0] }
             guard let cubie = edgeLookup[Set(colors)] else { return .failure(.missingEdge(colors.joined())) }
-            guard seenEdges.insert(cubie).inserted else { return .failure(.duplicateCubie(colors.joined())) }
+            guard seenEdges.insert(cubie).inserted else { return .failure(.duplicateEdge(colors.joined())) }
             ep[position] = cubie
             if colors.contains("U") || colors.contains("D") {
                 eo[position] = (colors[0] == "U" || colors[0] == "D") ? 0 : 1
@@ -1381,7 +1385,8 @@ extension Cube3x3CubieState {
             }
         }
 
-        guard co.reduce(0, +) % 3 == 0, eo.reduce(0, +) % 2 == 0 else { return .failure(.invalidOrientation) }
+        guard co.reduce(0, +) % 3 == 0 else { return .failure(.cornerOrientation) }
+        guard eo.reduce(0, +) % 2 == 0 else { return .failure(.edgeOrientation) }
         guard parity(cp) == parity(ep) else { return .failure(.parityMismatch) }
         return .success(Cube3x3CubieState(cornerPermutation: cp, cornerOrientation: co, edgePermutation: ep, edgeOrientation: eo))
     }

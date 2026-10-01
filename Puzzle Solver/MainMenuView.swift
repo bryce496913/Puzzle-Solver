@@ -213,7 +213,7 @@ struct TwistyPuzzleMenuView: View {
     @ViewBuilder
     private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
         switch descriptor.id {
-        case "cube-2x2":
+        case "cube-2x2", "cube-3x3":
             CubeInputView(descriptor: descriptor)
         default:
             AppPlaceholderScreen(descriptor: descriptor)
@@ -235,7 +235,14 @@ struct CubeInputView: View {
         var physicalName: String {
             switch face { case .up: return "Top"; case .front: return "Front"; case .right: return "Right"; case .back: return "Back"; case .left: return "Left"; case .down: return "Bottom" }
         }
-        var helper: String { "Look at the \(physicalName.lowercased()) face and tap the colors you see." }
+        var helper: String {
+            switch face {
+            case .up: return "Look straight at the white face. Keep the green face at the bottom edge of this grid."
+            case .down: return "Look straight at the yellow face. Keep the green face at the top edge of this grid."
+            case .back: return "Turn the whole cube 180° left or right, keeping white on top. Enter blue as viewed from behind—do not mirror the Front face."
+            default: return "Turn the whole cube until this face points toward you, keeping white on top. Enter it exactly as viewed."
+            }
+        }
     }
 
     @State private var stickers: [String]
@@ -259,6 +266,14 @@ struct CubeInputView: View {
     private var faceSize: Int { kind == .twoByTwo ? 2 : 3 }
     private var stickersPerFace: Int { faceSize * faceSize }
     private var countsAreValid: Bool { colors.allSatisfy { color in stickers.filter { $0 == color }.count == stickersPerFace } }
+    private var validationFailure: String? {
+        guard countsAreValid else { return validationSummary() }
+        if case .failure(let error) = CubeStickerValidator.validate(CubeState(puzzle: kind, stickers: stickers)) {
+            return error.localizedDescription
+        }
+        return nil
+    }
+    private var entryIsValid: Bool { validationFailure == nil }
 
     init(descriptor: PuzzleAvailabilityDescriptor) {
         self.descriptor = descriptor
@@ -348,18 +363,18 @@ struct CubeInputView: View {
                     Button("Edit \(guide.title)") { guidedStage = .face(i) }.buttonStyle(AppSecondaryButtonStyle())
                 }
             }
-            Button("Solve Cube") { solve() }.buttonStyle(AppPrimaryButtonStyle()).disabled(!countsAreValid || solveState == .solving || solveState == .validating)
+            Button("Solve Cube") { solve() }.buttonStyle(AppPrimaryButtonStyle()).disabled(!entryIsValid || solveState == .solving || solveState == .validating).accessibilityIdentifier("cube-solve")
         }
     }
 
     private var advancedContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            AppSectionHeader("Advanced net input", subtitle: "This layout matches the guided entry order. Hold the cube with Up on top and Front facing you.")
+            AppSectionHeader("Advanced net input", subtitle: "Every face is shown as viewed straight on from outside. Back is the view from behind the cube, not a mirrored Front view.")
             orientationHelper(highlight: .front)
             cubeNet
             colorControls
             validationCard
-            Button("Solve Cube") { solve() }.buttonStyle(AppPrimaryButtonStyle()).disabled(!countsAreValid)
+            Button("Solve Cube") { solve() }.buttonStyle(AppPrimaryButtonStyle()).disabled(!entryIsValid || solveState == .solving || solveState == .validating).accessibilityIdentifier("cube-solve")
         }
     }
 
@@ -379,10 +394,11 @@ struct CubeInputView: View {
 
     private var validationCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(countsAreValid ? "Validation passed" : "Check these colors before solving").appH3()
+            Text(entryIsValid ? "Physical validation passed" : "Fix this before solving").appH3()
             ForEach(colors, id: \.self) { code in Text(countText(code)).font(AppTextStyle.paragraph).foregroundColor(countIsValid(code) ? AppTheme.text : AppTheme.highlight) }
             if stickers.contains(where: { !colors.contains($0) }) { Text("Some stickers are still missing.").appParagraph() }
-        }.padding(10).background(AppTheme.background.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 12))
+            if countsAreValid, let validationFailure { Text(validationFailure).font(AppTextStyle.paragraph).foregroundColor(AppTheme.highlight) }
+        }.padding(10).background(AppTheme.background.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 12)).accessibilityIdentifier("cube-validation-summary")
     }
 
     private var solveProgressCard: some View {
@@ -391,15 +407,18 @@ struct CubeInputView: View {
 
     private func solutionCard(_ result: CubeSolveResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            AppSectionHeader(result.status.userFacingMessage, subtitle: result.status == .alreadySolved ? "Already solved." : "Follow these moves in order. Keep the cube oriented the same way as shown in the input guide.")
-            Text("\(result.moveCount) move\(result.moveCount == 1 ? "" : "s")").appH2()
-            if !result.moves.isEmpty {
+            AppSectionHeader(result.status.userFacingMessage, subtitle: result.succeeded ? (result.status == .alreadySolved ? "No moves are needed." : "Follow every move in order. The complete sequence was replay-checked to solve this cube.") : "No move sequence is shown because the solver did not finish with a verified solution.")
+            if result.succeeded { Text("\(result.moveCount) move\(result.moveCount == 1 ? "" : "s")").appH2() }
+            if let reason = result.failureReason, !result.succeeded { Text(reason).appParagraph() }
+            if result.status == .success, !result.moves.isEmpty {
                 HStack { Button("Copy Moves") { UIPasteboard.general.string = result.formattedMoves }.buttonStyle(AppSecondaryButtonStyle()); Button(compactNotationVisible ? "Hide Compact Notation" : "Show Compact Notation") { compactNotationVisible.toggle() }.buttonStyle(AppSecondaryButtonStyle()) }
                 if compactNotationVisible { Text(result.formattedMoves).font(AppTextStyle.h3).foregroundColor(AppTheme.text).padding(10).background(AppTheme.background.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 10)) }
                 Button(stepModeVisible ? "Show Step-by-Step List" : "Show One Move at a Time") { stepModeVisible.toggle() }.buttonStyle(AppPrimaryButtonStyle())
                 if stepModeVisible { oneMoveView(result.moves) } else { moveList(result.moves) }
                 notationLegend
                 HStack { Button("Try Another Cube") { resetSolved(); guidedStage = .orientation }.buttonStyle(AppResetButtonStyle()); Button("Back to Cube Entry") { guidedStage = .review }.buttonStyle(AppSecondaryButtonStyle()) }
+            } else if !result.succeeded {
+                Button("Back to Cube Entry") { guidedStage = .review }.buttonStyle(AppSecondaryButtonStyle())
             }
         }.appCardStyle()
     }
@@ -411,12 +430,12 @@ struct CubeInputView: View {
 
     private func orientationHelper(highlight: CubeFace) -> some View { HStack(alignment: .top, spacing: 12) { Image(systemName: "cube.transparent.fill").font(.system(size: 40)).foregroundColor(AppTheme.highlight); VStack(alignment: .leading) { Text("Physical cube orientation").appH3(); Text("Top: White (Up) • Front: Green (Front)").appParagraph(); Text("Entering now: \(highlight.displayName)").font(AppTextStyle.h3).foregroundColor(AppTheme.highlight) } }.padding(10).background(AppTheme.background.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 12)) }
 
-    private var cubeNet: some View { VStack(spacing: 8) { Text("Top ↑").appH3(); face("Up", faceIndex: index(of: .up)).padding(.leading, CGFloat(faceSize * 34)); HStack(spacing: 8) { face("Left", faceIndex: index(of: .left)); face("Front", faceIndex: index(of: .front)); face("Right", faceIndex: index(of: .right)); face("Back", faceIndex: index(of: .back)) }; face("Down", faceIndex: index(of: .down)).padding(.leading, CGFloat(faceSize * 34)); Text("Front faces you").appParagraph() }.frame(maxWidth: .infinity) }
+    private var cubeNet: some View { VStack(spacing: 8) { Text("Top ↑").appH3(); face("Up", faceIndex: index(of: .up)).padding(.leading, CGFloat(faceSize * 34)); HStack(spacing: 8) { face("Left", faceIndex: index(of: .left)); face("Front", faceIndex: index(of: .front)); face("Right", faceIndex: index(of: .right)); face("Back (viewed from behind)", faceIndex: index(of: .back)) }; face("Down", faceIndex: index(of: .down)).padding(.leading, CGFloat(faceSize * 34)); Text("Front faces you • each arrow points to the top of that face").appParagraph() }.frame(maxWidth: .infinity) }
     private func face(_ label: String, faceIndex: Int) -> some View { VStack(spacing: 3) { Text(label).appH3(); stickerGrid(faceIndex: faceIndex, small: true) } }
     private func singleFaceGrid(_ cubeFace: CubeFace) -> some View { stickerGrid(faceIndex: index(of: cubeFace), small: false).frame(maxWidth: .infinity) }
-    private func stickerGrid(faceIndex: Int, small: Bool) -> some View { VStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { row in HStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { column in let idx = faceIndex * stickersPerFace + row * faceSize + column; Button { selectedSticker = idx; stickers[idx] = selectedColor; solveResult = nil; solveState = .idle; progressText = "Sticker updated." } label: { RoundedRectangle(cornerRadius: 6).fill(stickerColor(stickers[idx])).frame(width: small ? (faceSize == 2 ? 34 : 24) : 58, height: small ? (faceSize == 2 ? 34 : 24) : 58).overlay(RoundedRectangle(cornerRadius: 6).stroke(selectedSticker == idx ? AppTheme.highlight : Color.white.opacity(0.7), lineWidth: selectedSticker == idx ? 4 : 1)) }.buttonStyle(PlainButtonStyle()) } } } } }
+    private func stickerGrid(faceIndex: Int, small: Bool) -> some View { VStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { row in HStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { column in let idx = faceIndex * stickersPerFace + row * faceSize + column; let isCenter = faceSize == 3 && row == 1 && column == 1; Button { selectedSticker = idx; stickers[idx] = selectedColor; solveResult = nil; solveState = .idle; progressText = "Sticker updated." } label: { RoundedRectangle(cornerRadius: 6).fill(stickerColor(stickers[idx])).frame(width: small ? (faceSize == 2 ? 34 : 24) : 58, height: small ? (faceSize == 2 ? 34 : 24) : 58).overlay(RoundedRectangle(cornerRadius: 6).stroke(selectedSticker == idx ? AppTheme.highlight : Color.white.opacity(0.7), lineWidth: selectedSticker == idx ? 4 : 1)).overlay(isCenter ? Image(systemName: "lock.fill").font(.caption).foregroundColor(.black.opacity(0.65)) : nil) }.buttonStyle(PlainButtonStyle()).disabled(isCenter).accessibilityIdentifier(isCenter ? "cube-locked-center-\(storageFaceOrder[faceIndex].rawValue)" : "cube-sticker-\(idx)").accessibilityLabel(isCenter ? "Locked \(storageFaceOrder[faceIndex].displayName) center" : "\(storageFaceOrder[faceIndex].displayName) sticker row \(row + 1) column \(column + 1)") } } } } }
 
-    private func solve() { guard countsAreValid else { solveState = .invalid; progressText = validationSummary(); return }; solveResult = nil; solveState = .validating; progressText = "Checking colors…"; solveStartedAt = Date(); let state = CubeState(puzzle: kind, stickers: stickers); if state.isSolved { solveResult = CubeSolveResult(status: .alreadySolved, puzzle: kind, moves: [], steps: [], failureReason: nil, elapsedTime: 0, nodesExplored: 0); solveState = .solved; progressText = "Already solved."; return }; let options = CubeSolveOptions(timeout: kind == .twoByTwo ? 2 : 5, maxDepth: kind == .twoByTwo ? 10 : 6, maxNodes: kind == .twoByTwo ? 100_000 : 80_000, includeStepStates: false); DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { solveState = .solving; progressText = "Preparing cube… Solving…"; CubeSolvingService.shared.solve(state, options: options) { result in solveResult = result; solveState = result.status.solveState; progressText = resultMessage(result); solveStartedAt = nil; guidedStage = .solution } } }
+    private func solve() { guard validationFailure == nil else { solveState = .invalid; progressText = validationFailure ?? "The cube is not physically possible."; return }; solveResult = nil; solveState = .validating; progressText = "Checking colors and pieces…"; solveStartedAt = Date(); let state = CubeState(puzzle: kind, stickers: stickers); if state.isSolved { solveResult = CubeSolveResult(status: .alreadySolved, puzzle: kind, moves: [], steps: [], failureReason: nil, elapsedTime: 0, nodesExplored: 0); solveState = .solved; progressText = "Already solved."; return }; let options = kind == .threeByThree ? CubeSolveOptions.threeByThreeProduction : CubeSolveOptions(timeout: 2, maxDepth: 10, maxNodes: 100_000, includeStepStates: true); DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { solveState = .solving; progressText = "Preparing cube… Solving…"; CubeSolvingService.shared.solve(state, options: options) { result in solveResult = result; solveState = result.status.solveState; progressText = resultMessage(result); solveStartedAt = nil; guidedStage = .solution } } }
     private func resultMessage(_ result: CubeSolveResult) -> String { if result.status == .alreadySolved { return "Already solved." }; if let reason = result.failureReason { return reason }; return result.moves.isEmpty ? result.status.userFacingMessage : "Solution ready." }
     private func resetSolved() { stickers = CubeState.solved(kind).stickers; selectedSticker = 0; solveResult = nil; solveState = .idle; progressText = "Ready to solve."; solveStartedAt = nil; currentSolutionStep = 0 }
     private func resetFace(_ face: CubeFace) { let start = index(of: face) * stickersPerFace; let color = CubeColor.defaultFaceMapping[face]?.rawValue ?? "U"; for i in start..<(start + stickersPerFace) { stickers[i] = color } }
