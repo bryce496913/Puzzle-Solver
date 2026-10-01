@@ -430,6 +430,10 @@ enum CubeStickerValidator {
         if state.puzzle == .threeByThree {
             let centers = [4, 13, 22, 31, 40, 49].map { state.stickers[$0] }
             guard centers == colors else { return .failure(ValidationError("This cube state is not valid.")) }
+            switch Cube3x3CubieState.from(stickers: state.stickers) {
+            case .success: return .success(())
+            case .failure(let error): return .failure(ValidationError(error.localizedDescription))
+            }
         }
         return .success(())
     }
@@ -1244,7 +1248,10 @@ extension Cube3x3CubieState {
         let centerIndices = [4, 13, 22, 31, 40, 49]
         let faceNames = ["U", "R", "F", "D", "L", "B"]
         let centers = centerIndices.map { stickers[$0] }
-        guard Set(centers).count == 6 else { return .failure(.duplicateCenters) }
+        // Guided entry fixes the physical orientation (white Up, green Front),
+        // so accepting a different center order would reinterpret, rather than
+        // validate, the state the user entered.
+        guard centers == faceNames else { return .failure(.duplicateCenters) }
         let counts = Dictionary(grouping: stickers, by: { $0 }).mapValues(\.count)
         guard centers.allSatisfy({ counts[$0] == 9 }) && counts.count == 6 else { return .failure(.invalidColorCounts) }
         let colorToFace = Dictionary(uniqueKeysWithValues: zip(centers, faceNames))

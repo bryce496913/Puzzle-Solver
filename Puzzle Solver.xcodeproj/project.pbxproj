@@ -12,6 +12,8 @@
 		AD1000032B00000100000001 /* TwistySolverFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000042B00000100000001 /* TwistySolverFixtures.swift */; };
 		AD1000052B00000100000001 /* StabilizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1000062B00000100000001 /* StabilizationTests.swift */; };
 		AD1000072B00000100000001 /* SudokuImages in Resources */ = {isa = PBXBuildFile; fileRef = AD1000082B00000100000001 /* SudokuImages */; };
+		AD1000092B00000100000001 /* Cube3x3PhysicalFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD10000A2B00000100000001 /* Cube3x3PhysicalFixtures.swift */; };
+		AD10000B2B00000100000001 /* Cube3x3PhysicalRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD10000C2B00000100000001 /* Cube3x3PhysicalRegressionTests.swift */; };
 		AD0000032B00000100000001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AD0000042B00000100000001 /* LaunchScreen.storyboard */; };
 		AA0000012B00000100000001 /* LogicPuzzleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000022B00000100000001 /* LogicPuzzleModels.swift */; };
 		AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000042B00000100000001 /* LogicPuzzleViews.swift */; };
@@ -75,6 +77,8 @@
 		AD1000042B00000100000001 /* TwistySolverFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixtures/TwistySolverFixtures.swift; sourceTree = "<group>"; };
 		AD1000062B00000100000001 /* StabilizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StabilizationTests.swift; sourceTree = "<group>"; };
 		AD1000082B00000100000001 /* SudokuImages */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fixtures/SudokuImages; sourceTree = "<group>"; };
+		AD10000A2B00000100000001 /* Cube3x3PhysicalFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixtures/Cube3x3PhysicalFixtures.swift; sourceTree = "<group>"; };
+		AD10000C2B00000100000001 /* Cube3x3PhysicalRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cube3x3PhysicalRegressionTests.swift; sourceTree = "<group>"; };
 		AA0000022B00000100000001 /* LogicPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleModels.swift; sourceTree = "<group>"; };
 		AA0000042B00000100000001 /* LogicPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogicPuzzleViews.swift; sourceTree = "<group>"; };
 		AA0000062B00000100000001 /* MechanicalPuzzleModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MechanicalPuzzleModels.swift; sourceTree = "<group>"; };
@@ -217,6 +221,8 @@
 			children = (
 				EE82B6772B69931700B2BC49 /* Puzzle_SolverTests.swift */,
 				AD1000042B00000100000001 /* TwistySolverFixtures.swift */,
+				AD10000A2B00000100000001 /* Cube3x3PhysicalFixtures.swift */,
+				AD10000C2B00000100000001 /* Cube3x3PhysicalRegressionTests.swift */,
 				AD1000062B00000100000001 /* StabilizationTests.swift */,
 				AD1000082B00000100000001 /* SudokuImages */,
 			);
@@ -407,6 +413,8 @@
 				EE82B6782B69931700B2BC49 /* Puzzle_SolverTests.swift in Sources */,
 				AD1000032B00000100000001 /* TwistySolverFixtures.swift in Sources */,
 				AD1000052B00000100000001 /* StabilizationTests.swift in Sources */,
+				AD1000092B00000100000001 /* Cube3x3PhysicalFixtures.swift in Sources */,
+				AD10000B2B00000100000001 /* Cube3x3PhysicalRegressionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
