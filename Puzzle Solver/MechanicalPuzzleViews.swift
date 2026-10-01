@@ -14,7 +14,7 @@ struct MechanicalPuzzleMenuView: View {
         AppScreenContainer(title: PuzzleCategory.mechanical.rawValue, subtitle: PuzzleCategory.mechanical.subtitle) {
             LazyVStack(spacing: 12) {
                 ForEach(descriptors) { descriptor in
-                    NavigationLink(destination: destination(for: descriptor)) {
+                    NavigationLink(destination: ProductionPuzzleDestinationView(descriptor: descriptor)) {
                         AppPuzzleCard(descriptor: descriptor)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -23,14 +23,6 @@ struct MechanicalPuzzleMenuView: View {
         }
     }
 
-    @ViewBuilder
-    private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
-        if descriptor.id == "rush-hour" {
-            RushHourEntryView()
-        } else {
-            AppPlaceholderScreen(descriptor: descriptor)
-        }
-    }
 }
 
 struct RushHourEntryView: View {

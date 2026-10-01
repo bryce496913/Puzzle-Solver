@@ -14,7 +14,7 @@ struct NewPuzzleView: View {
         AppScreenContainer(title: PuzzleCategory.sliding.rawValue, subtitle: PuzzleCategory.sliding.subtitle) {
             LazyVStack(spacing: 12) {
                 ForEach(descriptors) { descriptor in
-                    NavigationLink(destination: destination(for: descriptor)) {
+                    NavigationLink(destination: ProductionPuzzleDestinationView(descriptor: descriptor)) {
                         AppPuzzleCard(descriptor: descriptor)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -24,15 +24,6 @@ struct NewPuzzleView: View {
         }
     }
 
-    @ViewBuilder
-    private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
-        switch descriptor.id {
-        case "sliding-3x3", "sliding-4x4", "sliding-5x5":
-            SlidingPuzzleInputView(descriptor: descriptor)
-        default:
-            AppPlaceholderScreen(descriptor: descriptor)
-        }
-    }
 }
 
 struct SlidingPuzzleInputView: View {
