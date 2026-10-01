@@ -1,5 +1,13 @@
 # Puzzle Solver — App Release Readiness Report
 
+> **Historical report — superseded.** This document records an earlier release
+> candidate in which Sudoku Photo Scan and Killer Sudoku were not active. The
+> current V1 catalog contains nine active modes; use `README.md` for the current
+> product contract and `FINAL_V1_PHYSICAL_TEST_MATRIX.md` for Pass 16 release
+> evidence. The physical matrix is currently **NO-GO** until its `NOT RUN` rows
+> are executed on real devices and puzzles. Do not use the older status notes
+> below as App Store submission approval.
+
 ## Cleanup status
 
 - Release-label wording has been removed from the user-facing app, including onboarding, menus, Settings, helper text, result screens, placeholders, and diagnostics.
