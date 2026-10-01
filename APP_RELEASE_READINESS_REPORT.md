@@ -3,10 +3,11 @@
 > **Historical report — superseded.** This document records an earlier release
 > candidate in which Sudoku Photo Scan and Killer Sudoku were not active. The
 > current V1 catalog contains nine active modes; use `README.md` for the current
-> product contract and `FINAL_V1_PHYSICAL_TEST_MATRIX.md` for Pass 16 release
-> evidence. The physical matrix is currently **NO-GO** until its `NOT RUN` rows
-> are executed on real devices and puzzles. Do not use the older status notes
-> below as App Store submission approval.
+> product contract, `CODEX_PASS_17_RELEASE_REPORT.md` for submission status, and
+> `FINAL_V1_PHYSICAL_TEST_MATRIX.md` for physical-test evidence. The candidate
+> is currently **NO-GO** until the Pass 17 blockers and all `NOT RUN` matrix rows
+> are closed. Do not use the older status notes below as App Store submission
+> approval.
 
 ## Cleanup status
 

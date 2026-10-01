@@ -78,11 +78,21 @@ The repository also retains model-layer and experimental code for future modes. 
 
 The XCTest target covers catalog status, validation, representative solver outcomes, safety limits, move playback, and model-layer work. The XCUITest target includes launch and production-flow checks, including verification of the Sudoku photo-scan and review flow. Test coverage describes exercised behavior; it is not a guarantee that every possible puzzle state can be solved within V1 limits.
 
-The repository's GitHub Actions workflow builds Debug and Release simulator configurations and runs the unit-test target on pushes and pull requests to `main`. UI tests are maintained separately but are not run by that workflow.
+The repository's GitHub Actions workflow builds Debug and Release simulator configurations and runs both the unit-test and nine-mode XCUITest targets on pushes and pull requests to `main`. The workflow requires an Xcode 26 or later runner and publishes test result bundles as diagnostics.
 
 ## Privacy
 
-Production puzzle entry and solving happen on device and do not require an account or network service. The privacy manifest declares UserDefaults access used for lightweight settings such as appearance and onboarding state. Sudoku Photo Scan requests camera or photo-library access only when the user chooses the corresponding on-device import action; puzzle data does not leave the device.
+The production implementation has no account flow, network client, or third-party dependency. The privacy manifest declares UserDefaults access used for lightweight settings such as appearance and onboarding state. Sudoku Photo Scan requests camera or photo-library access only when the user chooses the corresponding import action and is designed to process the image on device. These source-level findings must be confirmed from the TestFlight binary with an App Privacy Report and runtime network inspection before App Store privacy answers are finalized.
+
+## App Store Listing Copy (V1)
+
+The following submission copy is intentionally limited to the shipping catalog and does not present any Coming Soon mode as available:
+
+> Solve nine puzzle modes in one focused app: 3×3, 4×4, and 5×5 sliding puzzles; 2×2 and 3×3 cubes; Sudoku; Sudoku Photo Scan; Killer Sudoku; and Rush Hour. Enter or review your puzzle, validate it, and follow clear solution results and move playback. Searches are bounded so difficult inputs stop with useful feedback rather than running indefinitely.
+
+**Promotional text:** Nine production puzzle modes with input validation, clear results, and bounded search.
+
+Coming Soon modes may be visible inside the app as clearly unavailable previews, but they must not appear in App Store descriptions, promotional text, keywords, or screenshots as shipping functionality.
 
 ## Contributing
 
