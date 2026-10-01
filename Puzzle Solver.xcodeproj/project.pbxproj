@@ -23,6 +23,7 @@
 		AA00000B2B00000100000001 /* ExperimentalPuzzleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */; };
 		AB0000012B00000100000001 /* KillerSudokuModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000022B00000100000001 /* KillerSudokuModels.swift */; };
 		AB0000032B00000100000001 /* KillerSudokuSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000042B00000100000001 /* KillerSudokuSolver.swift */; };
+		AB1000012B00000100000001 /* KillerSudokuViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1000022B00000100000001 /* KillerSudokuViews.swift */; };
 		AB0000052B00000100000001 /* NonogramModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000062B00000100000001 /* NonogramModels.swift */; };
 		AB0000072B00000100000001 /* NonogramSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000082B00000100000001 /* NonogramSolver.swift */; };
 		AB0000092B00000100000001 /* KakuroModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB00000A2B00000100000001 /* KakuroModels.swift */; };
@@ -87,6 +88,7 @@
 		AA00000C2B00000100000001 /* ExperimentalPuzzleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentalPuzzleViews.swift; sourceTree = "<group>"; };
 		AB0000022B00000100000001 /* KillerSudokuModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuModels.swift; sourceTree = "<group>"; };
 		AB0000042B00000100000001 /* KillerSudokuSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuSolver.swift; sourceTree = "<group>"; };
+		AB1000022B00000100000001 /* KillerSudokuViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KillerSudokuViews.swift; sourceTree = "<group>"; };
 		AB0000062B00000100000001 /* NonogramModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramModels.swift; sourceTree = "<group>"; };
 		AB0000082B00000100000001 /* NonogramSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramSolver.swift; sourceTree = "<group>"; };
 		AB00000A2B00000100000001 /* KakuroModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KakuroModels.swift; sourceTree = "<group>"; };
@@ -182,6 +184,7 @@
 				AD0000042B00000100000001 /* LaunchScreen.storyboard */,
 				AB0000022B00000100000001 /* KillerSudokuModels.swift */,
 				AB0000042B00000100000001 /* KillerSudokuSolver.swift */,
+				AB1000022B00000100000001 /* KillerSudokuViews.swift */,
 				AB0000062B00000100000001 /* NonogramModels.swift */,
 				AB0000082B00000100000001 /* NonogramSolver.swift */,
 				AB00000A2B00000100000001 /* KakuroModels.swift */,
@@ -377,6 +380,7 @@
 				AA0000032B00000100000001 /* LogicPuzzleViews.swift in Sources */,
 				AB0000012B00000100000001 /* KillerSudokuModels.swift in Sources */,
 				AB0000032B00000100000001 /* KillerSudokuSolver.swift in Sources */,
+				AB1000012B00000100000001 /* KillerSudokuViews.swift in Sources */,
 				AB0000052B00000100000001 /* NonogramModels.swift in Sources */,
 				AB0000072B00000100000001 /* NonogramSolver.swift in Sources */,
 				AB0000092B00000100000001 /* KakuroModels.swift in Sources */,

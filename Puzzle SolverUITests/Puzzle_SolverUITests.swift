@@ -139,6 +139,51 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Solve Sudoku"].exists)
     }
 
+    func testKillerSudokuCreateEditDeleteUndoAndReset() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-HasCompletedOnboarding", "YES"]
+        app.launch()
+        openKillerSudoku(in: app)
+
+        app.buttons["killer-cell-1-1"].tap()
+        app.buttons["killer-cell-1-2"].tap()
+        let target = app.textFields["killer-target"]
+        target.tap(); target.typeText("8")
+        app.buttons["killer-save-cage"].tap()
+        XCTAssertTrue(app.staticTexts["killer-validation-summary"].label.contains("79 cells"))
+
+        // Tapping a covered cell selects its whole cage for editing rather than
+        // allowing overlap. Save a new total, then delete and restore with Undo.
+        app.buttons["killer-cell-1-1"].tap()
+        target.tap(); target.clearAndEnterText("9")
+        app.buttons["killer-save-cage"].tap()
+        app.buttons["killer-cell-1-1"].tap()
+        app.buttons["killer-delete-cage"].tap()
+        XCTAssertTrue(app.staticTexts["killer-validation-summary"].label.contains("81 cells"))
+        app.buttons["killer-undo"].tap()
+        XCTAssertTrue(app.staticTexts["killer-validation-summary"].label.contains("79 cells"))
+        app.buttons["killer-reset"].tap()
+        XCTAssertTrue(app.staticTexts["killer-validation-summary"].label.contains("81 cells"))
+        XCTAssertFalse(app.buttons["killer-solve"].isEnabled)
+    }
+
+    func testKillerSudokuExampleEnablesSolveAndDisplaysCagesWithSolution() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-HasCompletedOnboarding", "YES"]
+        app.launch()
+        openKillerSudoku(in: app)
+
+        app.buttons["killer-example"].tap()
+        XCTAssertTrue(app.staticTexts["killer-validation-summary"].label.contains("Ready to solve"))
+        let solve = app.buttons["killer-solve"]
+        XCTAssertTrue(solve.isEnabled)
+        solve.tap()
+        XCTAssertTrue(app.otherElements["killer-sudoku-result"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Solved"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["killer-cell-1-1"].label.contains("total 8"))
+        XCTAssertTrue(app.buttons["killer-cell-1-1"].label.contains("value 5"))
+    }
+
     func testScanReviewSelectsAndCorrectsLowConfidenceAndConflictCells() throws {
         let app = launchScanReview()
         let conflict = app.buttons["sudoku-scan-cell-1-2"]
@@ -230,6 +275,15 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["sudoku-manual-input"].waitForExistence(timeout: 2))
     }
 
+    private func openKillerSudoku(in app: XCUIApplication) {
+        XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
+        app.staticTexts["Logic Puzzles"].firstMatch.tap()
+        let killer = app.staticTexts["Killer Sudoku"].firstMatch
+        XCTAssertTrue(killer.waitForExistence(timeout: 2))
+        killer.tap()
+        XCTAssertTrue(app.otherElements["killer-sudoku-input"].waitForExistence(timeout: 2))
+    }
+
     private func openSettings(in app: XCUIApplication) {
         XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
         let settings = app.staticTexts["Settings"].firstMatch
@@ -245,5 +299,13 @@ final class Puzzle_SolverUITests: XCTestCase {
                 XCUIApplication().launch()
             }
         }
+    }
+}
+
+private extension XCUIElement {
+    func clearAndEnterText(_ text: String) {
+        tap()
+        typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (value as? String)?.count ?? 3))
+        typeText(text)
     }
 }

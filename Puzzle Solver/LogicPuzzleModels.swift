@@ -29,8 +29,8 @@ enum LogicPuzzleKind: String, CaseIterable, Identifiable, Hashable {
         }
     }
 
-    var isPlayable: Bool { self == .sudoku }
-    var solverAvailable: Bool { self == .sudoku }
+    var isPlayable: Bool { self == .sudoku || self == .killerSudoku }
+    var solverAvailable: Bool { self == .sudoku || self == .killerSudoku }
 }
 
 struct LogicGridCoordinate: Hashable, Identifiable {
