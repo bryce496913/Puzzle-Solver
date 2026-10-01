@@ -28,24 +28,49 @@ struct AppRootView: View {
 
     var body: some View {
         Group {
-            switch launchState.phase {
-            case .splash:
-                SplashView()
-                    .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
-                    .task {
-                        try? await Task.sleep(nanoseconds: reduceMotion ? 200_000_000 : 900_000_000)
-                        guard !Task.isCancelled else { return }
-                        withAnimation(.easeOut(duration: reduceMotion ? 0.1 : 0.35)) {
-                            _ = launchState.completeSplash()
+            if ProcessInfo.processInfo.arguments.contains("-UITestSudokuScanReview") {
+                SudokuScanReviewView(
+                    result: .uiTestFixture,
+                    onUsePuzzle: { _ in }, onRescan: {}, onRetake: {},
+                    onChooseAnother: {}, onManual: {}
+                )
+            } else {
+                switch launchState.phase {
+                case .splash:
+                    SplashView()
+                        .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
+                        .task {
+                            try? await Task.sleep(nanoseconds: reduceMotion ? 200_000_000 : 900_000_000)
+                            guard !Task.isCancelled else { return }
+                            withAnimation(.easeOut(duration: reduceMotion ? 0.1 : 0.35)) {
+                                _ = launchState.completeSplash()
+                            }
                         }
-                    }
-            case .main:
-                ContentView()
+                case .main:
+                    ContentView()
+                }
             }
         }
         // Apply the persisted choice above every production screen, including splash.
         // A nil scheme is intentional: it lets System track the device appearance.
         .preferredColorScheme(AppAppearanceOption.resolve(preferredAppearance).colorScheme)
+    }
+}
+
+extension SudokuScanResult {
+    /// Deterministic, local-only review data used to exercise this Coming Soon UI.
+    static var uiTestFixture: SudokuScanResult {
+        let values: [LogicGridCoordinate: (Int?, Float?)] = [
+            .init(row: 0, column: 0): (5, 0.70),
+            .init(row: 0, column: 1): (5, 0.99),
+            .init(row: 3, column: 6): (3, 0.65),
+            .init(row: 4, column: 4): (nil, 0.30)
+        ]
+        let cells = (0..<9).flatMap { row in (0..<9).map { column in
+            let candidate = values[LogicGridCoordinate(row: row, column: column)] ?? (nil, nil)
+            return SudokuDetectedCell(row: row, column: column, recognizedValue: candidate.0, confidence: candidate.1)
+        } }
+        return SudokuScanResult(cells: SudokuScanValidator.markReviewStates(cells))
     }
 }
 

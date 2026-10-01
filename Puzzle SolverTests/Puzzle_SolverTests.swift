@@ -952,6 +952,28 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(reviewed.map(\.reviewState), [.highConfidence, .needsReview, .blank])
     }
 
+    func testScanRequiresAtLeastSeventeenEnteredClues() {
+        XCTAssertEqual(SudokuScanConfiguration.minimumCluesForReview, 17)
+        XCTAssertEqual(
+            SudokuImageImportError.ocrCouldNotReadEnoughNumbers.localizedDescription,
+            "Not enough clues were recognized. Review the image or enter missing digits manually."
+        )
+    }
+
+    func testUncertainBlankRemainsMarkedForReview() {
+        let uncertain = SudokuDetectedCell(
+            row: 4, column: 6, recognizedValue: nil, confidence: 0.31,
+            sourceType: .detected, reviewState: .blank
+        )
+
+        let reviewed = SudokuScanValidator.markReviewStates([uncertain])
+
+        XCTAssertNil(reviewed[0].recognizedValue)
+        XCTAssertEqual(reviewed[0].confidence, 0.31)
+        XCTAssertEqual(reviewed[0].reviewState, .lowConfidence)
+        XCTAssertTrue(reviewed[0].needsReview)
+    }
+
     @MainActor
     func testStartingNewScanCancelsPreviousOperation() async throws {
         let firstCancelled = expectation(description: "first scan cancelled")
