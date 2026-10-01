@@ -4,29 +4,30 @@ Puzzle Solver is a SwiftUI app for iPhone that provides a focused set of puzzle 
 
 ## Available in V1
 
+The V1 contract contains exactly **nine active modes**.
+
 | Category | Puzzle | Production behavior |
 | --- | --- | --- |
 | Sliding | 3×3 Sliding Puzzle | Enter the eight numbered tiles and blank, validate solvability, and view ordered solution playback. |
 | Sliding | 4×4 Sliding Puzzle | Enter a board and run bounded, memory-conscious search with explicit timeout/limit feedback. |
 | Sliding | 5×5 Sliding Puzzle | Enter a board and receive a result within the configured search safety limits; difficult layouts may stop without a solution rather than search indefinitely. |
 | Twisty | 2×2 Cube | Enter stickers with guided or net input and solve bounded scrambles. Sticker counts and physical cubie constraints are validated, so impossible 2×2 states are rejected. |
+| Twisty | 3×3 Rubik’s Cube | Enter a physical cube face by face or as a net, then solve it with the bounded two-phase solver. |
 | Logic | Sudoku | Enter givens manually, check row/column/box conflicts, and solve with bounded feedback. An example board and solution display are included. |
+| Logic | Sudoku Photo Scan | Capture or import a Sudoku on device, review every recognized clue, and continue through the production solve flow. |
+| Logic | Killer Sudoku | Build sum cages, validate complete coverage, and solve while preserving the cage constraints. |
 | Mechanical | Rush Hour | Build or load a 6×6 vehicle layout, validate it, and search for an ordered escape solution. |
 
 All active searches use time, depth, node, or memory safeguards appropriate to the solver. An active catalog entry therefore means that its production flow is available—not that every valid, arbitrarily difficult input is guaranteed to finish with a solution.
 
 ## Coming Soon
 
-These entries are visible through the app's **Coming Soon** screen and are not production solver flows in V1:
+These 12 entries are visible through the app's **Coming Soon** screen and are not production solver flows in V1:
 
-- **Twisty:** 3×3 Rubik’s Cube, Pyraminx, Skewb, Megaminx, and Square-1.
-- **Logic:** Sudoku Photo Scan, Killer Sudoku, Nonogram, Kakuro, and Slitherlink.
+- **Twisty:** Pyraminx, Skewb, Megaminx, and Square-1.
+- **Logic:** Nonogram, Kakuro, and Slitherlink.
 - **Mechanical:** Klotski and Peg Solitaire.
-- **Visual / Experimental:** Maze Solver, Chess Puzzles, and Jigsaw Solver.
-
-Sudoku Photo Scan is specifically **not available in V1**. V1 Sudoku puzzles must be entered manually; camera import, photo import, and OCR review are not reachable from the production Sudoku screen.
-
-The 3×3 cube is also **not available in V1**. The repository contains an experimental cubie representation, move engine, pruning tables, and bounded two-phase search work, but that development infrastructure is disconnected from production navigation and must not be treated as a shipping 3×3 solver.
+- **Visual / Experimental:** Maze, Chess, and Jigsaw.
 
 ## Using the App
 
@@ -58,21 +59,19 @@ The production UI derives availability from `PuzzleAvailabilityCatalog`, which i
 
 The repository also retains model-layer and experimental code for future modes. This code is useful for continued development and tests, but its presence does not make a puzzle available in V1:
 
-- The experimental 3×3 cube code includes cubie coordinates, legal moves, validity checks, pruning tables, and a bounded two-phase search implementation.
 - Larger cube and other twisty-puzzle types include placeholder architecture or unavailable-result paths.
-- Killer Sudoku, Nonogram, Kakuro, Slitherlink, Klotski, and Peg Solitaire have varying amounts of model or solver groundwork while remaining outside production navigation.
+- Nonogram, Kakuro, Slitherlink, Klotski, and Peg Solitaire have varying amounts of model or solver groundwork while remaining outside production navigation.
 - Reusable graph search plus maze, chess, and jigsaw models live in the experimental layer; all three remain Coming Soon.
-- Sudoku image-import/OCR development code and test fixtures may be present, but Photo Scan is intentionally excluded from the V1 user flow.
 
 ## Testing and CI
 
-The XCTest target covers catalog status, validation, representative solver outcomes, safety limits, move playback, and model-layer work. The XCUITest target includes launch and production-flow checks, including verification that Sudoku is manual-entry only. Test coverage describes exercised behavior; it is not a guarantee that every possible puzzle state can be solved within V1 limits.
+The XCTest target covers catalog status, validation, representative solver outcomes, safety limits, move playback, and model-layer work. The XCUITest target includes launch and production-flow checks, including verification of the Sudoku photo-scan and review flow. Test coverage describes exercised behavior; it is not a guarantee that every possible puzzle state can be solved within V1 limits.
 
 The repository's GitHub Actions workflow builds Debug and Release simulator configurations and runs the unit-test target on pushes and pull requests to `main`. UI tests are maintained separately but are not run by that workflow.
 
 ## Privacy
 
-Production puzzle entry and solving happen on device and do not require an account or network service. The privacy manifest declares UserDefaults access used for lightweight settings such as appearance and onboarding state. Because Sudoku Photo Scan is not part of the V1 production flow, V1 does not ask users to capture or import Sudoku images through the app.
+Production puzzle entry and solving happen on device and do not require an account or network service. The privacy manifest declares UserDefaults access used for lightweight settings such as appearance and onboarding state. Sudoku Photo Scan requests camera or photo-library access only when the user chooses the corresponding on-device import action; puzzle data does not leave the device.
 
 ## Contributing
 

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ComingSoonView: View {
     var body: some View {
-        AppScreenContainer(title: "Coming Soon", subtitle: "Future puzzle solvers planned for later updates.") {
+        AppScreenContainer(title: "Coming Soon", subtitle: "\(PuzzleAvailabilityCatalog.comingSoonCount) puzzle modes planned for later updates.") {
             LazyVStack(alignment: .leading, spacing: 14) {
                 ForEach(PuzzleCategory.allCases.filter { !PuzzleAvailabilityCatalog.comingSoonDescriptors(in: $0).isEmpty }) { category in
                     AppSectionHeader(category.rawValue)

@@ -14,7 +14,7 @@ struct LogicPuzzleMenuView: View {
         AppScreenContainer(title: PuzzleCategory.logic.rawValue, subtitle: PuzzleCategory.logic.subtitle) {
             LazyVStack(spacing: 12) {
                 ForEach(Self.productionDescriptors) { descriptor in
-                    NavigationLink(destination: destination(for: descriptor)) {
+                    NavigationLink(destination: ProductionPuzzleDestinationView(descriptor: descriptor)) {
                         AppPuzzleCard(descriptor: descriptor)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -24,18 +24,6 @@ struct LogicPuzzleMenuView: View {
         }
     }
 
-    @ViewBuilder
-    private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
-        if descriptor.id == "sudoku", descriptor.status == .active {
-            SudokuInputView()
-        } else if descriptor.id == "killer-sudoku", descriptor.status == .active {
-            KillerSudokuInputView()
-        } else if descriptor.id == "sudoku-photo-scan", descriptor.status == .active {
-            SudokuPhotoScanView()
-        } else {
-            AppPlaceholderScreen(descriptor: descriptor)
-        }
-    }
 }
 
 /// A separate production mode: acquisition, mandatory review, then the existing

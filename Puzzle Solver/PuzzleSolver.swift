@@ -1778,9 +1778,40 @@ struct PuzzleModeDiagnostic: Identifiable, Equatable {
     let solverAvailable: Bool
 }
 
+/// Every case represents a shipping screen. Coming-soon and placeholder screens
+/// deliberately have no representation in this enum.
+enum ProductionPuzzleDestination: String, CaseIterable {
+    case sliding3x3 = "sliding-3x3"
+    case sliding4x4 = "sliding-4x4"
+    case sliding5x5 = "sliding-5x5"
+    case cube2x2 = "cube-2x2"
+    case cube3x3 = "cube-3x3"
+    case sudoku
+    case sudokuPhotoScan = "sudoku-photo-scan"
+    case killerSudoku = "killer-sudoku"
+    case rushHour = "rush-hour"
+}
+
 enum PuzzleModeRegistry {
+    private static let productionDestinations = Dictionary(
+        uniqueKeysWithValues: ProductionPuzzleDestination.allCases.map { ($0.rawValue, $0) }
+    )
+
+    static var registeredProductionIDs: Set<String> {
+        Set(productionDestinations.keys)
+    }
+
+    static func destination(for id: String) -> ProductionPuzzleDestination? {
+        productionDestinations[id]
+    }
+
     static let diagnostics: [PuzzleModeDiagnostic] = PuzzleAvailabilityCatalog.all.map {
-        PuzzleModeDiagnostic(name: $0.title, enabled: $0.status == .active, solverAvailable: $0.status == .active)
+        let isRegistered = destination(for: $0.id) != nil
+        return PuzzleModeDiagnostic(
+            name: $0.title,
+            enabled: $0.status == .active && isRegistered,
+            solverAvailable: $0.status == .active && isRegistered
+        )
     }
 }
 

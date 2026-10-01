@@ -14,7 +14,7 @@ struct MainMenuView: View {
     var body: some View {
         AppScreenContainer(
             title: "Puzzle Solver",
-            subtitle: "A focused puzzle collection with reliable solvers and future modes safely parked."
+            subtitle: "\(PuzzleAvailabilityCatalog.activeCount) active modes, with future modes safely parked."
         ) {
             LazyVStack(spacing: 12) {
                 ForEach(categories) { category in
@@ -27,7 +27,7 @@ struct MainMenuView: View {
                 NavigationLink(destination: ComingSoonView()) {
                     menuCard(
                         title: "Coming Soon",
-                        subtitle: "Future puzzle solvers planned for later updates.",
+                        subtitle: "\(PuzzleAvailabilityCatalog.comingSoonCount) puzzle modes planned for later updates.",
                         icon: "clock.fill"
                     )
                 }
@@ -201,7 +201,7 @@ struct TwistyPuzzleMenuView: View {
         AppScreenContainer(title: PuzzleCategory.twisty.rawValue, subtitle: PuzzleCategory.twisty.subtitle) {
             LazyVStack(spacing: 12) {
                 ForEach(descriptors) { descriptor in
-                    NavigationLink(destination: destination(for: descriptor)) {
+                    NavigationLink(destination: ProductionPuzzleDestinationView(descriptor: descriptor)) {
                         AppPuzzleCard(descriptor: descriptor)
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -210,12 +210,26 @@ struct TwistyPuzzleMenuView: View {
         }
     }
 
-    @ViewBuilder
-    private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
-        switch descriptor.id {
-        case "cube-2x2", "cube-3x3":
+}
+
+struct ProductionPuzzleDestinationView: View {
+    let descriptor: PuzzleAvailabilityDescriptor
+
+    @ViewBuilder var body: some View {
+        switch PuzzleModeRegistry.destination(for: descriptor.id) {
+        case .sliding3x3, .sliding4x4, .sliding5x5:
+            SlidingPuzzleInputView(descriptor: descriptor)
+        case .cube2x2, .cube3x3:
             CubeInputView(descriptor: descriptor)
-        default:
+        case .sudoku:
+            SudokuInputView()
+        case .sudokuPhotoScan:
+            SudokuPhotoScanView()
+        case .killerSudoku:
+            KillerSudokuInputView()
+        case .rushHour:
+            RushHourEntryView()
+        case nil:
             AppPlaceholderScreen(descriptor: descriptor)
         }
     }

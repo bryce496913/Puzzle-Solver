@@ -36,9 +36,9 @@ final class Puzzle_SolverTests: XCTestCase {
         CatalogExpectation(id: "rush-hour", title: "Rush Hour", status: .active),
         CatalogExpectation(id: "klotski", title: "Klotski", status: .comingSoon),
         CatalogExpectation(id: "peg-solitaire", title: "Peg Solitaire", status: .comingSoon),
-        CatalogExpectation(id: "maze-solver", title: "Maze Solver", status: .comingSoon),
-        CatalogExpectation(id: "chess-puzzles", title: "Chess Puzzles", status: .comingSoon),
-        CatalogExpectation(id: "jigsaw-solver", title: "Jigsaw Solver", status: .comingSoon)
+        CatalogExpectation(id: "maze-solver", title: "Maze", status: .comingSoon),
+        CatalogExpectation(id: "chess-puzzles", title: "Chess", status: .comingSoon),
+        CatalogExpectation(id: "jigsaw-solver", title: "Jigsaw", status: .comingSoon)
     ]
 
     func testV1AvailabilityCatalogMatchesApprovedReleaseSnapshot() {
@@ -47,6 +47,36 @@ final class Puzzle_SolverTests: XCTestCase {
         }
 
         XCTAssertEqual(actual, expectedV1Catalog)
+    }
+
+    func testV1ReleaseContractHasExactlyNineRegisteredProductionModes() throws {
+        let expectedActiveIDs: Set<String> = [
+            "sliding-3x3", "sliding-4x4", "sliding-5x5",
+            "cube-2x2", "cube-3x3", "sudoku", "sudoku-photo-scan",
+            "killer-sudoku", "rush-hour"
+        ]
+        let expectedComingSoonIDs: Set<String> = [
+            "pyraminx", "skewb", "megaminx", "square-1", "nonogram", "kakuro",
+            "slitherlink", "klotski", "peg-solitaire", "maze-solver", "chess-puzzles",
+            "jigsaw-solver"
+        ]
+        let descriptors = PuzzleAvailabilityCatalog.all
+        let activeIDs = Set(PuzzleAvailabilityCatalog.activeDescriptors.map(\.id))
+        let comingSoonIDs = Set(PuzzleAvailabilityCatalog.comingSoonDescriptors.map(\.id))
+
+        XCTAssertEqual(Set(descriptors.map(\.id)).count, descriptors.count, "Catalog IDs must be unique.")
+        XCTAssertEqual(activeIDs, expectedActiveIDs)
+        XCTAssertEqual(PuzzleAvailabilityCatalog.activeCount, 9)
+        XCTAssertEqual(comingSoonIDs, expectedComingSoonIDs)
+        XCTAssertEqual(PuzzleAvailabilityCatalog.comingSoonCount, 12)
+        XCTAssertEqual(PuzzleModeRegistry.registeredProductionIDs, expectedActiveIDs)
+
+        for id in expectedActiveIDs {
+            XCTAssertNotNil(PuzzleModeRegistry.destination(for: id), "Active mode \(id) needs a production destination.")
+        }
+        for id in expectedComingSoonIDs {
+            XCTAssertNil(PuzzleModeRegistry.destination(for: id), "Coming Soon mode \(id) must remain unavailable.")
+        }
     }
 
     func testAvailabilityCatalogDescriptorsAreInternallyConsistent() {

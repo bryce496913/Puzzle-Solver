@@ -416,21 +416,32 @@ enum PuzzleAvailabilityCatalog {
         PuzzleAvailabilityDescriptor(id: "rush-hour", category: .mechanical, title: "Rush Hour", shortDescription: "Slide blocking vehicles until the target car reaches the exit.", icon: "car.fill", status: .active),
         PuzzleAvailabilityDescriptor(id: "klotski", category: .mechanical, title: "Klotski", shortDescription: "Solve sliding block escape puzzles.", icon: "rectangle.3.group.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "peg-solitaire", category: .mechanical, title: "Peg Solitaire", shortDescription: "Solve peg-jumping board puzzles.", icon: "circle.grid.cross.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "maze-solver", category: .visual, title: "Maze Solver", shortDescription: "Find paths through drawn or generated mazes.", icon: "arrow.triangle.turn.up.right.diamond.fill", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "chess-puzzles", category: .visual, title: "Chess Puzzles", shortDescription: "Solve mate-in-N and best-move chess positions.", icon: "checkerboard.rectangle", status: .comingSoon),
-        PuzzleAvailabilityDescriptor(id: "jigsaw-solver", category: .visual, title: "Jigsaw Solver", shortDescription: "Explore future image-based jigsaw solving.", icon: "puzzlepiece.extension.fill", status: .comingSoon)
+        PuzzleAvailabilityDescriptor(id: "maze-solver", category: .visual, title: "Maze", shortDescription: "Find paths through drawn or generated mazes.", icon: "arrow.triangle.turn.up.right.diamond.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "chess-puzzles", category: .visual, title: "Chess", shortDescription: "Solve mate-in-N and best-move chess positions.", icon: "checkerboard.rectangle", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "jigsaw-solver", category: .visual, title: "Jigsaw", shortDescription: "Explore future image-based jigsaw solving.", icon: "puzzlepiece.extension.fill", status: .comingSoon)
     ]
 
     static func descriptors(in category: PuzzleCategory) -> [PuzzleAvailabilityDescriptor] {
         all.filter { $0.category == category }
     }
 
+    static var activeDescriptors: [PuzzleAvailabilityDescriptor] {
+        all.filter { $0.status == .active }
+    }
+
+    static var comingSoonDescriptors: [PuzzleAvailabilityDescriptor] {
+        all.filter { $0.status == .comingSoon }
+    }
+
+    static var activeCount: Int { activeDescriptors.count }
+    static var comingSoonCount: Int { comingSoonDescriptors.count }
+
     static func activeDescriptors(in category: PuzzleCategory) -> [PuzzleAvailabilityDescriptor] {
-        descriptors(in: category).filter { $0.status == .active }
+        activeDescriptors.filter { $0.category == category }
     }
 
     static func comingSoonDescriptors(in category: PuzzleCategory) -> [PuzzleAvailabilityDescriptor] {
-        descriptors(in: category).filter { $0.status == .comingSoon }
+        comingSoonDescriptors.filter { $0.category == category }
     }
 
     static func descriptor(id: String) -> PuzzleAvailabilityDescriptor {
