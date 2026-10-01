@@ -1,6 +1,34 @@
 import XCTest
 @testable import Puzzle_Solver
 
+final class KillerSudokuProductionUITests: XCTestCase {
+    func testBundledExampleHasCompleteValidCageCoverageAndNoGivenDigits() {
+        let board = KillerSudokuBoard.example
+        let report = KillerSudokuValidator.report(for: board)
+
+        XCTAssertTrue(report.canSolve)
+        XCTAssertEqual(board.cages.flatMap(\.cells).count, 81)
+        XCTAssertTrue(board.cells.flatMap { $0 }.allSatisfy { $0.value == nil })
+        XCTAssertTrue(board.cages.contains { $0.cells.count > 1 })
+        XCTAssertNotEqual(KillerSudokuValidator.validate(board), .invalid)
+    }
+
+    func testCoverageReportExplainsIncompleteImpossibleAndOverlappingCages() {
+        let cell = LogicGridCoordinate(row: 0, column: 0)
+        var board = KillerSudokuBoard.placeholder
+        XCTAssertEqual(KillerSudokuValidator.report(for: board).uncoveredCells.count, 81)
+        XCTAssertEqual(KillerSudokuValidator.report(for: board).message, "81 cells still need cages.")
+
+        board.cages = [KillerSudokuCage(targetSum: 20, cells: [cell])]
+        XCTAssertEqual(KillerSudokuValidator.report(for: board).invalidCageIndices, [0])
+        XCTAssertTrue(KillerSudokuValidator.report(for: board).message.contains("impossible total"))
+
+        board.cages.append(KillerSudokuCage(targetSum: 1, cells: [cell]))
+        XCTAssertEqual(KillerSudokuValidator.report(for: board).overlappingCells, [cell])
+        XCTAssertEqual(KillerSudokuValidator.report(for: board).message, "These cells already belong to another cage.")
+    }
+}
+
 final class StabilizationTests: XCTestCase {
     func testV1AppearanceChoicesOnlyAdvertiseSupportedModes() {
         XCTAssertEqual(AppAppearanceOption.allCases, [.system, .dark])

@@ -28,6 +28,8 @@ struct LogicPuzzleMenuView: View {
     private func destination(for descriptor: PuzzleAvailabilityDescriptor) -> some View {
         if descriptor.id == "sudoku", descriptor.status == .active {
             SudokuInputView()
+        } else if descriptor.id == "killer-sudoku", descriptor.status == .active {
+            KillerSudokuInputView()
         } else if descriptor.id == "sudoku-photo-scan", descriptor.status == .active {
             SudokuPhotoScanView()
         } else {
