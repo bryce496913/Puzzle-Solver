@@ -415,8 +415,9 @@ final class Puzzle_SolverTests: XCTestCase {
 
         XCTAssertEqual(result.status, .success)
         XCTAssertFalse(result.moves.isEmpty)
-        XCTAssertTrue(result.steps.isEmpty)
+        XCTAssertEqual(result.steps.count, result.moves.count + 1)
         XCTAssertTrue(solves(scrambled, moves: result.moves))
+        XCTAssertEqual(result.steps.last?.state, .solved3x3)
     }
 
     func testSimpleThreeByThreeScrambleSolves() throws {
@@ -469,8 +470,60 @@ final class Puzzle_SolverTests: XCTestCase {
 
         let result = solver.solve(scrambled, options: CubeSolveOptions(timeout: 0, maxDepth: 8, maxNodes: 1, includeStepStates: false))
 
-        XCTAssertTrue([CubeSolveStatus.success, .timeout, .failure, .solverUnavailable].contains(result.status))
+        XCTAssertEqual(result.status, .timeout)
         XCTAssertLessThan(result.elapsedTime, 2)
+    }
+
+    func testThreeByThreeProductionWrapperSolvesLongDeterministicScramble() throws {
+        let scramble: [Cube3x3Move] = [.U, .D, .Ri, .L2, .F, .Bi, .U2, .R, .D2, .Fi, .L, .B2]
+        let start = makeThreeByThreeState(after: scramble)
+
+        let result = Cube3x3Solver().solve(start, options: .threeByThreeProduction)
+
+        XCTAssertEqual(result.status, .success, result.failureReason ?? "")
+        XCTAssertTrue(solves(start, moves: result.moves))
+        XCTAssertEqual(result.steps.count, result.moves.count + 1)
+        XCTAssertEqual(result.steps.first?.state, start)
+        XCTAssertEqual(result.steps.last?.state, .solved3x3)
+    }
+
+    func testThreeByThreeProductionWrapperReportsNodeLimitDistinctly() throws {
+        let start = makeThreeByThreeState(after: [.R, .U])
+
+        let result = Cube3x3Solver().solve(
+            start,
+            options: CubeSolveOptions(timeout: 30, maxDepth: 30, maxNodes: 1, includeStepStates: false)
+        )
+
+        XCTAssertEqual(result.status, .nodeLimitReached)
+        XCTAssertEqual(result.nodesExplored, 1)
+        XCTAssertTrue(result.moves.isEmpty)
+    }
+
+    func testThreeByThreeProductionWrapperReportsTimeoutDistinctly() throws {
+        let start = makeThreeByThreeState(after: [.R])
+
+        let result = Cube3x3Solver().solve(
+            start,
+            options: CubeSolveOptions(timeout: 0, maxDepth: 30, maxNodes: 5_000_000, includeStepStates: false)
+        )
+
+        XCTAssertEqual(result.status, .timeout)
+        XCTAssertEqual(result.nodesExplored, 0)
+        XCTAssertTrue(result.moves.isEmpty)
+    }
+
+    func testSharedServiceRoutesThreeByThreeToProductionSolver() throws {
+        let start = makeThreeByThreeState(after: [.R])
+        let completed = expectation(description: "production 3x3 service completion")
+
+        CubeSolvingService.shared.solve(start) { result in
+            XCTAssertEqual(result.status, .success, result.failureReason ?? "")
+            XCTAssertEqual(Cube3x3MoveEngine.apply(result.moves, to: start), .solved3x3)
+            completed.fulfill()
+        }
+
+        wait(for: [completed], timeout: 35)
     }
 
     // MARK: - Isolated 3×3 two-phase solver regression coverage

@@ -333,6 +333,7 @@ enum TwistySolveStatus: String {
     case invalidInput
     case noSolution
     case timeout
+    case nodeLimitReached
     case unsupportedPuzzle
     case solverUnavailable
     case cancelled
@@ -345,6 +346,7 @@ enum TwistySolveStatus: String {
         case .invalidInput: return "Invalid puzzle"
         case .noSolution: return "No solution found"
         case .timeout: return "Could not solve before the timeout"
+        case .nodeLimitReached: return "Could not solve within the search limit"
         case .unsupportedPuzzle, .solverUnavailable: return "Solver unavailable"
         case .cancelled: return "Solving cancelled"
         }
@@ -376,6 +378,16 @@ struct TwistySolveOptions {
     let includeStepStates: Bool
 
     static let `default` = TwistySolveOptions(timeout: 5, maxDepth: 14, maxNodes: 50_000, includeStepStates: true)
+
+    /// Safety limits for the production two-phase 3×3 solver. The 30-move
+    /// ceiling covers the solver's tested two-phase search space, while the
+    /// time and node caps are deliberately generous for mixed physical cubes.
+    static let threeByThreeProduction = TwistySolveOptions(
+        timeout: 30,
+        maxDepth: 30,
+        maxNodes: 5_000_000,
+        includeStepStates: true
+    )
 }
 
 protocol TwistyPuzzleSolving {
@@ -541,7 +553,15 @@ final class CubeSolvingService {
 
     func solve(
         _ state: CubeState,
-        options: CubeSolveOptions = .default,
+        completion: @escaping (CubeSolveResult) -> Void
+    ) {
+        let options: CubeSolveOptions = state.puzzle == .threeByThree ? .threeByThreeProduction : .default
+        solve(state, options: options, completion: completion)
+    }
+
+    func solve(
+        _ state: CubeState,
+        options: CubeSolveOptions,
         completion: @escaping (CubeSolveResult) -> Void
     ) {
         let started = Date()
@@ -1169,7 +1189,77 @@ enum Cube3x3MoveEngine {
     }
 }
 
+/// Production adapter from sticker states to the validated two-phase cubie
+/// solver. Construction is intentionally cheap: the process-wide pruning
+/// tables are first touched by `solve`, which CubeSolvingService executes on
+/// its background queue, and are then cached by Swift's static initialization.
 final class Cube3x3Solver: CubeSolverProtocol {
+    let supportedPuzzle: CubePuzzleKind = .threeByThree
+
+    func solve(_ state: CubeState, options: CubeSolveOptions) -> CubeSolveResult {
+        let totalStarted = Date()
+        guard state.puzzle == supportedPuzzle else {
+            return finish(.invalidInput, state: state, reason: "Expected a 3×3 cube state.", started: totalStarted)
+        }
+
+        switch CubeStickerValidator.validate(state) {
+        case .failure(let error):
+            return finish(.invalidInput, state: state, reason: error.localizedDescription, started: totalStarted)
+        case .success:
+            break
+        }
+        guard state != .solved3x3 else {
+            let steps = options.includeStepStates ? [CubeSolutionStep(move: nil, state: state)] : []
+            return CubeSolveResult(status: .alreadySolved, puzzle: supportedPuzzle, moves: [], steps: steps, failureReason: nil, elapsedTime: Date().timeIntervalSince(totalStarted), nodesExplored: 0)
+        }
+
+        // Conversion remains explicit even though validation performs the same
+        // physical checks; never allow search to run on an unvalidated cubie state.
+        let cubieState: Cube3x3CubieState
+        switch Cube3x3CubieState.from(stickers: state.stickers) {
+        case .success(let converted): cubieState = converted
+        case .failure(let error):
+            return finish(.invalidInput, state: state, reason: error.localizedDescription, started: totalStarted)
+        }
+
+        let search = Cube3x3KociembaSolver().solve(cubieState, options: options)
+        SolverDebugLogger.shared.log(
+            "Cube3x3Solver: preparation=\(search.pruningTablePreparationTime)s " +
+            "search=\(search.elapsedSearchTime)s total=\(Date().timeIntervalSince(totalStarted))s"
+        )
+
+        guard search.termination == .solved else {
+            let status: CubeSolveStatus
+            switch search.termination {
+            case .timeout: status = .timeout
+            case .nodeLimit: status = .nodeLimitReached
+            case .depthLimit: status = .failure
+            case .solved: status = .failure
+            }
+            return CubeSolveResult(status: status, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: search.reason, elapsedTime: Date().timeIntervalSince(totalStarted), nodesExplored: search.nodes)
+        }
+
+        let moves = search.moves.map(\.rawValue)
+        var replay = state
+        var steps = options.includeStepStates ? [CubeSolutionStep(move: nil, state: replay)] : []
+        for move in moves {
+            replay = Cube3x3MoveEngine.apply(move, to: replay)
+            if options.includeStepStates { steps.append(CubeSolutionStep(move: move, state: replay)) }
+        }
+        guard replay == .solved3x3 else {
+            return finish(.failure, state: state, reason: "Internal solver error: the proposed 3×3 solution did not replay to solved.", started: totalStarted, nodes: search.nodes)
+        }
+        return CubeSolveResult(status: .success, puzzle: supportedPuzzle, moves: moves, steps: steps, failureReason: nil, elapsedTime: Date().timeIntervalSince(totalStarted), nodesExplored: search.nodes)
+    }
+
+    private func finish(_ status: CubeSolveStatus, state: CubeState, reason: String, started: Date, nodes: Int = 0) -> CubeSolveResult {
+        CubeSolveResult(status: status, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: reason, elapsedTime: Date().timeIntervalSince(started), nodesExplored: nodes)
+    }
+}
+
+/// Retained only for regression comparison; production registration uses
+/// Cube3x3Solver exclusively.
+final class LegacyCube3x3ShallowSolver: CubeSolverProtocol {
     let supportedPuzzle: CubePuzzleKind = .threeByThree
     private let solvedState = CubeState.solved3x3
     private let moves = Cube3x3Move.allCases.map(\.rawValue)
@@ -2147,6 +2237,7 @@ extension CubeSolveStatus {
         case .invalidInput: return .invalid
         case .noSolution: return .noSolution
         case .timeout: return .timedOut
+        case .nodeLimitReached: return .failed
         case .unsupportedPuzzle, .solverUnavailable: return .unsupported
         case .cancelled: return .failed
         }
