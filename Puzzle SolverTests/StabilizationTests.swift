@@ -252,3 +252,113 @@ final class StabilizationTests: XCTestCase {
         }
     }
 }
+
+// MARK: - Real Sudoku photo pipeline fixtures
+
+final class SudokuPhotoScanEndToEndTests: XCTestCase {
+    private struct ExpectedBoard: Decodable {
+        let board: [[Int?]]
+        let digitState: String
+        let blankState: String
+    }
+
+    private struct SuccessfulFixture {
+        let image: String
+        let expectation: String
+        let scale: CGFloat
+    }
+
+    func testPhotoScanPermissionPurposeStringsAreSpecific() throws {
+        let info = try XCTUnwrap(Bundle.main.infoDictionary)
+        XCTAssertEqual(
+            info["NSCameraUsageDescription"] as? String,
+            "Photograph a Sudoku puzzle for on-device recognition."
+        )
+        XCTAssertEqual(
+            info["NSPhotoLibraryUsageDescription"] as? String,
+            "Choose a Sudoku image for on-device recognition."
+        )
+        XCTAssertNil(info["NSPhotoLibraryAddUsageDescription"])
+    }
+
+    /// These cases deliberately invoke the default coordinator: image decoding,
+    /// orientation normalization, rectangle detection, perspective correction,
+    /// 900px rendering, segmentation, Vision OCR, and review-state mapping all run.
+    func testRepositoryFixturesProduceAllExpected81Cells() async throws {
+        let fixtures = [
+            SuccessfulFixture(image: "clean-printed", expectation: "clean-printed", scale: 1),
+            SuccessfulFixture(image: "slightly-rotated", expectation: "slightly-rotated", scale: 1),
+            SuccessfulFixture(image: "perspective-skewed", expectation: "perspective-skewed", scale: 1),
+            SuccessfulFixture(image: "low-contrast", expectation: "low-contrast", scale: 1),
+            SuccessfulFixture(image: "surrounding-text", expectation: "surrounding-text", scale: 1),
+            SuccessfulFixture(image: "clean-printed", expectation: "scale-1", scale: 1),
+            SuccessfulFixture(image: "clean-printed", expectation: "scale-2", scale: 2),
+            SuccessfulFixture(image: "clean-printed", expectation: "scale-3", scale: 3),
+            SuccessfulFixture(image: "difficult-printed-digits", expectation: "difficult-printed-digits", scale: 1)
+        ]
+
+        for fixture in fixtures {
+            let source = try fixtureImage(named: fixture.image, scale: fixture.scale)
+            var states: [SudokuScanState] = []
+            let result = try await SudokuScanCoordinator().process(image: source) { states.append($0) }
+            let expected = try expectedBoard(named: fixture.expectation)
+
+            XCTAssertEqual(result.cells.count, 81, fixture.expectation)
+            XCTAssertEqual(result.cells.map(\.recognizedValue), expected.board.flatMap { $0 }, fixture.expectation)
+            XCTAssertEqual(
+                result.cells.map(\.reviewState),
+                expected.board.flatMap { $0 }.map { $0 == nil ? .blank : .highConfidence },
+                "Review mapping differs for \(fixture.expectation) (expected states: \(expected.digitState)/\(expected.blankState))"
+            )
+            XCTAssertEqual(states, [.loadingImage, .detectingBoard, .correctingPerspective, .readingCells, .validating])
+        }
+    }
+
+    func testFailureRasterFixturesHaveExplicitOutcomes() async throws {
+        await assertFailure("no-grid", equals: .boardCouldNotBeDetected)
+        await assertFailure("cropped-incomplete", equals: .boardCouldNotBeDetected)
+        await assertFailure("insufficient-clues", equals: .ocrCouldNotReadEnoughNumbers)
+        await assertFailure("unrecoverable-perspective", equals: .boardCouldNotBeDetected)
+    }
+
+    func testInjectedOCRFailureIsPropagatedAfterRealImageStages() async throws {
+        let image = try fixtureImage(named: "clean-printed")
+        let expected = SudokuImageImportError.processingFailure("Injected OCR outage")
+        let coordinator = SudokuScanCoordinator(ocr: { _ in throw expected })
+
+        do {
+            _ = try await coordinator.process(image: image) { _ in }
+            XCTFail("Expected injected OCR failure")
+        } catch let error as SudokuImageImportError {
+            XCTAssertEqual(error, expected)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    private func assertFailure(_ fixture: String, equals expected: SudokuImageImportError) async {
+        do {
+            _ = try await SudokuScanCoordinator().process(image: try fixtureImage(named: fixture)) { _ in }
+            XCTFail("\(fixture) unexpectedly scanned")
+        } catch let error as SudokuImageImportError {
+            XCTAssertEqual(error, expected, fixture)
+        } catch {
+            XCTFail("\(fixture): unexpected error \(error)")
+        }
+    }
+
+    private func fixtureImage(named name: String, scale: CGFloat = 1) throws -> UIImage {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: name, withExtension: "svg", subdirectory: "SudokuImages"))
+        let decoded = try XCTUnwrap(UIImage(data: Data(contentsOf: url)))
+        let pixels = try XCTUnwrap(decoded.cgImage, "Fixture must decode to raster pixels")
+        return UIImage(cgImage: pixels, scale: scale, orientation: .up)
+    }
+
+    private func expectedBoard(named name: String) throws -> ExpectedBoard {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "\(name).expected", withExtension: "json", subdirectory: "SudokuImages"))
+        let expected = try JSONDecoder().decode(ExpectedBoard.self, from: Data(contentsOf: url))
+        XCTAssertEqual(expected.board.count, 9)
+        XCTAssertTrue(expected.board.allSatisfy { $0.count == 9 })
+        return expected
+    }
+}

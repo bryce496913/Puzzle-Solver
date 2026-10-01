@@ -234,10 +234,43 @@ struct SudokuImagePicker: UIViewControllerRepresentable {
     }
 }
 
+protocol SudokuCellRecognizing {
+    func recognize(cells: [SudokuSegmentedCell]) async throws -> [SudokuDetectedCell]
+}
+
 final class SudokuScanCoordinator {
-    private let preprocessor = SudokuImagePreprocessor(); private let detector = SudokuBoardDetector(); private let corrector = SudokuPerspectiveCorrector(); private let segmenter = SudokuGridSegmenter(); private let ocr = SudokuCellOCRService()
+    typealias OCR = ([SudokuSegmentedCell]) async throws -> [SudokuDetectedCell]
+    private let preprocessor: SudokuImagePreprocessor
+    private let detector: SudokuBoardDetector
+    private let corrector: SudokuPerspectiveCorrector
+    private let segmenter: SudokuGridSegmenter
+    private let recognize: OCR
+
+    init(
+        preprocessor: SudokuImagePreprocessor = SudokuImagePreprocessor(),
+        detector: SudokuBoardDetector = SudokuBoardDetector(),
+        corrector: SudokuPerspectiveCorrector = SudokuPerspectiveCorrector(),
+        segmenter: SudokuGridSegmenter = SudokuGridSegmenter(),
+        ocr: any SudokuCellRecognizing = SudokuCellOCRService()
+    ) {
+        self.preprocessor = preprocessor
+        self.detector = detector
+        self.corrector = corrector
+        self.segmenter = segmenter
+        recognize = ocr.recognize
+    }
+
+    /// Test seam for deterministic transport/error tests. End-to-end fixture tests
+    /// use the default initializer and therefore execute Vision OCR.
+    init(ocr: @escaping OCR) {
+        preprocessor = SudokuImagePreprocessor()
+        detector = SudokuBoardDetector()
+        corrector = SudokuPerspectiveCorrector()
+        segmenter = SudokuGridSegmenter()
+        recognize = ocr
+    }
     func process(image: UIImage, progress: @escaping (SudokuScanState) -> Void) async throws -> SudokuScanResult {
-        let worker = Task.detached(priority: .userInitiated) { [preprocessor, detector, corrector, segmenter, ocr] in
+        let worker = Task.detached(priority: .userInitiated) { [preprocessor, detector, corrector, segmenter, recognize] in
             try Task.checkCancellation()
             progress(.loadingImage); let prepared = try preprocessor.prepare(image)
             try Task.checkCancellation()
@@ -245,11 +278,12 @@ final class SudokuScanCoordinator {
             try Task.checkCancellation()
             progress(.correctingPerspective); let board = try corrector.correct(image: prepared.contrast, detection: detection)
             try Task.checkCancellation()
-            progress(.readingCells); var cells = try await ocr.recognize(cells: segmenter.segment(board))
+            progress(.readingCells); var cells = try await recognize(segmenter.segment(board))
             try Task.checkCancellation()
             progress(.validating); cells = SudokuScanValidator.markReviewStates(cells)
-            // Even an incomplete scan belongs in review so uncertain marks are not
-            // discarded and the user can repair false blanks manually.
+            guard cells.filter({ $0.recognizedValue != nil }).count >= SudokuScanConfiguration.minimumCluesForReview else {
+                throw SudokuImageImportError.ocrCouldNotReadEnoughNumbers
+            }
             return SudokuScanResult(cells: cells, message: SudokuScanValidator.summary(for: cells), diagnostics: SudokuDiagnostics.messages(for: cells))
         }
         return try await withTaskCancellationHandler {
@@ -377,7 +411,7 @@ final class SudokuGridSegmenter {
     }
 }
 
-final class SudokuCellOCRService {
+final class SudokuCellOCRService: SudokuCellRecognizing {
     func recognize(cells: [SudokuSegmentedCell]) async throws -> [SudokuDetectedCell] {
         var output: [SudokuDetectedCell] = []
         output.reserveCapacity(cells.count)
