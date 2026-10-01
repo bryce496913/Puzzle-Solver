@@ -102,6 +102,31 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Solve Sudoku"].exists)
     }
 
+    func testOpenThreeByThreeGuidedAndAdvancedEntryWithLockedCenters() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-HasCompletedOnboarding", "YES"]
+        app.launch()
+
+        let twisty = app.staticTexts["Twisty Puzzles"].firstMatch
+        XCTAssertTrue(twisty.waitForExistence(timeout: 3))
+        twisty.tap()
+        let cube = app.staticTexts["3×3 Rubik’s Cube"].firstMatch
+        XCTAssertTrue(cube.waitForExistence(timeout: 2))
+        cube.tap()
+
+        XCTAssertTrue(app.buttons["Start Entering Up Face"].waitForExistence(timeout: 2))
+        app.buttons["Start Entering Up Face"].tap()
+        let center = app.buttons["cube-locked-center-U"]
+        XCTAssertTrue(center.waitForExistence(timeout: 2))
+        XCTAssertFalse(center.isEnabled)
+        XCTAssertTrue(app.staticTexts["Enter the Up face"].exists)
+
+        app.buttons["Advanced net input"].tap()
+        XCTAssertTrue(app.staticTexts["Back (viewed from behind)"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.otherElements["cube-validation-summary"].exists)
+        XCTAssertTrue(app.buttons["cube-locked-center-B"].exists)
+    }
+
     private func openSudoku(in app: XCUIApplication) {
         XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
         if app.buttons["Skip"].exists { app.buttons["Skip"].tap() }

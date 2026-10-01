@@ -365,7 +365,7 @@ enum PuzzleCategory: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .sliding: return "Solve 3×3, 4×4, and 5×5 sliding tile layouts."
-        case .twisty: return "Solve 2×2 cube states with validated input and non-freezing feedback."
+        case .twisty: return "Enter and solve physically valid 2×2 and 3×3 cube states."
         case .logic: return "Solve classic Sudoku with guided input."
         case .mechanical: return "Clear the path in Rush Hour."
         case .visual: return "Visual and experimental ideas planned for later updates."
@@ -402,7 +402,7 @@ enum PuzzleAvailabilityCatalog {
         PuzzleAvailabilityDescriptor(id: "sliding-4x4", category: .sliding, title: "4×4 Sliding Puzzle", shortDescription: "Solve with a bounded, memory-safe search and clear timeout feedback.", icon: "square.grid.4x3.fill", status: .active),
         PuzzleAvailabilityDescriptor(id: "sliding-5x5", category: .sliding, title: "5×5 Sliding Puzzle", shortDescription: "Enter a 5×5 board and receive a safe result without unbounded searching.", icon: "square.grid.3x3.square", status: .active),
         PuzzleAvailabilityDescriptor(id: "cube-2x2", category: .twisty, title: "2×2 Cube", shortDescription: "Enter sticker colors on a labeled cube net and solve bounded scrambles.", icon: "cube.fill", status: .active),
-        PuzzleAvailabilityDescriptor(id: "cube-3x3", category: .twisty, title: "3×3 Rubik’s Cube", shortDescription: "A production-ready 3×3 solver is planned for a future update.", icon: "cube.transparent.fill", status: .comingSoon),
+        PuzzleAvailabilityDescriptor(id: "cube-3x3", category: .twisty, title: "3×3 Rubik’s Cube", shortDescription: "Enter a physical cube face by face or as a net, then solve it with the two-phase solver.", icon: "cube.transparent.fill", status: .active),
         PuzzleAvailabilityDescriptor(id: "pyraminx", category: .twisty, title: "Pyraminx", shortDescription: "Solve triangular twisty-puzzle scrambles.", icon: "pyramid.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "skewb", category: .twisty, title: "Skewb", shortDescription: "Solve corner-turning Skewb scrambles.", icon: "cube.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "megaminx", category: .twisty, title: "Megaminx", shortDescription: "Solve dodecahedral Megaminx scrambles.", icon: "pentagon.fill", status: .comingSoon),

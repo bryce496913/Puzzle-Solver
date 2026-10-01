@@ -20,7 +20,7 @@ final class Puzzle_SolverTests: XCTestCase {
         CatalogExpectation(id: "sliding-4x4", title: "4×4 Sliding Puzzle", status: .active),
         CatalogExpectation(id: "sliding-5x5", title: "5×5 Sliding Puzzle", status: .active),
         CatalogExpectation(id: "cube-2x2", title: "2×2 Cube", status: .active),
-        CatalogExpectation(id: "cube-3x3", title: "3×3 Rubik’s Cube", status: .comingSoon),
+        CatalogExpectation(id: "cube-3x3", title: "3×3 Rubik’s Cube", status: .active),
         CatalogExpectation(id: "pyraminx", title: "Pyraminx", status: .comingSoon),
         CatalogExpectation(id: "skewb", title: "Skewb", status: .comingSoon),
         CatalogExpectation(id: "megaminx", title: "Megaminx", status: .comingSoon),
@@ -646,11 +646,11 @@ final class Puzzle_SolverTests: XCTestCase {
         let active = PuzzleAvailabilityCatalog.activeDescriptors(in: .twisty)
         let comingSoon = PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .twisty)
 
-        XCTAssertEqual(active.map(\.id), ["cube-2x2"])
-        XCTAssertEqual(comingSoon.map(\.id), ["cube-3x3", "pyraminx", "skewb", "megaminx", "square-1"])
+        XCTAssertEqual(active.map(\.id), ["cube-2x2", "cube-3x3"])
+        XCTAssertEqual(comingSoon.map(\.id), ["pyraminx", "skewb", "megaminx", "square-1"])
     }
 
-    func testThreeByThreeCubeCannotEnterActiveV1SolveFlow() throws {
+    func testThreeByThreeCubeEntersActiveProductionSolveFlow() throws {
         let twoByTwo = PuzzleAvailabilityCatalog.descriptor(id: "cube-2x2")
         let threeByThree = PuzzleAvailabilityCatalog.descriptor(id: "cube-3x3")
         let activeTwistyIDs = Set(PuzzleAvailabilityCatalog.activeDescriptors(in: .twisty).map(\.id))
@@ -659,10 +659,43 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertTrue(twoByTwo.status.isInteractive)
         XCTAssertTrue(activeTwistyIDs.contains(twoByTwo.id))
 
-        XCTAssertEqual(threeByThree.status, .comingSoon)
-        XCTAssertFalse(threeByThree.status.isInteractive)
-        XCTAssertFalse(activeTwistyIDs.contains(threeByThree.id))
-        XCTAssertTrue(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .twisty).contains(threeByThree))
+        XCTAssertEqual(threeByThree.status, .active)
+        XCTAssertTrue(threeByThree.status.isInteractive)
+        XCTAssertTrue(activeTwistyIDs.contains(threeByThree.id))
+        XCTAssertFalse(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .twisty).contains(threeByThree))
+    }
+
+    func testThreeByThreePhysicalFailuresUseActionableMessages() throws {
+        let cases: [(CubeState, String)] = [
+            (Cube3x3PhysicalFixtures.twistedCorner, "Corner orientation is impossible"),
+            (Cube3x3PhysicalFixtures.flippedEdge, "One edge appears flipped"),
+            (Cube3x3PhysicalFixtures.duplicateMissingCorner, "corner piece"),
+            (Cube3x3PhysicalFixtures.duplicateMissingEdge, "edge piece"),
+            (Cube3x3PhysicalFixtures.badCenters, "Center colors do not match"),
+            (Cube3x3PhysicalFixtures.parityMismatch, "permutation parity is invalid")
+        ]
+
+        for (state, expectedText) in cases {
+            guard case .failure(let error) = CubeStickerValidator.validate(state) else {
+                return XCTFail("Expected invalid physical cube")
+            }
+            XCTAssertTrue(error.localizedDescription.localizedCaseInsensitiveContains(expectedText), error.localizedDescription)
+        }
+    }
+
+    func testThreeByThreeEntryToProductionResultReplaysShallowAndMixedCubes() throws {
+        let scrambles: [[Cube3x3Move]] = [
+            [.R, .U, .Ri, .Ui],
+            [.U, .D, .Ri, .L2, .F, .Bi, .U2, .R, .D2, .Fi, .L, .B2]
+        ]
+        for scramble in scrambles {
+            let input = makeThreeByThreeState(after: scramble)
+            XCTAssertNoThrow(try CubeStickerValidator.validate(input).get())
+            let result = Cube3x3Solver().solve(input, options: .threeByThreeProduction)
+            XCTAssertEqual(result.status, .success, result.failureReason ?? "")
+            XCTAssertFalse(result.moves.isEmpty)
+            XCTAssertEqual(Cube3x3MoveEngine.apply(result.moves, to: input), .solved3x3)
+        }
     }
     // MARK: - Shared state and diagnostics
 
