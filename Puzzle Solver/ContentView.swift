@@ -28,7 +28,9 @@ struct AppRootView: View {
 
     var body: some View {
         Group {
-            if ProcessInfo.processInfo.arguments.contains("-UITestSudokuScanReview") {
+            if ProcessInfo.processInfo.arguments.contains("-UITestSudokuPhotoScanFixture") {
+                NavigationView { SudokuPhotoScanView(initialReviewResult: .uiTestSolvableFixture) }
+            } else if ProcessInfo.processInfo.arguments.contains("-UITestSudokuScanReview") {
                 SudokuScanReviewView(
                     result: .uiTestFixture,
                     onUsePuzzle: { _ in }, onRescan: {}, onRetake: {},
@@ -58,7 +60,7 @@ struct AppRootView: View {
 }
 
 extension SudokuScanResult {
-    /// Deterministic, local-only review data used to exercise this Coming Soon UI.
+    /// Deterministic, local-only review data used to exercise review accessibility.
     static var uiTestFixture: SudokuScanResult {
         let values: [LogicGridCoordinate: (Int?, Float?)] = [
             .init(row: 0, column: 0): (5, 0.70),
@@ -71,6 +73,21 @@ extension SudokuScanResult {
             return SudokuDetectedCell(row: row, column: column, recognizedValue: candidate.0, confidence: candidate.1)
         } }
         return SudokuScanResult(cells: SudokuScanValidator.markReviewStates(cells))
+    }
+
+    /// Represents the output of the bundled-image UI-test import. The OCR
+    /// pipeline itself is exercised against repository images in unit tests.
+    static var uiTestSolvableFixture: SudokuScanResult {
+        let board = SudokuBoard.example
+        return SudokuScanResult(cells: (0..<9).flatMap { row in (0..<9).map { column in
+            SudokuDetectedCell(
+                row: row,
+                column: column,
+                recognizedValue: board.cells[row][column].value,
+                confidence: board.cells[row][column].value == nil ? nil : 1,
+                reviewState: board.cells[row][column].value == nil ? .blank : .highConfidence
+            )
+        } })
     }
 }
 

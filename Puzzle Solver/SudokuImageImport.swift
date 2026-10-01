@@ -56,6 +56,14 @@ struct SudokuScanResult: Equatable, Identifiable {
     }
 }
 
+extension SudokuScanResult {
+    static var emptyManualEntry: SudokuScanResult {
+        SudokuScanResult(cells: (0..<9).flatMap { row in
+            (0..<9).map { SudokuDetectedCell(row: row, column: $0, recognizedValue: nil, confidence: nil, sourceType: .manual) }
+        })
+    }
+}
+
 typealias SudokuImageImportResult = SudokuScanResult
 
 enum SudokuScanState: Equatable {
@@ -205,7 +213,7 @@ struct SudokuImageImportView: View {
             Text("Scan Sudoku").font(AppTextStyle.h3).foregroundColor(AppTheme.text)
             Text("Place the full Sudoku board inside the frame. Hold the phone directly above the puzzle. Avoid shadows and glare. Make sure all four corners are visible.").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text.opacity(0.85))
             ZStack { RoundedRectangle(cornerRadius: 10).stroke(AppTheme.highlight.opacity(0.7), style: StrokeStyle(lineWidth: 2, dash: [8, 6])).aspectRatio(1, contentMode: .fit); Text("Align board inside this guide").font(AppTextStyle.paragraph).foregroundColor(AppTheme.text.opacity(0.7)) }.frame(maxHeight: 160)
-            HStack(spacing: 12) { Button("Scan Sudoku") { viewModel.begin(.camera) }.buttonStyle(AppPrimaryButtonStyle()); Button("Choose Photo") { viewModel.begin(.photoLibrary) }.buttonStyle(AppSecondaryButtonStyle()) }
+            HStack(spacing: 12) { Button("Take Photo") { viewModel.begin(.camera) }.buttonStyle(AppPrimaryButtonStyle()); Button("Choose from Photo Library") { viewModel.begin(.photoLibrary) }.buttonStyle(AppSecondaryButtonStyle()) }
             if viewModel.isProcessing { HStack { ProgressView(); Text(viewModel.statusText).font(AppTextStyle.paragraph).foregroundColor(AppTheme.text) } }
             if let error = viewModel.errorMessage { Text(error).font(AppTextStyle.paragraph).foregroundColor(AppTheme.highlight) }
         }.padding(10).background(AppTheme.surface).clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -496,7 +504,7 @@ struct SudokuScanReviewView: View {
         Button("Use This Puzzle") { onUsePuzzle(board) }.buttonStyle(AppPrimaryButtonStyle()).disabled(!hasMinimumClues || !SudokuValidator.validate(board).canSolve || result.reviewCount > 0)
         HStack { Button("Rescan") { onRescan() }.buttonStyle(AppSecondaryButtonStyle()); Button("Retake Photo") { onRetake() }.buttonStyle(AppSecondaryButtonStyle()) }
         Button("Choose Another Photo") { onChooseAnother() }.buttonStyle(AppSecondaryButtonStyle())
-        Button("Enter Manually") { onManual() }.buttonStyle(AppResetButtonStyle())
+        Button("Continue Editing Manually") { markForManualReview() }.buttonStyle(AppResetButtonStyle())
     }.padding().background(AppTheme.background) }.navigationTitle("Review Sudoku") } }
     private var reviewGrid: some View {
         GeometryReader { proxy in
@@ -514,6 +522,15 @@ struct SudokuScanReviewView: View {
         .accessibilityLabel("Sudoku scan review board")
     }
     private func setSelected(_ value: Int?) { guard let index = cells.firstIndex(where: { $0.row == selected.row && $0.column == selected.column }) else { return }; var cell = cells[index]; cell.recognizedValue = value; cell.confidence = value == nil ? nil : 1; cell.sourceType = .manual; cell.reviewState = value == nil ? .blank : .highConfidence; cells[index] = cell; cells = SudokuScanValidator.markReviewStates(cells) }
+    private func markForManualReview() {
+        cells = cells.map { cell in
+            var edited = cell
+            edited.sourceType = .manual
+            edited.confidence = cell.recognizedValue == nil ? nil : 1
+            edited.reviewState = cell.recognizedValue == nil ? .blank : .highConfidence
+            return edited
+        }
+    }
     private func reviewCell(at coordinate: LogicGridCoordinate, side: CGFloat) -> some View {
         let cell = cells.first(where: { $0.row == coordinate.row && $0.column == coordinate.column }) ?? SudokuDetectedCell(row: coordinate.row, column: coordinate.column, recognizedValue: nil, confidence: nil)
         let isConflict = conflicts.contains(coordinate) || cell.reviewState == .conflict

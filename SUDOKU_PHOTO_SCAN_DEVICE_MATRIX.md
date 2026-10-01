@@ -1,6 +1,6 @@
 # Sudoku Photo Scan — Physical-device validation matrix
 
-Photo Scan remains **Coming Soon**. This matrix validates the dormant implementation without changing product availability. Automated UI coverage must import the bundled `clean-printed.svg` fixture through the test image-import hook; it must not claim to automate live camera reliability in Simulator.
+Photo Scan is an **Active** V1 mode. Automated coverage imports repository-owned Sudoku fixtures through the on-device pipeline and exercises the review/result UI through a deterministic test hook; it does not claim to automate live camera reliability in Simulator. The physical-device cases below remain the required Camera/Photos release checklist.
 
 ## Setup and recording
 

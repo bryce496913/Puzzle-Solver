@@ -28,7 +28,7 @@ final class Puzzle_SolverTests: XCTestCase {
         CatalogExpectation(id: "megaminx", title: "Megaminx", status: .comingSoon),
         CatalogExpectation(id: "square-1", title: "Square-1", status: .comingSoon),
         CatalogExpectation(id: "sudoku", title: "Sudoku", status: .active),
-        CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .comingSoon),
+        CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .active),
         CatalogExpectation(id: "killer-sudoku", title: "Killer Sudoku", status: .comingSoon),
         CatalogExpectation(id: "nonogram", title: "Nonogram", status: .comingSoon),
         CatalogExpectation(id: "kakuro", title: "Kakuro", status: .comingSoon),
@@ -862,20 +862,20 @@ final class Puzzle_SolverTests: XCTestCase {
     func testLogicPuzzleReleaseAvailabilityComesFromV1Catalog() throws {
         let logicDescriptors = PuzzleAvailabilityCatalog.descriptors(in: .logic)
 
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku"])
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["sudoku-photo-scan", "killer-sudoku", "nonogram", "kakuro", "slitherlink"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku", "sudoku-photo-scan"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["killer-sudoku", "nonogram", "kakuro", "slitherlink"])
     }
 
-    func testSudokuPhotoScanUsesComingSoonMenuBehavior() throws {
+    func testSudokuPhotoScanUsesActiveDedicatedMenuBehavior() throws {
         let sudoku = PuzzleAvailabilityCatalog.descriptor(id: "sudoku")
         let photoScan = PuzzleAvailabilityCatalog.descriptor(id: "sudoku-photo-scan")
 
         XCTAssertEqual(sudoku.status, .active)
         XCTAssertTrue(sudoku.status.isInteractive)
-        XCTAssertEqual(photoScan.status, .comingSoon)
-        XCTAssertFalse(photoScan.status.isInteractive)
-        XCTAssertFalse(LogicPuzzleMenuView.productionDescriptors.contains(photoScan))
-        XCTAssertTrue(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .logic).contains(photoScan))
+        XCTAssertEqual(photoScan.status, .active)
+        XCTAssertTrue(photoScan.status.isInteractive)
+        XCTAssertTrue(LogicPuzzleMenuView.productionDescriptors.contains(photoScan))
+        XCTAssertFalse(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .logic).contains(photoScan))
     }
 
     func testOCRImplementationDoesNotAffectProductionSudokuInitialization() {
@@ -1193,7 +1193,7 @@ final class Puzzle_SolverTests: XCTestCase {
 
     // MARK: - Newly implemented placeholder-mode solver coverage
 
-    func testKillerSudokuSolvedBoardSatisfiesCages() throws {
+    func testKillerSudokuSolvedBoardSatisfiesCompleteCageCoverage() throws {
         let solved = SudokuBoard(values: [
             [5, 3, 4, 6, 7, 8, 9, 1, 2],
             [6, 7, 2, 1, 9, 5, 3, 4, 8],
@@ -1205,12 +1205,83 @@ final class Puzzle_SolverTests: XCTestCase {
             [2, 8, 7, 4, 1, 9, 6, 3, 5],
             [3, 4, 5, 2, 8, 6, 1, 7, 9]
         ])
-        let board = KillerSudokuBoard(cells: solved.cells, cages: [KillerSudokuCage(targetSum: 8, cells: [LogicGridCoordinate(row: 0, column: 0), LogicGridCoordinate(row: 0, column: 1)])])
+        let board = KillerSudokuBoard(cells: solved.cells, cages: singletonCages(for: solved))
 
         let result = KillerSudokuSolver().solve(board, options: KillerSudokuSolveOptions(maxNodes: 100, timeout: 1))
 
         XCTAssertEqual(result.state, .solved)
         XCTAssertNotNil(result.solvedBoard)
+    }
+
+    func testKillerSudokuCageValidationRejectsMalformedLayouts() {
+        let empty = SudokuBoard.empty
+        let complete = rowCages()
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: complete)), .solving)
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: Array(complete.dropLast()))), .invalid)
+
+        var overlap = complete
+        overlap[1].cells.append(.init(row: 0, column: 0))
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: overlap)), .invalid)
+
+        var duplicate = complete
+        duplicate[0].cells.append(duplicate[0].cells[0])
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: duplicate)), .invalid)
+
+        var emptyCage = complete
+        emptyCage.append(KillerSudokuCage(targetSum: 1, cells: []))
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: emptyCage)), .invalid)
+
+        var outOfBounds = complete
+        outOfBounds[0].cells[0] = .init(row: -1, column: 0)
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: outOfBounds)), .invalid)
+
+        var impossible = singletonCages(for: empty)
+        impossible[0].targetSum = 10
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: impossible)), .invalid)
+
+        let diagonal = KillerSudokuCage(targetSum: 3, cells: [.init(row: 0, column: 0), .init(row: 1, column: 1)])
+        let remainder = singletonCages(for: empty).filter { $0.cells[0] != .init(row: 0, column: 0) && $0.cells[0] != .init(row: 1, column: 1) }
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: empty.cells, cages: [diagonal] + remainder)), .invalid)
+    }
+
+    func testKillerSudokuRejectsRepeatedGivenDigitInsideCage() {
+        var cages = singletonCages(for: SudokuBoard.empty)
+        cages.removeFirst(2)
+        cages.insert(KillerSudokuCage(targetSum: 10, cells: [.init(row: 0, column: 0), .init(row: 0, column: 1)]), at: 0)
+        let cells = SudokuBoard.empty
+            .settingValue(5, at: .init(row: 0, column: 0))
+            .settingValue(5, at: .init(row: 0, column: 1))
+        XCTAssertEqual(KillerSudokuValidator.validate(KillerSudokuBoard(cells: cells.cells, cages: cages)), .invalid)
+    }
+
+    func testKillerSudokuCountsUniqueUnsolvableAndMultipleSolutions() {
+        let solved = SudokuSolver().solve(.example).solvedBoard!
+        XCTAssertEqual(KillerSudokuSolver().solve(KillerSudokuBoard(cells: solved.cells, cages: singletonCages(for: solved))).state, .solved)
+
+        let unsolvable = SudokuBoard.example.settingValue(1, at: .init(row: 0, column: 2))
+        XCTAssertEqual(KillerSudokuSolver().solve(KillerSudokuBoard(cells: unsolvable.cells, cages: rowCages())).state, .noSolution)
+
+        let ambiguous = KillerSudokuSolver().solve(KillerSudokuBoard(cells: SudokuBoard.empty.cells, cages: rowCages()), options: .init(maxNodes: 500_000, timeout: 3))
+        XCTAssertEqual(ambiguous.state, .multipleSolutions)
+        XCTAssertNil(ambiguous.solvedBoard)
+    }
+
+    func testKillerSudokuHonorsSearchLimits() {
+        let board = KillerSudokuBoard(cells: SudokuBoard.empty.cells, cages: rowCages())
+        let limited = KillerSudokuSolver().solve(board, options: .init(maxNodes: 1, timeout: 5))
+        XCTAssertEqual(limited.state, .failed)
+        XCTAssertLessThanOrEqual(limited.nodesExplored, 1)
+        XCTAssertEqual(KillerSudokuSolver().solve(board, options: .init(maxNodes: 500_000, timeout: 0)).state, .timedOut)
+    }
+
+    private func rowCages() -> [KillerSudokuCage] {
+        (0..<9).map { row in KillerSudokuCage(targetSum: 45, cells: (0..<9).map { .init(row: row, column: $0) }) }
+    }
+
+    private func singletonCages(for board: SudokuBoard) -> [KillerSudokuCage] {
+        (0..<9).flatMap { row in (0..<9).map { column in
+            KillerSudokuCage(targetSum: board.cells[row][column].value ?? ((row * 3 + row / 3 + column) % 9 + 1), cells: [.init(row: row, column: column)])
+        } }
     }
 
     func testNonogramSimpleCrossSolves() throws {
