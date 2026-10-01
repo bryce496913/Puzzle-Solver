@@ -261,6 +261,105 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertTrue(app.buttons["cube-locked-center-B"].exists)
     }
 
+    // MARK: - V1 release gate
+
+    func testV1Sliding3x3HappyPath() { verifySliding(size: 3) }
+    func testV1Sliding4x4HappyPath() { verifySliding(size: 4) }
+    func testV1Sliding5x5BoundedHappyPath() { verifySliding(size: 5) }
+
+    func testV1Cube2x2KnownStateReachesVerifiedResult() { verifyCube(named: "2×2 Cube") }
+    func testV1Cube3x3KnownStateReachesVerifiedResult() { verifyCube(named: "3×3 Rubik’s Cube") }
+
+    func testV1ManualSudokuUniquePuzzleSolves() {
+        let app = launchAtMainMenu()
+        openMode("Sudoku", category: "Logic Puzzles", in: app)
+        tap(app.buttons["Example"], in: app)
+        tap(app.buttons["Solve Sudoku"], in: app)
+        XCTAssertTrue(app.otherElements["sudoku-result"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Solved"].waitForExistence(timeout: 8))
+    }
+
+    func testV1SudokuPhotoBundledFixtureSolves() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-HasCompletedOnboarding", "YES", "-UITestSudokuPhotoScanFixture"]
+        app.launch()
+        let use = app.buttons["Use This Puzzle"]
+        tap(use, in: app)
+        XCTAssertTrue(app.otherElements["sudoku-result"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Solved"].waitForExistence(timeout: 8))
+    }
+
+    func testV1KillerSudokuBundledExampleSolves() {
+        let app = launchAtMainMenu()
+        openMode("Killer Sudoku", category: "Logic Puzzles", in: app)
+        tap(app.buttons["killer-example"], in: app)
+        tap(app.buttons["killer-solve"], in: app)
+        XCTAssertTrue(app.otherElements["killer-sudoku-result"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Solved"].waitForExistence(timeout: 10))
+    }
+
+    func testV1RushHourBundledExampleSolves() {
+        let app = launchAtMainMenu()
+        openMode("Rush Hour", category: "Mechanical Puzzles", in: app)
+        tap(app.buttons["Load Example"], in: app)
+        tap(app.buttons["Solve Rush Hour"], in: app)
+        XCTAssertTrue(app.otherElements["rush-hour-result"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'moves'")).firstMatch.exists)
+    }
+
+    func testV1MainMenuAndComingSoonRoutingContract() {
+        let app = launchAtMainMenu()
+        XCTAssertTrue(app.otherElements["main-content"].exists)
+        tap(app.staticTexts["Coming Soon"].firstMatch, in: app)
+        XCTAssertTrue(app.staticTexts["Pyraminx"].waitForExistence(timeout: 3))
+        app.staticTexts["Pyraminx"].tap()
+        XCTAssertTrue(app.staticTexts["Pyraminx"].exists, "Coming Soon cards must remain informational")
+        XCTAssertFalse(app.buttons["cube-solve"].exists)
+        XCTAssertFalse(app.otherElements["sudoku-manual-input"].exists)
+        XCTAssertFalse(app.otherElements["rush-hour-result"].exists)
+    }
+
+    private func verifySliding(size: Int) {
+        let app = launchAtMainMenu()
+        openMode("\(size)×\(size) Sliding Puzzle", category: "Sliding Puzzles", in: app)
+        tap(app.buttons["Load Example"], in: app)
+        tap(app.buttons["Solve \(size)×\(size) Puzzle"], in: app)
+        XCTAssertTrue(app.otherElements["sliding-solver-result"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Solved"].waitForExistence(timeout: 12))
+    }
+
+    private func verifyCube(named name: String) {
+        let app = launchAtMainMenu()
+        openMode(name, category: "Twisty Puzzles", in: app)
+        tap(app.buttons["Advanced net input"], in: app)
+        tap(app.buttons["cube-solve"], in: app)
+        XCTAssertTrue(app.otherElements["cube-solver-result"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Already solved."].waitForExistence(timeout: 8))
+    }
+
+    private func launchAtMainMenu() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments += ["-HasCompletedOnboarding", "YES"]
+        app.launch()
+        XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 4))
+        return app
+    }
+
+    private func openMode(_ mode: String, category: String, in app: XCUIApplication) {
+        tap(app.staticTexts[category].firstMatch, in: app)
+        let card = app.staticTexts[mode].firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 3), "Missing active production card: \(mode)")
+        tap(card, in: app)
+        XCTAssertFalse(app.staticTexts["Planned for a future update"].exists, "\(mode) routed to AppPlaceholderScreen")
+    }
+
+    private func tap(_ element: XCUIElement, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertTrue(element.waitForExistence(timeout: 4), "Element does not exist", file: file, line: line)
+        for _ in 0..<6 where !element.isHittable { app.swipeUp() }
+        XCTAssertTrue(element.isHittable, "Element is not hittable", file: file, line: line)
+        element.tap()
+    }
+
     private func openSudoku(in app: XCUIApplication) {
         XCTAssertTrue(app.otherElements["main-content"].waitForExistence(timeout: 3))
         if app.buttons["Skip"].exists { app.buttons["Skip"].tap() }

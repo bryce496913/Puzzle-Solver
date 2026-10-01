@@ -1,5 +1,16 @@
 # Puzzle Solver
 
+## V1 merge gate
+
+The `iOS Build and Test` workflow runs the complete automated V1 gate on an
+Xcode 26+ macOS runner: Debug build, unit tests, all nine active-mode XCUITest
+happy paths, and Release build. The jobs are intentionally exposed as one
+stable required check so an earlier failure cannot be hidden by a later stage.
+
+Repository owners should configure branch protection for `main` to require the
+**`iOS Build and Test / V1 Release Gate`** status check. Branch-protection
+settings live on GitHub and cannot be enabled by workflow source alone.
+
 Puzzle Solver is a SwiftUI app for iPhone that provides a focused set of puzzle solvers. The lists below mirror the production `PuzzleAvailabilityCatalog`: **Available in V1** means the puzzle has a user-accessible input and solve flow, while **Coming Soon** means it is listed in the app but cannot be opened as a solver.
 
 ## Available in V1
