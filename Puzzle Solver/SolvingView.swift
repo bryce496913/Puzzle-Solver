@@ -129,6 +129,7 @@ struct SolvingView: View {
             .padding()
         }
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("sliding-solver-result")
         .onAppear {
             guard !didStart else { return }
             didStart = true

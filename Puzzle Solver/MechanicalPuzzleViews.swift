@@ -396,6 +396,7 @@ struct RushHourResultView: View {
             }
         }
         .onChange(of: result.status) { _ in stepIndex = 0 }
+        .accessibilityIdentifier("rush-hour-result")
     }
 }
 

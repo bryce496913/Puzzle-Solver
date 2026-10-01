@@ -55,6 +55,17 @@
                ReferencedContainer = "container:Puzzle Solver.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EE82B67C2B69931700B2BC49"
+               BuildableName = "Puzzle SolverUITests.xctest"
+               BlueprintName = "Puzzle SolverUITests"
+               ReferencedContainer = "container:Puzzle Solver.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

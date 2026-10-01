@@ -437,7 +437,7 @@ struct CubeInputView: View {
             } else if !result.succeeded {
                 Button("Back to Cube Entry") { guidedStage = .review }.buttonStyle(AppSecondaryButtonStyle())
             }
-        }.appCardStyle()
+        }.appCardStyle().accessibilityIdentifier("cube-solver-result")
     }
 
     private func moveList(_ moves: [String]) -> some View { VStack(alignment: .leading, spacing: 8) { ForEach(Array(moves.enumerated()), id: \.offset) { i, m in moveRow(i: i, move: m) } } }

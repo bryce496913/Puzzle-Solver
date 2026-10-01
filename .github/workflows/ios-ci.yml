@@ -13,9 +13,10 @@ permissions:
 
 jobs:
   build-and-test:
-    name: Build and unit test
+    # Stable name for the branch-protection required status check.
+    name: V1 Release Gate
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       PROJECT: Puzzle Solver.xcodeproj
       SCHEME: Puzzle Solver
@@ -79,6 +80,7 @@ jobs:
           version, name, udid = max(candidates)
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"destination=platform=iOS Simulator,id={udid}\n")
+              output.write(f"udid={udid}\n")
           print(f"Selected {name} running iOS {'.'.join(map(str, version))} ({udid})")
           PY
 
@@ -103,9 +105,23 @@ jobs:
             -configuration Debug \
             -destination '${{ steps.simulator.outputs.destination }}' \
             -derivedDataPath "$DERIVED_DATA" \
-            -resultBundlePath TestResults.xcresult \
+            -resultBundlePath UnitTestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             -only-testing:'Puzzle SolverTests' \
+            test
+
+      - name: Run V1 XCUITests
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination '${{ steps.simulator.outputs.destination }}' \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath UITestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:'Puzzle SolverUITests/Puzzle_SolverUITests' \
             test
 
       - name: Build application (Release)
@@ -120,10 +136,21 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      - name: Collect UI-test screenshots and logs
+        if: ${{ failure() }}
+        run: |
+          mkdir -p UITestDiagnostics
+          xcrun simctl io '${{ steps.simulator.outputs.udid }}' screenshot UITestDiagnostics/final-simulator.png 2>/dev/null || true
+          xcrun simctl spawn '${{ steps.simulator.outputs.udid }}' log show --last 15m --style compact > UITestDiagnostics/simulator.log 2>&1 || true
+
       - name: Upload test diagnostics
-        if: ${{ always() && hashFiles('TestResults.xcresult/**') != '' }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults
-          path: TestResults.xcresult
+          name: v1-test-diagnostics
+          path: |
+            UnitTestResults.xcresult
+            UITestResults.xcresult
+            UITestDiagnostics
+          if-no-files-found: ignore
           retention-days: 14
