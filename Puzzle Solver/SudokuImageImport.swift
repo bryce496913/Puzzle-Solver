@@ -101,10 +101,26 @@ final class SudokuImageImportViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var reviewResult: SudokuImageImportResult?
     @Published var scanState: SudokuScanState = .idle
-    private let processor = SudokuScanCoordinator()
+    typealias ScanOperation = (UIImage, @escaping (SudokuScanState) -> Void) async throws -> SudokuScanResult
+    private let scanOperation: ScanOperation
+    private var activeScan: Task<Void, Never>?
+    private var operationID = UUID()
 
-    func begin(_ source: Source) { errorMessage = nil; source == .camera ? requestCamera() : requestPhotoLibrary() }
+    init(processor: SudokuScanCoordinator = SudokuScanCoordinator()) {
+        scanOperation = processor.process
+    }
+
+    init(scanOperation: @escaping ScanOperation) {
+        self.scanOperation = scanOperation
+    }
+
+    func begin(_ source: Source) {
+        cancelScan()
+        errorMessage = nil
+        source == .camera ? requestCamera() : requestPhotoLibrary()
+    }
     func process(_ image: UIImage?) {
+        cancelScan()
         selectedSource = nil
         guard let image else {
             scanState = .cancelled
@@ -114,14 +130,52 @@ final class SudokuImageImportViewModel: ObservableObject {
             return
         }
         isProcessing = true; updateState(.loadingImage)
-        Task {
-            defer { isProcessing = false }
+        let id = UUID()
+        operationID = id
+        activeScan = Task { [weak self, scanOperation] in
+            guard let self else { return }
             do {
-                reviewResult = try await processor.process(image: image) { [weak self] state in Task { @MainActor in self?.updateState(state) } }
+                let result = try await scanOperation(image) { [weak self] state in
+                    Task { @MainActor in
+                        guard let self, self.operationID == id, !Task.isCancelled else { return }
+                        self.updateState(state)
+                    }
+                }
+                try Task.checkCancellation()
+                guard operationID == id else { return }
+                reviewResult = result
                 updateState(.readyForReview)
-            } catch let error as SudokuImageImportError { updateState(.failed); errorMessage = error.localizedDescription }
-            catch { updateState(.failed); errorMessage = SudokuImageImportError.processingFailure(error.localizedDescription).localizedDescription }
+            } catch is CancellationError {
+                guard operationID == id else { return }
+                updateState(.cancelled)
+            } catch let error as SudokuImageImportError {
+                guard operationID == id else { return }
+                updateState(error == .importCancelled ? .cancelled : .failed)
+                errorMessage = error.localizedDescription
+            } catch {
+                guard operationID == id else { return }
+                updateState(.failed)
+                errorMessage = SudokuImageImportError.processingFailure(error.localizedDescription).localizedDescription
+            }
+            if operationID == id {
+                isProcessing = false
+                activeScan = nil
+            }
         }
+    }
+    func cancelScan() {
+        activeScan?.cancel()
+        activeScan = nil
+        operationID = UUID()
+        isProcessing = false
+        if scanState != .idle { updateState(.cancelled) }
+    }
+
+    func reset() {
+        cancelScan()
+        reviewResult = nil
+        errorMessage = nil
+        updateState(.idle)
     }
     private func updateState(_ state: SudokuScanState) { scanState = state; statusText = state.progressText }
     private func requestCamera() {
@@ -156,6 +210,7 @@ struct SudokuImageImportView: View {
         }.padding(10).background(AppTheme.surface).clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .sheet(item: Binding(get: { viewModel.selectedSource.map { SourceSheet(source: $0) } }, set: { if $0 == nil { viewModel.selectedSource = nil } })) { wrapper in SudokuImagePicker(sourceType: wrapper.source == .camera ? .camera : .photoLibrary) { image in viewModel.process(image) } }
         .sheet(item: $viewModel.reviewResult) { result in SudokuScanReviewView(result: result, onUsePuzzle: { board in onUsePuzzle(board); viewModel.reviewResult = nil }, onRescan: { viewModel.reviewResult = nil; viewModel.begin(.camera) }, onRetake: { viewModel.reviewResult = nil; viewModel.begin(.camera) }, onChooseAnother: { viewModel.reviewResult = nil; viewModel.begin(.photoLibrary) }, onManual: { viewModel.reviewResult = nil }) }
+        .onDisappear { viewModel.cancelScan() }
     }
     private struct SourceSheet: Identifiable { let source: SudokuImageImportViewModel.Source; var id: Int { source == .camera ? 0 : 1 } }
 }
@@ -181,34 +236,74 @@ struct SudokuImagePicker: UIViewControllerRepresentable {
 final class SudokuScanCoordinator {
     private let preprocessor = SudokuImagePreprocessor(); private let detector = SudokuBoardDetector(); private let corrector = SudokuPerspectiveCorrector(); private let segmenter = SudokuGridSegmenter(); private let ocr = SudokuCellOCRService()
     func process(image: UIImage, progress: @escaping (SudokuScanState) -> Void) async throws -> SudokuScanResult {
-        try await Task.detached(priority: .userInitiated) { [preprocessor, detector, corrector, segmenter, ocr] in
+        let worker = Task.detached(priority: .userInitiated) { [preprocessor, detector, corrector, segmenter, ocr] in
             try Task.checkCancellation()
             progress(.loadingImage); let prepared = try preprocessor.prepare(image)
             try Task.checkCancellation()
             progress(.detectingBoard); let detection = try detector.detectBoard(in: prepared.normalized)
+            try Task.checkCancellation()
             progress(.correctingPerspective); let board = try corrector.correct(image: prepared.contrast, detection: detection)
+            try Task.checkCancellation()
             progress(.readingCells); var cells = try await ocr.recognize(cells: segmenter.segment(board))
+            try Task.checkCancellation()
             progress(.validating); cells = SudokuScanValidator.markReviewStates(cells)
             guard cells.filter({ $0.recognizedValue != nil }).count >= SudokuScanConfiguration.minimumCluesForReview else { throw SudokuImageImportError.ocrCouldNotReadEnoughNumbers }
             return SudokuScanResult(cells: cells, message: SudokuScanValidator.summary(for: cells), diagnostics: SudokuDiagnostics.messages(for: cells))
-        }.value
+        }
+        return try await withTaskCancellationHandler {
+            try await worker.value
+        } onCancel: {
+            worker.cancel()
+        }
     }
 }
 
 struct SudokuPreparedImage { let normalized: UIImage; let grayscale: UIImage; let contrast: UIImage; let threshold: UIImage }
 
+enum SudokuImageGeometry {
+    /// Vision observations use a lower-left, normalized coordinate space. The scan
+    /// pipeline converts them here into upper-left image *pixels*, never UIImage points.
+    static func pixelPoint(fromVision point: CGPoint, pixelWidth: Int, pixelHeight: Int) -> CGPoint {
+        CGPoint(x: point.x * CGFloat(pixelWidth), y: (1 - point.y) * CGFloat(pixelHeight))
+    }
+
+    static func pixelRect(fromVision rect: CGRect, pixelWidth: Int, pixelHeight: Int) -> CGRect {
+        CGRect(x: rect.minX * CGFloat(pixelWidth),
+               y: (1 - rect.maxY) * CGFloat(pixelHeight),
+               width: rect.width * CGFloat(pixelWidth),
+               height: rect.height * CGFloat(pixelHeight))
+    }
+
+    static func zeroOrigin(_ image: CIImage) -> CIImage {
+        image.transformed(by: CGAffineTransform(translationX: -image.extent.minX, y: -image.extent.minY))
+    }
+
+    static func cellRects(pixelWidth: Int, pixelHeight: Int, paddingRatio: CGFloat = SudokuScanConfiguration.innerCellPaddingRatio) -> [CGRect] {
+        let cellWidth = CGFloat(pixelWidth) / 9
+        let cellHeight = CGFloat(pixelHeight) / 9
+        let insetX = cellWidth * paddingRatio
+        let insetY = cellHeight * paddingRatio
+        return (0..<9).flatMap { row in (0..<9).map { column in
+            CGRect(x: CGFloat(column) * cellWidth + insetX,
+                   y: CGFloat(row) * cellHeight + insetY,
+                   width: cellWidth - insetX * 2,
+                   height: cellHeight - insetY * 2).integral
+        } }
+    }
+}
+
 final class SudokuImagePreprocessor {
     private let context = CIContext()
     func prepare(_ image: UIImage) throws -> SudokuPreparedImage {
         guard let normalized = image.normalizedForSudokuImport(), let cg = normalized.cgImage else { throw SudokuImageImportError.imageCouldNotBeLoaded }
-        let base = CIImage(cgImage: cg)
+        let base = SudokuImageGeometry.zeroOrigin(CIImage(cgImage: cg))
         let scaled = base.transformed(by: CGAffineTransform(scaleX: min(1, SudokuScanConfiguration.processingBoardSize / max(base.extent.width, base.extent.height)), y: min(1, SudokuScanConfiguration.processingBoardSize / max(base.extent.width, base.extent.height))))
         let gray = scaled.applyingFilter("CIPhotoEffectMono")
         let contrast = gray.applyingFilter("CIColorControls", parameters: [kCIInputContrastKey: 1.35, kCIInputBrightnessKey: 0.02])
         let threshold = contrast.applyingFilter("CIColorControls", parameters: [kCIInputContrastKey: 1.85]).applyingFilter("CISharpenLuminance", parameters: [kCIInputSharpnessKey: 0.45])
-        return try SudokuPreparedImage(normalized: render(scaled, scale: normalized.scale), grayscale: render(gray, scale: normalized.scale), contrast: render(contrast, scale: normalized.scale), threshold: render(threshold, scale: normalized.scale))
+        return try SudokuPreparedImage(normalized: render(scaled), grayscale: render(gray), contrast: render(contrast), threshold: render(threshold))
     }
-    private func render(_ image: CIImage, scale: CGFloat) throws -> UIImage { guard let cg = context.createCGImage(image, from: image.extent) else { throw SudokuImageImportError.processingFailure("Could not render preprocessed image.") }; return UIImage(cgImage: cg, scale: scale, orientation: .up) }
+    private func render(_ image: CIImage) throws -> UIImage { let canonical = SudokuImageGeometry.zeroOrigin(image); guard let cg = context.createCGImage(canonical, from: canonical.extent) else { throw SudokuImageImportError.processingFailure("Could not render preprocessed image.") }; return UIImage(cgImage: cg, scale: 1, orientation: .up) }
 }
 
 struct SudokuBoardDetection { let corners: [CGPoint]; let confidence: Float }
@@ -218,9 +313,10 @@ final class SudokuBoardDetector {
         guard let cgImage = image.cgImage else { throw SudokuImageImportError.imageCouldNotBeLoaded }
         let request = VNDetectRectanglesRequest(); request.minimumAspectRatio = 0.78; request.maximumAspectRatio = 1.22; request.minimumSize = 0.30; request.quadratureTolerance = 18; request.maximumObservations = 8
         try VNImageRequestHandler(cgImage: cgImage, options: [:]).perform([request])
-        let imageArea = image.size.width * image.size.height
+        let pixelWidth = cgImage.width, pixelHeight = cgImage.height
+        let imageArea = CGFloat(pixelWidth * pixelHeight)
         let candidates = (request.results ?? []).map { observation -> SudokuBoardDetection in
-            let corners = [observation.topLeft, observation.topRight, observation.bottomRight, observation.bottomLeft].map { CGPoint(x: $0.x * image.size.width, y: (1 - $0.y) * image.size.height) }
+            let corners = [observation.topLeft, observation.topRight, observation.bottomRight, observation.bottomLeft].map { SudokuImageGeometry.pixelPoint(fromVision: $0, pixelWidth: pixelWidth, pixelHeight: pixelHeight) }
             let minimumX: CGFloat = corners.map(\.x).min() ?? 0
             let maximumX: CGFloat = corners.map(\.x).max() ?? 0
             let minimumY: CGFloat = corners.map(\.y).min() ?? 0
@@ -245,12 +341,14 @@ final class SudokuPerspectiveCorrector {
     private let context = CIContext()
     func correct(image: UIImage, detection: SudokuBoardDetection) throws -> UIImage {
         guard let cg = image.cgImage else { throw SudokuImageImportError.imageCouldNotBeLoaded }
-        let ci = CIImage(cgImage: cg); let height = image.size.height
+        guard detection.corners.count == 4 else { throw SudokuImageImportError.incorrectCrop }
+        let ci = CIImage(cgImage: cg); let height = CGFloat(cg.height)
         func vector(_ point: CGPoint) -> CIVector { CIVector(x: point.x, y: height - point.y) }
         let corrected = ci.applyingFilter("CIPerspectiveCorrection", parameters: ["inputTopLeft": vector(detection.corners[0]), "inputTopRight": vector(detection.corners[1]), "inputBottomRight": vector(detection.corners[2]), "inputBottomLeft": vector(detection.corners[3])])
-        let square = corrected.cropped(to: corrected.extent).transformed(by: CGAffineTransform(scaleX: SudokuScanConfiguration.processingBoardSize / max(corrected.extent.width, 1), y: SudokuScanConfiguration.processingBoardSize / max(corrected.extent.height, 1)))
+        let canonical = SudokuImageGeometry.zeroOrigin(corrected)
+        let square = canonical.transformed(by: CGAffineTransform(scaleX: SudokuScanConfiguration.processingBoardSize / max(canonical.extent.width, 1), y: SudokuScanConfiguration.processingBoardSize / max(canonical.extent.height, 1)))
         guard let output = context.createCGImage(square, from: CGRect(x: 0, y: 0, width: SudokuScanConfiguration.processingBoardSize, height: SudokuScanConfiguration.processingBoardSize)) else { throw SudokuImageImportError.incorrectCrop }
-        return UIImage(cgImage: output, scale: image.scale, orientation: .up)
+        return UIImage(cgImage: output, scale: 1, orientation: .up)
     }
 }
 
@@ -260,11 +358,11 @@ final class SudokuGridSegmenter {
     private let preprocessor = SudokuImagePreprocessor()
     func segment(_ board: UIImage) throws -> [SudokuSegmentedCell] {
         guard let cg = board.cgImage else { throw SudokuImageImportError.imageCouldNotBeLoaded }
-        let cellWidth = CGFloat(cg.width) / 9; let cellHeight = CGFloat(cg.height) / 9; let insetX = cellWidth * SudokuScanConfiguration.innerCellPaddingRatio; let insetY = cellHeight * SudokuScanConfiguration.innerCellPaddingRatio
+        let rects = SudokuImageGeometry.cellRects(pixelWidth: cg.width, pixelHeight: cg.height)
         return try (0..<9).flatMap { row in try (0..<9).map { column in
-            let rect = CGRect(x: CGFloat(column) * cellWidth + insetX, y: CGFloat(row) * cellHeight + insetY, width: cellWidth - insetX * 2, height: cellHeight - insetY * 2).integral
+            let rect = rects[row * 9 + column]
             guard let crop = cg.cropping(to: rect) else { throw SudokuImageImportError.incorrectCrop }
-            let original = UIImage(cgImage: crop, scale: board.scale, orientation: .up)
+            let original = UIImage(cgImage: crop, scale: 1, orientation: .up)
             let enhanced = try preprocessor.prepare(original).threshold
             return SudokuSegmentedCell(row: row, column: column, original: original, enhanced: enhanced, inkDensity: SudokuGridSegmenter.inkDensity(in: enhanced))
         } }
@@ -313,7 +411,19 @@ final class SudokuCellOCRService {
 enum SudokuScanValidator {
     static func markReviewStates(_ cells: [SudokuDetectedCell]) -> [SudokuDetectedCell] {
         let result = SudokuScanResult(cells: cells); let conflicts = SudokuValidator.conflictingCoordinates(in: result.board)
-        return cells.map { cell in var copy = cell; if conflicts.contains(LogicGridCoordinate(row: cell.row, column: cell.column)) { copy.reviewState = .conflict }; return copy }
+        return cells.map { cell in
+            var copy = cell
+            if conflicts.contains(LogicGridCoordinate(row: cell.row, column: cell.column)) {
+                copy.reviewState = .conflict
+            } else if copy.recognizedValue == nil {
+                copy.reviewState = copy.confidence == nil ? .blank : .lowConfidence
+            } else if (copy.confidence ?? 0) >= SudokuScanConfiguration.highConfidence {
+                copy.reviewState = .highConfidence
+            } else {
+                copy.reviewState = .needsReview
+            }
+            return copy
+        }
     }
     static func summary(for cells: [SudokuDetectedCell]) -> String { let result = SudokuScanResult(cells: cells); return "\(result.detectedCount) numbers detected • \(result.reviewCount) cells need review • \(result.conflictCount) conflicts found" }
 }
@@ -357,6 +467,11 @@ struct SudokuScanReviewView: View {
 typealias SudokuImageReviewView = SudokuScanReviewView
 
 private extension UIImage {
-    func normalizedForSudokuImport() -> UIImage? { if imageOrientation == .up { return self }; UIGraphicsBeginImageContextWithOptions(size, false, scale); draw(in: CGRect(origin: .zero, size: size)); let normalized = UIGraphicsGetImageFromCurrentImageContext(); UIGraphicsEndImageContext(); return normalized }
+    func normalizedForSudokuImport() -> UIImage? {
+        guard let source = CIImage(image: self, options: [.applyOrientationProperty: true]) else { return nil }
+        let canonical = SudokuImageGeometry.zeroOrigin(source)
+        guard let output = CIContext().createCGImage(canonical, from: canonical.extent) else { return nil }
+        return UIImage(cgImage: output, scale: 1, orientation: .up)
+    }
     func invertedForOCR() -> UIImage? { guard let cg = cgImage else { return nil }; let ci = CIImage(cgImage: cg).applyingFilter("CIColorInvert"); guard let out = CIContext().createCGImage(ci, from: ci.extent) else { return nil }; return UIImage(cgImage: out, scale: scale, orientation: .up) }
 }

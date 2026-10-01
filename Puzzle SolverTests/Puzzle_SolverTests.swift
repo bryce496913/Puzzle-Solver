@@ -6,6 +6,8 @@
 //
 
 import XCTest
+import CoreImage
+import UIKit
 @testable import Puzzle_Solver
 
 final class Puzzle_SolverTests: XCTestCase {
@@ -895,6 +897,111 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(entered.value(at: coordinate), 7)
         XCTAssertTrue(entered.cells[coordinate.row][coordinate.column].isGiven)
         XCTAssertTrue(SudokuValidator.validate(entered).canSolve)
+    }
+
+    // MARK: - Sudoku photo scan pipeline
+
+    func testSudokuPreprocessingUsesCGImagePixelsAtEveryUIImageScale() throws {
+        let cgImage = try XCTUnwrap(makeTestCGImage(width: 90, height: 60))
+
+        for scale in [CGFloat(1), 2, 3] {
+            let prepared = try SudokuImagePreprocessor().prepare(UIImage(cgImage: cgImage, scale: scale, orientation: .up))
+            XCTAssertEqual(prepared.normalized.scale, 1)
+            XCTAssertEqual(prepared.normalized.cgImage?.width, 90)
+            XCTAssertEqual(prepared.normalized.cgImage?.height, 60)
+        }
+    }
+
+    func testNonZeroCoreImageExtentIsNormalizedToOrigin() {
+        let shifted = CIImage(color: .white)
+            .cropped(to: CGRect(x: 37, y: -12, width: 240, height: 180))
+        let normalized = SudokuImageGeometry.zeroOrigin(shifted)
+
+        XCTAssertEqual(normalized.extent.origin.x, 0, accuracy: 0.001)
+        XCTAssertEqual(normalized.extent.origin.y, 0, accuracy: 0.001)
+        XCTAssertEqual(normalized.extent.size, shifted.extent.size)
+    }
+
+    func testVisionNormalizedCoordinatesConvertToUpperLeftPixels() {
+        let point = SudokuImageGeometry.pixelPoint(fromVision: CGPoint(x: 0.25, y: 0.75), pixelWidth: 1200, pixelHeight: 900)
+        let rect = SudokuImageGeometry.pixelRect(fromVision: CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.4), pixelWidth: 1200, pixelHeight: 900)
+
+        XCTAssertEqual(point.x, 300, accuracy: 0.001)
+        XCTAssertEqual(point.y, 225, accuracy: 0.001)
+        XCTAssertEqual(rect, CGRect(x: 120, y: 360, width: 360, height: 360))
+    }
+
+    func testNineByNineSegmentationGeometryCoversCanonicalBoard() {
+        let rects = SudokuImageGeometry.cellRects(pixelWidth: 900, pixelHeight: 900, paddingRatio: 0)
+
+        XCTAssertEqual(rects.count, 81)
+        XCTAssertEqual(rects[0], CGRect(x: 0, y: 0, width: 100, height: 100))
+        XCTAssertEqual(rects[40], CGRect(x: 400, y: 400, width: 100, height: 100))
+        XCTAssertEqual(rects[80], CGRect(x: 800, y: 800, width: 100, height: 100))
+    }
+
+    func testResolvedConflictReturnsToStateDerivedFromCurrentConfidence() {
+        let cells = [
+            SudokuDetectedCell(row: 0, column: 0, recognizedValue: 5, confidence: 0.99, reviewState: .conflict),
+            SudokuDetectedCell(row: 0, column: 1, recognizedValue: 6, confidence: 0.70, reviewState: .conflict),
+            SudokuDetectedCell(row: 0, column: 2, recognizedValue: nil, confidence: nil, reviewState: .conflict)
+        ]
+
+        let reviewed = SudokuScanValidator.markReviewStates(cells)
+
+        XCTAssertEqual(reviewed.map(\.reviewState), [.highConfidence, .needsReview, .blank])
+    }
+
+    @MainActor
+    func testStartingNewScanCancelsPreviousOperation() async throws {
+        let firstCancelled = expectation(description: "first scan cancelled")
+        var invocation = 0
+        let viewModel = SudokuImageImportViewModel { _, _ in
+            invocation += 1
+            if invocation == 1 {
+                do { try await Task.sleep(nanoseconds: 2_000_000_000) }
+                catch { firstCancelled.fulfill(); throw error }
+            }
+            return SudokuScanResult(cells: [])
+        }
+        let image = UIImage(cgImage: try XCTUnwrap(makeTestCGImage(width: 10, height: 10)))
+
+        viewModel.process(image)
+        await Task.yield()
+        viewModel.process(image)
+        await fulfillment(of: [firstCancelled], timeout: 1)
+        try await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertFalse(viewModel.isProcessing)
+        XCTAssertEqual(viewModel.scanState, .readyForReview)
+    }
+
+    @MainActor
+    func testStaleScanResultCannotOverwriteNewestReviewState() async throws {
+        var invocation = 0
+        let viewModel = SudokuImageImportViewModel { _, _ in
+            invocation += 1
+            let current = invocation
+            try? await Task.sleep(nanoseconds: current == 1 ? 120_000_000 : 10_000_000)
+            return SudokuScanResult(cells: [SudokuDetectedCell(row: 0, column: 0, recognizedValue: current, confidence: 1)])
+        }
+        let image = UIImage(cgImage: try XCTUnwrap(makeTestCGImage(width: 10, height: 10)))
+
+        viewModel.process(image)
+        await Task.yield()
+        viewModel.process(image)
+        try await Task.sleep(nanoseconds: 180_000_000)
+
+        XCTAssertEqual(viewModel.reviewResult?.cells.first?.recognizedValue, 2)
+        XCTAssertFalse(viewModel.isProcessing)
+    }
+
+    private func makeTestCGImage(width: Int, height: Int) -> CGImage? {
+        let colorSpace = CGColorSpaceCreateDeviceGray()
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width, space: colorSpace, bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
+        context.setFillColor(gray: 1, alpha: 1)
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()
     }
 
 
