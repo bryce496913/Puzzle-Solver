@@ -1119,11 +1119,13 @@ final class Puzzle_SolverTests: XCTestCase {
     }
 
     func testRushHourTimeoutIsBounded() throws {
+        let startedAt = Date()
         let result = RushHourSolver().solve(RushHourBoard.example, options: RushHourSolveOptions(timeout: 0, maxStates: 10_000))
+        let elapsedTime = Date().timeIntervalSince(startedAt)
 
         XCTAssertEqual(result.status, .timedOut)
-        XCTAssertTrue(result.moves.isEmpty)
-        XCTAssertLessThan(result.elapsedTime, 1)
+        XCTAssertTrue(result.steps.isEmpty)
+        XCTAssertLessThan(elapsedTime, 1)
     }
 
     func testSudokuTimeoutIsBounded() throws {
