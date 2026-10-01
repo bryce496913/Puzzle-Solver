@@ -29,7 +29,7 @@ final class Puzzle_SolverTests: XCTestCase {
         CatalogExpectation(id: "square-1", title: "Square-1", status: .comingSoon),
         CatalogExpectation(id: "sudoku", title: "Sudoku", status: .active),
         CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .active),
-        CatalogExpectation(id: "killer-sudoku", title: "Killer Sudoku", status: .comingSoon),
+        CatalogExpectation(id: "killer-sudoku", title: "Killer Sudoku", status: .active),
         CatalogExpectation(id: "nonogram", title: "Nonogram", status: .comingSoon),
         CatalogExpectation(id: "kakuro", title: "Kakuro", status: .comingSoon),
         CatalogExpectation(id: "slitherlink", title: "Slitherlink", status: .comingSoon),
@@ -862,8 +862,8 @@ final class Puzzle_SolverTests: XCTestCase {
     func testLogicPuzzleReleaseAvailabilityComesFromV1Catalog() throws {
         let logicDescriptors = PuzzleAvailabilityCatalog.descriptors(in: .logic)
 
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku", "sudoku-photo-scan"])
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["killer-sudoku", "nonogram", "kakuro", "slitherlink"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku", "sudoku-photo-scan", "killer-sudoku"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["nonogram", "kakuro", "slitherlink"])
     }
 
     func testSudokuPhotoScanUsesActiveDedicatedMenuBehavior() throws {
@@ -1191,26 +1191,24 @@ final class Puzzle_SolverTests: XCTestCase {
     }
 
 
-    // MARK: - Newly implemented placeholder-mode solver coverage
+    // MARK: - Killer Sudoku production regression coverage
 
-    func testKillerSudokuSolvedBoardSatisfiesCompleteCageCoverage() throws {
-        let solved = SudokuBoard(values: [
-            [5, 3, 4, 6, 7, 8, 9, 1, 2],
-            [6, 7, 2, 1, 9, 5, 3, 4, 8],
-            [1, 9, 8, 3, 4, 2, 5, 6, 7],
-            [8, 5, 9, 7, 6, 1, 4, 2, 3],
-            [4, 2, 6, 8, 5, 3, 7, 9, 1],
-            [7, 1, 3, 9, 2, 4, 8, 5, 6],
-            [9, 6, 1, 5, 3, 7, 2, 8, 4],
-            [2, 8, 7, 4, 1, 9, 6, 3, 5],
-            [3, 4, 5, 2, 8, 6, 1, 7, 9]
-        ])
-        let board = KillerSudokuBoard(cells: solved.cells, cages: singletonCages(for: solved))
+    func testRealKillerSudokuFixturesSolveUniquelyAndReplayEveryConstraint() throws {
+        XCTAssertEqual(KillerSudokuFixtures.uniquePuzzles.count, 2)
+        for fixture in KillerSudokuFixtures.uniquePuzzles {
+            XCTAssertFalse(fixture.provenance.isEmpty, fixture.name)
+            XCTAssertGreaterThanOrEqual(fixture.board.cages.count, 40, fixture.name)
+            XCTAssertGreaterThanOrEqual(fixture.board.cages.filter { $0.cells.count > 1 }.count, 34, fixture.name)
+            XCTAssertTrue(fixture.board.cells.flatMap { $0 }.allSatisfy { $0.value == nil }, fixture.name)
 
-        let result = KillerSudokuSolver().solve(board, options: KillerSudokuSolveOptions(maxNodes: 100, timeout: 1))
-
-        XCTAssertEqual(result.state, .solved)
-        XCTAssertNotNil(result.solvedBoard)
+            let result = KillerSudokuSolver().solve(
+                fixture.board, options: KillerSudokuSolveOptions(maxNodes: 500_000, timeout: 5)
+            )
+            XCTAssertEqual(result.state, fixture.expectedOutcome, fixture.name)
+            let solved = try XCTUnwrap(result.solvedBoard, fixture.name)
+            XCTAssertEqual(solved.cells.map { $0.compactMap(\.value) }, fixture.knownUniqueSolution, fixture.name)
+            try assertValidSolvedKillerBoard(solved, fixture: fixture)
+        }
     }
 
     func testKillerSudokuCageValidationRejectsMalformedLayouts() {
@@ -1282,6 +1280,29 @@ final class Puzzle_SolverTests: XCTestCase {
         (0..<9).flatMap { row in (0..<9).map { column in
             KillerSudokuCage(targetSum: board.cells[row][column].value ?? ((row * 3 + row / 3 + column) % 9 + 1), cells: [.init(row: row, column: column)])
         } }
+    }
+
+    private func assertValidSolvedKillerBoard(_ board: KillerSudokuBoard, fixture: KillerSudokuFixture,
+                                              file: StaticString = #filePath, line: UInt = #line) throws {
+        let values = try board.cells.map { row in try row.map { try XCTUnwrap($0.value, file: file, line: line) } }
+        let digits = Set(1...9)
+        for index in 0..<9 {
+            XCTAssertEqual(Set(values[index]), digits, "row \(index + 1)", file: file, line: line)
+            XCTAssertEqual(Set(values.map { $0[index] }), digits, "column \(index + 1)", file: file, line: line)
+        }
+        for boxRow in 0..<3 { for boxColumn in 0..<3 {
+            let box = (0..<3).flatMap { row in (0..<3).map { column in values[boxRow * 3 + row][boxColumn * 3 + column] } }
+            XCTAssertEqual(Set(box), digits, "box \(boxRow + 1),\(boxColumn + 1)", file: file, line: line)
+        }}
+
+        XCTAssertEqual(board.cages.count, fixture.definitions.count, file: file, line: line)
+        for (index, cage) in board.cages.enumerated() {
+            let cageValues = cage.cells.map { values[$0.row][$0.column] }
+            XCTAssertEqual(Set(cageValues).count, cageValues.count, "repeated cage digit", file: file, line: line)
+            XCTAssertEqual(cageValues.reduce(0, +), cage.targetSum, "wrong cage sum", file: file, line: line)
+            let encoded = cage.cells.map { "\($0.row + 1)\($0.column + 1)" }.joined(separator: " ")
+            XCTAssertEqual(encoded, fixture.definitions[index].coordinates, "cage coordinates changed", file: file, line: line)
+        }
     }
 
     func testNonogramSimpleCrossSolves() throws {

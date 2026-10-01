@@ -180,7 +180,7 @@ final class Puzzle_SolverUITests: XCTestCase {
         solve.tap()
         XCTAssertTrue(app.otherElements["killer-sudoku-result"].waitForExistence(timeout: 8))
         XCTAssertTrue(app.staticTexts["Solved"].waitForExistence(timeout: 8))
-        XCTAssertTrue(app.buttons["killer-cell-1-1"].label.contains("total 8"))
+        XCTAssertTrue(app.buttons["killer-cell-1-1"].label.contains("total 12"))
         XCTAssertTrue(app.buttons["killer-cell-1-1"].label.contains("value 5"))
     }
 
