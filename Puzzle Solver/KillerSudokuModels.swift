@@ -27,36 +27,69 @@ struct KillerSudokuBoard: LogicPuzzleBoard, Hashable {
         cages: []
     )
 
-    /// A genuine cage puzzle: the grid starts empty and its constraints, rather
-    /// than pre-filled Sudoku digits, describe the puzzle.
-    static let example: KillerSudokuBoard = {
-        let solution = [
+    /// The first regression puzzle is also the example presented by the editor.
+    /// It has no given digits: the Sudoku and cage constraints do all the work.
+    static var example: KillerSudokuBoard { KillerSudokuFixtures.classic.board }
+}
+
+/// A reproducible, repository-owned Killer Sudoku fixture. Cage coordinates use
+/// compact one-based `rowcolumn` notation in `definitions`, making the complete puzzle
+/// easy to audit independently of the solver.
+struct KillerSudokuFixture {
+    let name: String
+    let provenance: String
+    let definitions: [(target: Int, coordinates: String)]
+    let knownUniqueSolution: [[Int]]
+    let expectedOutcome: SolveState
+
+    var board: KillerSudokuBoard {
+        KillerSudokuBoard(cells: SudokuBoard.empty.cells, cages: definitions.map { definition in
+            KillerSudokuCage(targetSum: definition.target, cells: definition.coordinates.split(separator: " ").map { token in
+                precondition(token.count == 2 && token.allSatisfy(\.isNumber), "Malformed fixture coordinate")
+                let digits = token.compactMap(\.wholeNumberValue)
+                return LogicGridCoordinate(row: digits[0] - 1, column: digits[1] - 1)
+            })
+        })
+    }
+}
+
+enum KillerSudokuFixtures {
+    private static let solution = [
             [5,3,4,6,7,8,9,1,2], [6,7,2,1,9,5,3,4,8], [1,9,8,3,4,2,5,6,7],
             [8,5,9,7,6,1,4,2,3], [4,2,6,8,5,3,7,9,1], [7,1,3,9,2,4,8,5,6],
             [9,6,1,5,3,7,2,8,4], [2,8,7,4,1,9,6,3,5], [3,4,5,2,8,6,1,7,9]
         ]
-        // Irregular, connected cages cover the upper half; the fixture remains
-        // an empty input puzzle rather than a completed Sudoku.
-        var groups: [[(Int, Int)]] = [
-            [(0,0),(0,1)], [(0,2),(0,3),(1,2)], [(0,4),(0,5)], [(0,6),(0,7),(0,8)],
-            [(1,0),(1,1),(2,0)], [(1,3),(2,3)], [(1,4),(1,5)], [(1,6),(1,7),(1,8)],
-            [(2,1),(2,2)], [(2,4),(2,5),(2,6)], [(2,7),(2,8)],
-            [(3,0),(3,1),(4,0)], [(3,2),(3,3)], [(3,4),(3,5),(4,5)], [(3,6),(3,7),(3,8)],
-            [(4,1),(4,2)], [(4,3),(4,4),(5,4)], [(4,6),(4,7),(4,8)]
-        ]
-        let grouped = Set(groups.flatMap { $0.map { LogicGridCoordinate(row: $0.0, column: $0.1) } })
-        // The lower half includes one-cell cages. These are valid published
-        // Killer clues and make this deterministic fixture fast enough for UI
-        // regression tests while the upper half still exercises real outlines.
-        groups += (0..<9).flatMap { row in (0..<9).compactMap { column -> [(Int, Int)]? in
-            grouped.contains(.init(row: row, column: column)) ? nil : [(row, column)]
-        } }
-        let cages = groups.map { group -> KillerSudokuCage in
-            let cells = group.map { LogicGridCoordinate(row: $0.0, column: $0.1) }
-            return KillerSudokuCage(targetSum: cells.reduce(0) { $0 + solution[$1.row][$1.column] }, cells: cells)
-        }
-        return KillerSudokuBoard(cells: SudokuBoard.empty.cells, cages: cages)
-    }()
+
+    /// Authored for this repository from the known solution above. The connected
+    /// cage partition was generated with seed 1, then uniqueness was exhaustively
+    /// checked by the production solver. It contains 42 cages (34 multi-cell).
+    static let classic = KillerSudokuFixture(
+        name: "Classic pairs", provenance: "Repository-authored deterministic cage partition (seed 1).",
+        definitions: [
+            (7,"66 56"),(9,"63 53"),(8,"27 37"),(12,"29 28"),(17,"54 64"),(9,"76 77"),
+            (11,"49 48 38"),(15,"16 15"),(7,"45 46"),(5,"74"),(15,"86 87"),(10,"59 58"),
+            (11,"34 33"),(21,"44 43 42"),(14,"95 96"),(7,"72 62"),(20,"71 61 51"),(11,"57 47"),
+            (7,"94 93"),(10,"17 18"),(2,"52"),(14,"99 89"),(5,"84 85"),(14,"26 25"),
+            (2,"19"),(7,"91 92"),(12,"12 13 11"),(13,"78 68"),(10,"55 65 75"),(8,"67"),
+            (7,"14 24"),(9,"31 41"),(8,"73 83"),(9,"23 22"),(7,"39"),(9,"32"),
+            (8,"98 97"),(10,"69 79"),(3,"88"),(6,"36 35"),(10,"81 82"),(6,"21")
+        ], knownUniqueSolution: solution, expectedOutcome: .solved)
+
+    /// A second independently generated partition (seed 18), with long vertical
+    /// cages in different regions and seven single-cell clues among 42 cages.
+    static let vertical = KillerSudokuFixture(
+        name: "Vertical weave", provenance: "Repository-authored deterministic cage partition (seed 18).",
+        definitions: [
+            (11,"68 69"),(15,"39 29"),(11,"76 66"),(14,"94 93 83"),(9,"95 85"),(5,"28 18"),
+            (13,"25 35"),(10,"31 32"),(6,"21"),(8,"89 88"),(4,"63 62"),(12,"78 79"),
+            (15,"15 16"),(14,"92 82 81"),(15,"96 86"),(13,"42 41"),(16,"99 98"),(2,"19"),
+            (10,"13 14"),(5,"65 75"),(10,"56 57"),(8,"11 12"),(6,"47 48"),(16,"71 61"),
+            (12,"51 52 53"),(10,"67 77"),(4,"49 59"),(7,"72 73"),(3,"24 23"),(10,"44 34"),
+            (9,"58"),(7,"46 45"),(3,"91"),(7,"87 97"),(11,"38 37"),(12,"17 27"),
+            (7,"22"),(22,"74 64 54"),(4,"84"),(7,"26 36"),(5,"55"),(17,"33 43")
+        ], knownUniqueSolution: solution, expectedOutcome: .solved)
+
+    static let uniquePuzzles = [classic, vertical]
 }
 
 struct KillerSudokuValidation: Equatable {
