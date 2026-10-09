@@ -308,7 +308,16 @@ struct RushHourBoard: Hashable {
 
     func applying(_ move: RushHourMove) -> RushHourBoard? {
         guard let vehicle = vehicles.first(where: { $0.id == move.vehicleID }),
-              vehicle.orientation == move.orientation else { return nil }
+              vehicle.orientation == move.orientation,
+              move.signedDistance != 0,
+              (-Self.dimension...Self.dimension).contains(move.signedDistance) else { return nil }
+        // Check every intermediate placement so a multi-cell move cannot jump a blocker.
+        let direction = move.signedDistance < 0 ? -1 : 1
+        for distance in 1...abs(move.signedDistance) {
+            let intermediate = vehicle.moved(by: direction * distance)
+            let candidate = RushHourBoard(vehicles: vehicles.filter { $0.id != vehicle.id } + [intermediate])
+            guard RushHourBoardValidator.placementIssue(for: candidate) == nil else { return nil }
+        }
         let replacement = vehicle.moved(by: move.signedDistance)
         let board = RushHourBoard(vehicles: vehicles.filter { $0.id != vehicle.id } + [replacement])
         return RushHourBoardValidator.placementIssue(for: board) == nil ? board : nil
@@ -384,7 +393,7 @@ struct RushHourSolutionStep: Identifiable, Hashable {
     var id: Int { stepNumber }
 }
 
-struct RushHourSolveResult {
+struct RushHourSolveResult: Equatable {
     let status: RushHourSolveStatus
     let steps: [RushHourSolutionStep]
     let message: String?

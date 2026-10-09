@@ -270,7 +270,7 @@ struct RushHourVehicleEditorView: View {
                 .font(AppTextStyle.h3)
                 .foregroundColor(AppTheme.text)
                 .disabled(!placementMode)
-                .onChange(of: isTarget) { target in
+                .appOnChange(of: isTarget) { target in
                     if target { orientation = .horizontal }
                 }
         }
@@ -376,8 +376,8 @@ struct RushHourResultView: View {
             AppSectionHeader("Solution", subtitle: result.message)
             if result.status == .solved, !result.steps.isEmpty {
                 Text("\(result.moveCount) moves").appH2()
-                RushHourBoardView(board: result.steps[stepIndex].board, selectedVehicleID: nil, onCellTap: nil)
-                Text("Step \(stepIndex) of \(result.moveCount): \(result.steps[stepIndex].moveLabel)").appH3()
+                RushHourBoardView(board: result.steps[min(stepIndex, result.steps.count - 1)].board, selectedVehicleID: nil, onCellTap: nil)
+                Text("Step \(stepIndex) of \(result.moveCount): \(result.steps[min(stepIndex, result.steps.count - 1)].moveLabel)").appH3()
                 HStack(spacing: 10) {
                     Button("Previous") { stepIndex = max(0, stepIndex - 1) }
                         .buttonStyle(AppSecondaryButtonStyle()).disabled(stepIndex == 0)
@@ -395,16 +395,13 @@ struct RushHourResultView: View {
                 Text(result.message ?? "The solver could not produce a solution.").appParagraph()
             }
         }
-        .onChange(of: result.status) { _ in stepIndex = 0 }
+        .appOnChange(of: result) { _ in stepIndex = 0 }
         .accessibilityIdentifier("rush-hour-result")
     }
 }
 
-// Keep the old destination name available for existing navigation and previews.
-typealias RushHourView = RushHourEntryView
-
 struct MechanicalPuzzleMenuView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView { MechanicalPuzzleMenuView() }
+        NavigationStack { MechanicalPuzzleMenuView() }
     }
 }

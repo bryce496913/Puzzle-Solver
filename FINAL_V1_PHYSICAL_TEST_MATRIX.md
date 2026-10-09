@@ -1,5 +1,7 @@
 # Final V1 Physical Test Matrix (Codex Pass 16)
 
+> Historical snapshot. The current V1 contract has eight active modes; Sudoku Photo Scan is Coming Soon, and its implementation and permissions have been removed. Scanner execution rows below are post-V1 work. See [FINAL_V1_CLEANUP_REPORT.md](FINAL_V1_CLEANUP_REPORT.md) for current findings and required checks.
+
 ## Release decision
 
 **Status: BLOCKED — physical execution is still required.**

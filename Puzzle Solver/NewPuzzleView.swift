@@ -136,7 +136,7 @@ struct SlidingPuzzleInputView: View {
             .appCardStyle()
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: canSolve)
-        .onChange(of: gridNumbers) { _ in updateInitialState() }
+        .appOnChange(of: gridNumbers) { _ in updateInitialState() }
     }
 
     private var canPlaceBlank: Bool {
@@ -312,6 +312,6 @@ private struct SlidingKeypadButton: View {
 
 struct NewPuzzleView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView { NewPuzzleView() }
+        NavigationStack { NewPuzzleView() }
     }
 }

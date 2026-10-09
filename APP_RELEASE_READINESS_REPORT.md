@@ -1,5 +1,7 @@
 # Puzzle Solver — App Release Readiness Report
 
+> Historical snapshot. The current V1 contract has eight active modes; Sudoku Photo Scan is Coming Soon, and its implementation and permissions have been removed. Scanner execution rows below are post-V1 work. See [FINAL_V1_CLEANUP_REPORT.md](FINAL_V1_CLEANUP_REPORT.md) for current findings and required checks.
+
 > **Historical report — superseded.** This document records an earlier release
 > candidate in which Sudoku Photo Scan and Killer Sudoku were not active. The
 > current V1 catalog contains nine active modes; use `README.md` for the current
