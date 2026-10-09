@@ -67,22 +67,6 @@ final class StabilizationTests: XCTestCase {
         XCTAssertTrue(SudokuValidator.validate(board).canSolve)
     }
 
-    func testScanMappingRejectsOutOfRangeCoordinates() {
-        let cells = [
-            SudokuDetectedCell(row: 0, column: 0, recognizedValue: 5, confidence: 0.99),
-            SudokuDetectedCell(row: 9, column: 0, recognizedValue: 7, confidence: 0.99),
-            SudokuDetectedCell(row: 0, column: -1, recognizedValue: 8, confidence: 0.99)
-        ]
-        let board = SudokuScanResult(cells: cells).board
-        XCTAssertEqual(board.filledCount, 1)
-        XCTAssertEqual(board.cells[0][0].value, 5)
-    }
-
-    func testOCRAcceptsOnlySingleDigitsOneThroughNine() {
-        XCTAssertEqual(SudokuCellOCRService.recognizedDigit(from: " 9 "), 9)
-        ["", "0", "10", "A", ".", "1x"].forEach { XCTAssertNil(SudokuCellOCRService.recognizedDigit(from: $0)) }
-    }
-
     func testEverySupportedTwoByTwoMoveRoundTripsAndHasOrderFour() {
         for move in TwoByTwoMoveEngine.legalMoves {
             let moved = TwoByTwoMoveEngine.apply(move.notation, to: .solved2x2)
@@ -281,112 +265,69 @@ final class StabilizationTests: XCTestCase {
     }
 }
 
-// MARK: - Real Sudoku photo pipeline fixtures
-
-final class SudokuPhotoScanEndToEndTests: XCTestCase {
-    private struct ExpectedBoard: Decodable {
-        let board: [[Int?]]
-        let digitState: String
-        let blankState: String
-    }
-
-    private struct SuccessfulFixture {
-        let image: String
-        let expectation: String
-        let scale: CGFloat
-    }
-
-    func testPhotoScanPermissionPurposeStringsAreSpecific() throws {
+final class ProductionPrivacyTests: XCTestCase {
+    func testRemovedScannerHasNoCameraOrPhotoPermissions() throws {
         let info = try XCTUnwrap(Bundle.main.infoDictionary)
-        XCTAssertEqual(
-            info["NSCameraUsageDescription"] as? String,
-            "Photograph a Sudoku puzzle for on-device recognition."
-        )
-        XCTAssertEqual(
-            info["NSPhotoLibraryUsageDescription"] as? String,
-            "Choose a Sudoku image for on-device recognition."
-        )
+        XCTAssertNil(info["NSCameraUsageDescription"])
+        XCTAssertNil(info["NSPhotoLibraryUsageDescription"])
         XCTAssertNil(info["NSPhotoLibraryAddUsageDescription"])
     }
+}
 
-    /// These cases deliberately invoke the default coordinator: image decoding,
-    /// orientation normalization, rectangle detection, perspective correction,
-    /// 900px rendering, segmentation, Vision OCR, and review-state mapping all run.
-    func testRepositoryFixturesProduceAllExpected81Cells() async throws {
-        let fixtures = [
-            SuccessfulFixture(image: "clean-printed", expectation: "clean-printed", scale: 1),
-            SuccessfulFixture(image: "slightly-rotated", expectation: "slightly-rotated", scale: 1),
-            SuccessfulFixture(image: "perspective-skewed", expectation: "perspective-skewed", scale: 1),
-            SuccessfulFixture(image: "low-contrast", expectation: "low-contrast", scale: 1),
-            SuccessfulFixture(image: "surrounding-text", expectation: "surrounding-text", scale: 1),
-            SuccessfulFixture(image: "clean-printed", expectation: "scale-1", scale: 1),
-            SuccessfulFixture(image: "clean-printed", expectation: "scale-2", scale: 2),
-            SuccessfulFixture(image: "clean-printed", expectation: "scale-3", scale: 3),
-            SuccessfulFixture(image: "difficult-printed-digits", expectation: "difficult-printed-digits", scale: 1)
-        ]
+final class FinalProductionRegressionTests: XCTestCase {
+    func testSudokuNodeLimitRemainsInterruptedDuringUniquenessSearch() {
+        let result = SudokuSolver().solve(.example, options: SudokuSolveOptions(maxNodes: 1, timeout: 5))
+        XCTAssertEqual(result.state, .timedOut)
+        XCTAssertNil(result.solvedBoard)
+        XCTAssertLessThanOrEqual(result.nodesExplored, 1)
+    }
 
-        for fixture in fixtures {
-            let source = try fixtureImage(named: fixture.image, scale: fixture.scale)
-            var states: [SudokuScanState] = []
-            let result = try await SudokuScanCoordinator().process(image: source) { states.append($0) }
-            let expected = try expectedBoard(named: fixture.expectation)
+    func testMalformedSudokuAccessAndEditsAreSafe() {
+        let board = SudokuBoard(cells: [])
+        let coordinate = LogicGridCoordinate(row: 0, column: 0)
+        XCTAssertNil(board.value(at: coordinate))
+        XCTAssertEqual(board.settingValue(1, at: coordinate), board)
+        XCTAssertEqual(SudokuSolver().solve(board).state, .invalid)
+    }
 
-            XCTAssertEqual(result.cells.count, 81, fixture.expectation)
-            XCTAssertEqual(result.cells.map(\.recognizedValue), expected.board.flatMap { $0 }, fixture.expectation)
-            XCTAssertEqual(
-                result.cells.map(\.reviewState),
-                expected.board.flatMap { $0 }.map { $0 == nil ? .blank : .highConfidence },
-                "Review mapping differs for \(fixture.expectation) (expected states: \(expected.digitState)/\(expected.blankState))"
-            )
-            XCTAssertEqual(states, [.loadingImage, .detectingBoard, .correctingPerspective, .readingCells, .validating])
+    func testTwoByTwoRejectsMirroredCornersWithCorrectColorCounts() {
+        var stickers = CubeState.solved2x2.stickers
+        stickers.swapAt(4, 9)
+        stickers.swapAt(11, 6)
+        let state = CubeState(puzzle: .twoByTwo, stickers: stickers)
+        guard case .failure = CubeStickerValidator.validate(state) else {
+            return XCTFail("Mirrored corners must be rejected before search")
         }
+        XCTAssertEqual(Cube2x2Solver().solve(state, options: .default).status, .invalidInput)
     }
 
-    func testFailureRasterFixturesHaveExplicitOutcomes() async throws {
-        await assertFailure("no-grid", equals: .boardCouldNotBeDetected)
-        await assertFailure("cropped-incomplete", equals: .boardCouldNotBeDetected)
-        await assertFailure("insufficient-clues", equals: .ocrCouldNotReadEnoughNumbers)
-        await assertFailure("unrecoverable-perspective", equals: .boardCouldNotBeDetected)
-    }
-
-    func testInjectedOCRFailureIsPropagatedAfterRealImageStages() async throws {
-        let image = try fixtureImage(named: "clean-printed")
-        let expected = SudokuImageImportError.processingFailure("Injected OCR outage")
-        let coordinator = SudokuScanCoordinator(ocr: { _ in throw expected })
-
-        do {
-            _ = try await coordinator.process(image: image) { _ in }
-            XCTFail("Expected injected OCR failure")
-        } catch let error as SudokuImageImportError {
-            XCTAssertEqual(error, expected)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
+    func testThreeByThreeRejectsMirroredCornersWithCorrectColorCounts() {
+        var stickers = CubeState.solved3x3.stickers
+        stickers.swapAt(9, 20)
+        stickers.swapAt(26, 15)
+        let state = CubeState(puzzle: .threeByThree, stickers: stickers)
+        guard case .failure = Cube3x3CubieState.from(stickers: stickers) else {
+            return XCTFail("Mirrored corners must be rejected before search")
         }
+        XCTAssertEqual(Cube3x3Solver().solve(state, options: .default).status, .invalidInput)
     }
 
-    private func assertFailure(_ fixture: String, equals expected: SudokuImageImportError) async {
-        do {
-            _ = try await SudokuScanCoordinator().process(image: try fixtureImage(named: fixture)) { _ in }
-            XCTFail("\(fixture) unexpectedly scanned")
-        } catch let error as SudokuImageImportError {
-            XCTAssertEqual(error, expected, fixture)
-        } catch {
-            XCTFail("\(fixture): unexpected error \(error)")
-        }
+    func testMoveEnginesSafelyIgnoreMalformedStickerArraysAndNotation() {
+        let small = CubeState(puzzle: .twoByTwo, stickers: [])
+        let large = CubeState(puzzle: .threeByThree, stickers: ["U"])
+        XCTAssertEqual(TwoByTwoMoveEngine.apply("R", to: small), small)
+        XCTAssertEqual(TwoByTwoMoveEngine.apply("Rubbish", to: .solved2x2), .solved2x2)
+        XCTAssertEqual(Cube3x3MoveEngine.apply("R", to: large), large)
     }
 
-    private func fixtureImage(named name: String, scale: CGFloat = 1) throws -> UIImage {
-        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: name, withExtension: "svg", subdirectory: "SudokuImages"))
-        let decoded = try XCTUnwrap(UIImage(data: Data(contentsOf: url)))
-        let pixels = try XCTUnwrap(decoded.cgImage, "Fixture must decode to raster pixels")
-        return UIImage(cgImage: pixels, scale: scale, orientation: .up)
-    }
-
-    private func expectedBoard(named name: String) throws -> ExpectedBoard {
-        let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "\(name).expected", withExtension: "json", subdirectory: "SudokuImages"))
-        let expected = try JSONDecoder().decode(ExpectedBoard.self, from: Data(contentsOf: url))
-        XCTAssertEqual(expected.board.count, 9)
-        XCTAssertTrue(expected.board.allSatisfy { $0.count == 9 })
-        return expected
+    func testRushHourMoveCannotJumpOverBlockingVehicle() {
+        let board = RushHourBoard(vehicles: [
+            RushHourVehicle(id: "X", label: "X", orientation: .horizontal, length: 2, row: 2, column: 0, style: .purple, isTarget: true),
+            RushHourVehicle(id: "A", label: "A", orientation: .vertical, length: 2, row: 1, column: 2, style: .blue, isTarget: false)
+        ])
+        XCTAssertTrue(board.isValid)
+        let jump = RushHourMove(vehicleID: "X", vehicleLabel: "X", signedDistance: 4, orientation: .horizontal, isTarget: true)
+        XCTAssertNil(board.applying(jump))
+        XCTAssertFalse(board.legalMoves().contains { $0.move == jump })
     }
 }

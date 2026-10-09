@@ -7,6 +7,7 @@ struct KillerSudokuInputView: View {
     @State private var target = ""
     @State private var history: [KillerSudokuBoard] = []
     @State private var feedback: String?
+    @FocusState private var targetIsFocused: Bool
 
     private var report: KillerSudokuValidation { KillerSudokuValidator.report(for: board) }
     private var canSolve: Bool { report.canSolve && KillerSudokuValidator.validate(board) != .invalid }
@@ -46,11 +47,18 @@ struct KillerSudokuInputView: View {
             }
             .appCardStyle().accessibilityIdentifier("killer-sudoku-input")
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { targetIsFocused = false }
+            }
+        }
     }
 
     @ViewBuilder private var cageEditor: some View {
         TextField("Target sum", text: $target)
             .keyboardType(.numberPad).textFieldStyle(.roundedBorder)
+            .focused($targetIsFocused)
             .frame(minHeight: 44).accessibilityLabel("Cage target sum")
             .accessibilityIdentifier("killer-target")
         Button(editingCageID == nil ? "Create Cage" : "Save Cage") { saveCage() }
@@ -73,6 +81,7 @@ struct KillerSudokuInputView: View {
             feedback = "Editing cage with \(cage.cells.count) cells."
             return
         }
+        if editingCageID != nil { selection = []; target = "" }
         editingCageID = nil
         if selection.contains(coordinate) { selection.remove(coordinate) } else {
             let proposed = selection.union([coordinate])
@@ -94,6 +103,7 @@ struct KillerSudokuInputView: View {
         } else {
             board.cages.append(KillerSudokuCage(targetSum: sum, cells: selection.sorted(by: coordinateOrder)))
         }
+        targetIsFocused = false
         selection = []; editingCageID = nil; target = ""; feedback = nil
     }
 
@@ -105,7 +115,7 @@ struct KillerSudokuInputView: View {
 
     private func undo() { guard let previous = history.popLast() else { return }; board = previous; clearEditor() }
     private func replace(with replacement: KillerSudokuBoard) { history.append(board); board = replacement; clearEditor() }
-    private func clearEditor() { selection = []; editingCageID = nil; target = ""; feedback = nil }
+    private func clearEditor() { targetIsFocused = false; selection = []; editingCageID = nil; target = ""; feedback = nil }
     private func coordinateOrder(_ a: LogicGridCoordinate, _ b: LogicGridCoordinate) -> Bool { a.row == b.row ? a.column < b.column : a.row < b.row }
     private func connected(_ cells: Set<LogicGridCoordinate>) -> Bool {
         guard let first = cells.first else { return false }; var seen: Set<LogicGridCoordinate> = []; var stack = [first]
@@ -145,7 +155,15 @@ struct KillerSudokuGridView: View {
         let anchor = cage?.cells.min(by: { ($0.row, $0.column) < ($1.row, $1.column) })
         return ZStack(alignment: .topLeading) {
             Rectangle().fill(selection.contains(coordinate) ? AppTheme.highlight.opacity(0.7) : AppTheme.background.opacity(0.9))
-            if anchor == coordinate { Text(String(cage!.targetSum)).font(.system(size: max(9, side * 0.23), weight: .bold)).padding(3) }
+            if let value = board.cells[coordinate.row][coordinate.column].value {
+                Text(String(value))
+                    .font(.system(size: max(14, side * 0.5), weight: .semibold))
+                    .foregroundColor(AppTheme.text)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, side * 0.2)
+                    .accessibilityHidden(true)
+            }
+            if let cage, anchor == coordinate { Text(String(cage.targetSum)).font(.system(size: max(9, side * 0.23), weight: .bold)).padding(3) }
             if index == nil { Image(systemName: "circle.dotted").font(.caption).frame(maxWidth: .infinity, maxHeight: .infinity).foregroundColor(AppTheme.secondaryText) }
             if let index, invalidCages.contains(index) { Image(systemName: "exclamationmark.triangle.fill").font(.caption).frame(maxWidth: .infinity, maxHeight: .infinity).foregroundColor(AppTheme.highlight) }
         }.frame(width: side, height: side).overlay(cageEdges(at: coordinate, index: index)).contentShape(Rectangle())

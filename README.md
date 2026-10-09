@@ -1,9 +1,11 @@
 # Puzzle Solver
 
+Current cleanup findings and outstanding Xcode/device checks are recorded in [FINAL_V1_CLEANUP_REPORT.md](FINAL_V1_CLEANUP_REPORT.md). Earlier audit and release reports are historical snapshots; their scanner availability and nine-mode claims are superseded by this eight-mode contract.
+
 ## V1 merge gate
 
 The `iOS Build and Test` workflow runs the complete automated V1 gate on an
-Xcode 26+ macOS runner: Debug build, unit tests, all nine active-mode XCUITest
+Xcode 26+ macOS runner: Debug build, unit tests, all eight active-mode XCUITest
 happy paths, and Release build. The jobs are intentionally exposed as one
 stable required check so an earlier failure cannot be hidden by a later stage.
 
@@ -15,7 +17,7 @@ Puzzle Solver is a SwiftUI app for iPhone that provides a focused set of puzzle 
 
 ## Available in V1
 
-The V1 contract contains exactly **nine active modes**.
+The V1 contract contains exactly **eight active modes**.
 
 | Category | Puzzle | Production behavior |
 | --- | --- | --- |
@@ -25,7 +27,6 @@ The V1 contract contains exactly **nine active modes**.
 | Twisty | 2×2 Cube | Enter stickers with guided or net input and solve bounded scrambles. Sticker counts and physical cubie constraints are validated, so impossible 2×2 states are rejected. |
 | Twisty | 3×3 Rubik’s Cube | Enter a physical cube face by face or as a net, then solve it with the bounded two-phase solver. |
 | Logic | Sudoku | Enter givens manually, check row/column/box conflicts, and solve with bounded feedback. An example board and solution display are included. |
-| Logic | Sudoku Photo Scan | Capture or import a Sudoku on device, review every recognized clue, and continue through the production solve flow. |
 | Logic | Killer Sudoku | Build sum cages, validate complete coverage, and solve while preserving the cage constraints. |
 | Mechanical | Rush Hour | Build or load a 6×6 vehicle layout, validate it, and search for an ordered escape solution. |
 
@@ -33,10 +34,10 @@ All active searches use time, depth, node, or memory safeguards appropriate to t
 
 ## Coming Soon
 
-These 12 entries are visible through the app's **Coming Soon** screen and are not production solver flows in V1:
+These 13 entries are visible through the app's **Coming Soon** screen and are not production solver flows in V1:
 
 - **Twisty:** Pyraminx, Skewb, Megaminx, and Square-1.
-- **Logic:** Nonogram, Kakuro, and Slitherlink.
+- **Logic:** Sudoku Photo Scan, Nonogram, Kakuro, and Slitherlink.
 - **Mechanical:** Klotski and Peg Solitaire.
 - **Visual / Experimental:** Maze, Chess, and Jigsaw.
 
@@ -51,7 +52,8 @@ The separate **Coming Soon** screen groups every planned catalog entry by catego
 
 ## Requirements and Local Development
 
-- macOS with Xcode and an iOS Simulator, or an iPhone configured for local development.
+- The app ships for iOS on iPhone only; Mac Catalyst and running the iOS app on Apple Silicon Macs are disabled.
+- Building, simulator testing, and archiving the iOS app require Xcode on macOS. macOS is the development host, not a release target.
 - The app target is configured for iOS 16.0 or later.
 - Swift 5 language mode is configured in the Xcode project.
 
@@ -76,21 +78,21 @@ The repository also retains model-layer and experimental code for future modes. 
 
 ## Testing and CI
 
-The XCTest target covers catalog status, validation, representative solver outcomes, safety limits, move playback, and model-layer work. The XCUITest target includes launch and production-flow checks, including verification of the Sudoku photo-scan and review flow. Test coverage describes exercised behavior; it is not a guarantee that every possible puzzle state can be solved within V1 limits.
+The XCTest target covers catalog status, validation, representative solver outcomes, safety limits, move playback, and model-layer work. The XCUITest target includes launch and production-flow checks, including verification that Sudoku Photo Scan remains informational under Coming Soon. Test coverage describes exercised behavior; it is not a guarantee that every possible puzzle state can be solved within V1 limits.
 
-The repository's GitHub Actions workflow builds Debug and Release simulator configurations and runs both the unit-test and nine-mode XCUITest targets on pushes and pull requests to `main`. The workflow requires an Xcode 26 or later runner and publishes test result bundles as diagnostics.
+The repository's GitHub Actions workflow builds Debug and Release simulator configurations and runs both the unit-test and eight-mode XCUITest targets on pushes and pull requests to `main`. The workflow requires an Xcode 26 or later runner and publishes test result bundles as diagnostics.
 
 ## Privacy
 
-The production implementation has no account flow, network client, or third-party dependency. The privacy manifest declares UserDefaults access used for lightweight settings such as appearance and onboarding state. Sudoku Photo Scan requests camera or photo-library access only when the user chooses the corresponding import action and is designed to process the image on device. These source-level findings must be confirmed from the TestFlight binary with an App Privacy Report and runtime network inspection before App Store privacy answers are finalized.
+The production implementation has no account flow, network client, or third-party dependency. The privacy manifest declares UserDefaults access used for lightweight settings such as appearance and onboarding state. Sudoku Photo Scan is Coming Soon; its implementation and camera/photo-library permissions are excluded from V1. These source-level findings must be confirmed from the TestFlight binary with an App Privacy Report and runtime network inspection before App Store privacy answers are finalized.
 
 ## App Store Listing Copy (V1)
 
 The following submission copy is intentionally limited to the shipping catalog and does not present any Coming Soon mode as available:
 
-> Solve nine puzzle modes in one focused app: 3×3, 4×4, and 5×5 sliding puzzles; 2×2 and 3×3 cubes; Sudoku; Sudoku Photo Scan; Killer Sudoku; and Rush Hour. Enter or review your puzzle, validate it, and follow clear solution results and move playback. Searches are bounded so difficult inputs stop with useful feedback rather than running indefinitely.
+> Solve eight puzzle modes in one focused app: 3×3, 4×4, and 5×5 sliding puzzles; 2×2 and 3×3 cubes; manual Sudoku; Killer Sudoku; and Rush Hour. Enter or review your puzzle, validate it, and follow clear solution results and move playback. Searches are bounded so difficult inputs stop with useful feedback rather than running indefinitely.
 
-**Promotional text:** Nine production puzzle modes with input validation, clear results, and bounded search.
+**Promotional text:** Eight production puzzle modes with input validation, clear results, and bounded search.
 
 Coming Soon modes may be visible inside the app as clearly unavailable previews, but they must not appear in App Store descriptions, promotional text, keywords, or screenshots as shipping functionality.
 

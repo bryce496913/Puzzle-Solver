@@ -143,12 +143,15 @@ struct SudokuBoard: LogicPuzzleBoard, Equatable, Hashable {
     }
 
     func value(at coordinate: LogicGridCoordinate) -> Int? {
-        guard Self.contains(coordinate) else { return nil }
+        guard Self.contains(coordinate), cells.indices.contains(coordinate.row),
+              cells[coordinate.row].indices.contains(coordinate.column) else { return nil }
         return cells[coordinate.row][coordinate.column].value
     }
 
     func settingValue(_ value: Int?, at coordinate: LogicGridCoordinate, markGiven: Bool? = nil) -> SudokuBoard {
-        guard Self.contains(coordinate), value == nil || Self.validDigits.contains(value!) else { return self }
+        guard Self.contains(coordinate), cells.indices.contains(coordinate.row),
+              cells[coordinate.row].indices.contains(coordinate.column) else { return self }
+        if let value, !Self.validDigits.contains(value) { return self }
         var copy = cells
         copy[coordinate.row][coordinate.column].value = value
         copy[coordinate.row][coordinate.column].isGiven = markGiven ?? copy[coordinate.row][coordinate.column].isGiven && value != nil
@@ -349,7 +352,8 @@ final class SudokuSolver: LogicPuzzleSolving {
         let coordinate = candidate.coordinate
 
         for value in candidate.values {
-            guard solutionCount < 2, !interrupted, !Task.isCancelled else { interrupted = Task.isCancelled; return }
+            guard solutionCount < 2, !interrupted else { return }
+            guard !Task.isCancelled else { interrupted = true; return }
             nodes += 1
             values[coordinate.row][coordinate.column] = value
             steps.append(SudokuSolveStep(coordinate: coordinate, value: value))

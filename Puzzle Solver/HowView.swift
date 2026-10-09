@@ -49,6 +49,6 @@ private struct HowCard: View {
 
 struct HowView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView { HowView() }
+        NavigationStack { HowView() }
     }
 }

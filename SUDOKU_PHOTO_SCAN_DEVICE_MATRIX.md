@@ -1,5 +1,7 @@
 # Sudoku Photo Scan — Physical-device validation matrix
 
+> Historical snapshot. The current V1 contract has eight active modes; Sudoku Photo Scan is Coming Soon, and its implementation and permissions have been removed. Scanner execution rows below are post-V1 work. See [FINAL_V1_CLEANUP_REPORT.md](FINAL_V1_CLEANUP_REPORT.md) for current findings and required checks.
+
 Photo Scan is an **Active** V1 mode. Automated coverage imports repository-owned Sudoku fixtures through the on-device pipeline and exercises the review/result UI through a deterministic test hook; it does not claim to automate live camera reliability in Simulator. The physical-device cases below remain the required Camera/Photos release checklist.
 
 ## Setup and recording

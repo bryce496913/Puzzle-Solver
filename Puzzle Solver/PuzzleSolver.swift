@@ -526,6 +526,14 @@ enum TwoByTwoCubieConverter {
             guard let orientation = colors.firstIndex(where: { $0 == "U" || $0 == "D" }) else {
                 return .failure(.init("Corner \(position.rawValue) has no Up or Down sticker."))
             }
+            // A physical corner can rotate, but its cyclic color order cannot mirror.
+            guard let solvedPosition = TwoByTwoCornerPosition.allCases.first(where: { $0.solvedColors == identity }) else {
+                return .failure(.init("This corner has an impossible color combination."))
+            }
+            let solvedColors = solvedPosition.stickerIndices.map { CubeState.solved2x2.stickers[$0] }
+            guard (0..<3).allSatisfy({ colors[(orientation + $0) % 3] == solvedColors[$0] }) else {
+                return .failure(.init("Corner \(position.rawValue) has a mirrored color order. Check its stickers."))
+            }
             corners.append(.init(position: position, identity: identity, orientation: orientation))
         }
 
@@ -584,19 +592,6 @@ final class CubeSolvingService {
     }
 }
 
-private final class TimedSolveTicket {
-    private let lock = NSLock()
-    private var finished = false
-
-    func claim() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !finished else { return false }
-        finished = true
-        return true
-    }
-}
-
 // MARK: - 2×2 IDA* solver
 
 
@@ -605,6 +600,8 @@ enum TwoByTwoMoveEngine {
     static let legalMoves = TwistyMoveNotation.parse(legalMoveNotation, allowedFaces: Set(["U", "R", "F"])).movesOrEmpty
 
     static func apply(_ move: String, to state: CubeState) -> CubeState {
+        guard state.puzzle == .twoByTwo, state.stickers.count == 24,
+              legalMoves.contains(where: { $0.notation == move }) else { return state }
         let turns: Int
         switch move.last {
         case "'": turns = 3
@@ -1183,7 +1180,7 @@ enum Cube3x3MoveEngine {
     static let legalMoveNotation = Cube3x3Move.allCases.map(\.rawValue).joined(separator: " ")
 
     static func apply(_ move: String, to state: CubeState) -> CubeState {
-        guard state.puzzle == .threeByThree, let cubeMove = Cube3x3Move(rawValue: move) else { return state }
+        guard state.puzzle == .threeByThree, state.stickers.count == 54, let cubeMove = Cube3x3Move(rawValue: move) else { return state }
         return CubeState(puzzle: state.puzzle, stickers: Cube3x3MoveTables.shared.apply(cubeMove, to: state.stickers))
     }
 
@@ -1250,7 +1247,7 @@ final class Cube3x3Solver: CubeSolverProtocol {
             if options.includeStepStates { steps.append(CubeSolutionStep(move: move, state: replay)) }
         }
         guard replay == .solved3x3 else {
-            return finish(.failure, state: state, reason: "Internal solver error: the proposed 3×3 solution did not replay to solved.", started: totalStarted, nodes: search.nodes)
+            return finish(.failure, state: state, reason: "The solution could not be verified. Check the cube and try again.", started: totalStarted, nodes: search.nodes)
         }
         return CubeSolveResult(status: .success, puzzle: supportedPuzzle, moves: moves, steps: steps, failureReason: nil, elapsedTime: Date().timeIntervalSince(totalStarted), nodesExplored: search.nodes)
     }
@@ -1259,57 +1256,6 @@ final class Cube3x3Solver: CubeSolverProtocol {
         CubeSolveResult(status: status, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: reason, elapsedTime: Date().timeIntervalSince(started), nodesExplored: nodes)
     }
 }
-
-/// Retained only for regression comparison; production registration uses
-/// Cube3x3Solver exclusively.
-final class LegacyCube3x3ShallowSolver: CubeSolverProtocol {
-    let supportedPuzzle: CubePuzzleKind = .threeByThree
-    private let solvedState = CubeState.solved3x3
-    private let moves = Cube3x3Move.allCases.map(\.rawValue)
-
-    func solve(_ state: CubeState, options: CubeSolveOptions) -> CubeSolveResult {
-        let start = Date()
-        guard state.puzzle == supportedPuzzle else {
-            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "Expected a 3×3 cube state.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
-        }
-        switch CubeStickerValidator.validate(state) {
-        case .failure(let error):
-            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: error.localizedDescription, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
-        case .success: break
-        }
-        guard state != solvedState else {
-            return CubeSolveResult(status: .alreadySolved, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
-        }
-        if case .failure(let error) = Cube3x3CubieState.from(stickers: state.stickers) {
-            return CubeSolveResult(status: .invalidInput, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: error.localizedDescription, elapsedTime: Date().timeIntervalSince(start), nodesExplored: 0)
-        }
-        var nodes = 0
-        let deadline = start.addingTimeInterval(max(0.1, options.timeout))
-        let maxDepth = min(max(options.maxDepth, 2), 6)
-        for depth in 1...maxDepth {
-            if let solution = dfs(state, depth: depth, previousFace: nil, path: [], deadline: deadline, maxNodes: options.maxNodes, nodes: &nodes) {
-                return CubeSolveResult(status: .success, puzzle: supportedPuzzle, moves: solution, steps: [], failureReason: nil, elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
-            }
-            if Date() >= deadline {
-                return CubeSolveResult(status: .timeout, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "Solver timed out. Please check the cube colors or try a simpler scramble.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
-            }
-        }
-        return CubeSolveResult(status: .solverUnavailable, puzzle: supportedPuzzle, moves: [], steps: [], failureReason: "3×3 solver upgrade in progress. Solved cubes and short generated scrambles are supported; complex states are safely unavailable in V1.", elapsedTime: Date().timeIntervalSince(start), nodesExplored: nodes)
-    }
-
-    private func dfs(_ state: CubeState, depth: Int, previousFace: Character?, path: [String], deadline: Date, maxNodes: Int, nodes: inout Int) -> [String]? {
-        if state == solvedState { return path }
-        if depth == 0 || Date() >= deadline || nodes >= maxNodes { return nil }
-        for move in moves {
-            guard move.first != previousFace else { continue }
-            nodes += 1
-            let next = Cube3x3MoveEngine.apply(move, to: state)
-            if let found = dfs(next, depth: depth - 1, previousFace: move.first, path: path + [move], deadline: deadline, maxNodes: maxNodes, nodes: &nodes) { return found }
-        }
-        return nil
-    }
-}
-
 
 extension Cube3x3CubieState {
     enum ConversionError: LocalizedError {
@@ -1370,6 +1316,9 @@ extension Cube3x3CubieState {
             guard seenCorners.insert(cubie).inserted else { return .failure(.duplicateCorner(colors.joined())) }
             cp[position] = cubie
             guard let orientation = colors.firstIndex(where: { $0 == "U" || $0 == "D" }) else { return .failure(.missingCorner(colors.joined())) }
+            guard (0..<3).allSatisfy({ colors[(orientation + $0) % 3] == cornerColors[cubie][$0] }) else {
+                return .failure(.missingCorner(colors.joined()))
+            }
             co[position] = orientation % 3
         }
 
@@ -1580,16 +1529,6 @@ protocol TwistyPlaceholderArchitecture {
     var supportedMoves: [TwistyMove] { get }
 }
 
-struct Cube3x3SolverArchitecture: TwistyPlaceholderArchitecture {
-    let puzzle: TwistyPuzzleKind = .threeByThree
-    let phases = [
-        TwistySolverPhase(name: "Input normalization", description: "Convert stickers into cubie coordinates.", implemented: true),
-        TwistySolverPhase(name: "Two-phase search", description: "Reduce orientation/slice state, then solve permutations.", implemented: false),
-        TwistySolverPhase(name: "Step replay", description: "Replay solved moves into displayable cube states.", implemented: false)
-    ]
-    let supportedMoves = TwistyMoveNotation.parse("U U' U2 D D' D2 L L' L2 R R' R2 F F' F2 B B' B2", allowedFaces: Set(["U", "D", "L", "R", "F", "B"])).movesOrEmpty
-}
-
 struct PyraminxSolverArchitecture: TwistyPlaceholderArchitecture {
     let puzzle: TwistyPuzzleKind = .pyraminx
     let phases = [
@@ -1733,7 +1672,7 @@ enum SolveState: String, CaseIterable, Equatable {
         case .invalid: return "Please check the puzzle and try again."
         case .unsolvable, .noSolution: return "This layout is not solvable."
         case .multipleSolutions: return "This puzzle has more than one solution. Add more numbers and try again."
-        case .timedOut: return "Try a simpler scramble or raise the limit."
+        case .timedOut: return "Try a puzzle closer to solved."
         case .failed: return "Please try another puzzle."
         case .unsupported: return "This mode is not supported yet."
         }
@@ -1790,7 +1729,6 @@ enum ProductionPuzzleDestination: String, CaseIterable {
     case cube2x2 = "cube-2x2"
     case cube3x3 = "cube-3x3"
     case sudoku
-    case sudokuPhotoScan = "sudoku-photo-scan"
     case killerSudoku = "killer-sudoku"
     case rushHour = "rush-hour"
 }

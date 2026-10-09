@@ -6,8 +6,6 @@
 //
 
 import XCTest
-import CoreImage
-import UIKit
 @testable import Puzzle_Solver
 
 final class Puzzle_SolverTests: XCTestCase {
@@ -28,7 +26,7 @@ final class Puzzle_SolverTests: XCTestCase {
         CatalogExpectation(id: "megaminx", title: "Megaminx", status: .comingSoon),
         CatalogExpectation(id: "square-1", title: "Square-1", status: .comingSoon),
         CatalogExpectation(id: "sudoku", title: "Sudoku", status: .active),
-        CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .active),
+        CatalogExpectation(id: "sudoku-photo-scan", title: "Sudoku Photo Scan", status: .comingSoon),
         CatalogExpectation(id: "killer-sudoku", title: "Killer Sudoku", status: .active),
         CatalogExpectation(id: "nonogram", title: "Nonogram", status: .comingSoon),
         CatalogExpectation(id: "kakuro", title: "Kakuro", status: .comingSoon),
@@ -49,14 +47,14 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertEqual(actual, expectedV1Catalog)
     }
 
-    func testV1ReleaseContractHasExactlyNineRegisteredProductionModes() throws {
+    func testV1ReleaseContractHasExactlyEightRegisteredProductionModes() throws {
         let expectedActiveIDs: Set<String> = [
             "sliding-3x3", "sliding-4x4", "sliding-5x5",
-            "cube-2x2", "cube-3x3", "sudoku", "sudoku-photo-scan",
+            "cube-2x2", "cube-3x3", "sudoku",
             "killer-sudoku", "rush-hour"
         ]
         let expectedComingSoonIDs: Set<String> = [
-            "pyraminx", "skewb", "megaminx", "square-1", "nonogram", "kakuro",
+            "sudoku-photo-scan", "pyraminx", "skewb", "megaminx", "square-1", "nonogram", "kakuro",
             "slitherlink", "klotski", "peg-solitaire", "maze-solver", "chess-puzzles",
             "jigsaw-solver"
         ]
@@ -66,9 +64,9 @@ final class Puzzle_SolverTests: XCTestCase {
 
         XCTAssertEqual(Set(descriptors.map(\.id)).count, descriptors.count, "Catalog IDs must be unique.")
         XCTAssertEqual(activeIDs, expectedActiveIDs)
-        XCTAssertEqual(PuzzleAvailabilityCatalog.activeCount, 9)
+        XCTAssertEqual(PuzzleAvailabilityCatalog.activeCount, 8)
         XCTAssertEqual(comingSoonIDs, expectedComingSoonIDs)
-        XCTAssertEqual(PuzzleAvailabilityCatalog.comingSoonCount, 12)
+        XCTAssertEqual(PuzzleAvailabilityCatalog.comingSoonCount, 13)
         XCTAssertEqual(PuzzleModeRegistry.registeredProductionIDs, expectedActiveIDs)
 
         for id in expectedActiveIDs {
@@ -892,32 +890,21 @@ final class Puzzle_SolverTests: XCTestCase {
     func testLogicPuzzleReleaseAvailabilityComesFromV1Catalog() throws {
         let logicDescriptors = PuzzleAvailabilityCatalog.descriptors(in: .logic)
 
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku", "sudoku-photo-scan", "killer-sudoku"])
-        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["nonogram", "kakuro", "slitherlink"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .active }.map(\.id), ["sudoku", "killer-sudoku"])
+        XCTAssertEqual(logicDescriptors.filter { $0.status == .comingSoon }.map(\.id), ["sudoku-photo-scan", "nonogram", "kakuro", "slitherlink"])
     }
 
-    func testSudokuPhotoScanUsesActiveDedicatedMenuBehavior() throws {
+    func testSudokuPhotoScanIsComingSoonWithoutProductionDestination() throws {
         let sudoku = PuzzleAvailabilityCatalog.descriptor(id: "sudoku")
         let photoScan = PuzzleAvailabilityCatalog.descriptor(id: "sudoku-photo-scan")
 
         XCTAssertEqual(sudoku.status, .active)
         XCTAssertTrue(sudoku.status.isInteractive)
-        XCTAssertEqual(photoScan.status, .active)
-        XCTAssertTrue(photoScan.status.isInteractive)
-        XCTAssertTrue(LogicPuzzleMenuView.productionDescriptors.contains(photoScan))
-        XCTAssertFalse(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .logic).contains(photoScan))
-    }
-
-    func testOCRImplementationDoesNotAffectProductionSudokuInitialization() {
-        let retainedScanResult = SudokuScanResult(cells: [
-            SudokuDetectedCell(row: 0, column: 0, recognizedValue: 9, confidence: 0.99)
-        ])
-        let board = SudokuInputView.initialBoard
-
-        XCTAssertEqual(retainedScanResult.board.value(at: LogicGridCoordinate(row: 0, column: 0)), 9)
-        XCTAssertEqual(board, .empty)
-        XCTAssertTrue(board.cells.flatMap { $0 }.allSatisfy { $0.value == nil && !$0.isGiven })
-        XCTAssertTrue(SudokuValidator.validate(board).isValid)
+        XCTAssertEqual(photoScan.status, .comingSoon)
+        XCTAssertFalse(photoScan.status.isInteractive)
+        XCTAssertFalse(LogicPuzzleMenuView.productionDescriptors.contains(photoScan))
+        XCTAssertNil(PuzzleModeRegistry.destination(for: photoScan.id))
+        XCTAssertTrue(PuzzleAvailabilityCatalog.comingSoonDescriptors(in: .logic).contains(photoScan))
     }
 
     func testManualSudokuEntryRemainsEditableAndValidatable() {
@@ -928,134 +915,6 @@ final class Puzzle_SolverTests: XCTestCase {
         XCTAssertTrue(entered.cells[coordinate.row][coordinate.column].isGiven)
         XCTAssertTrue(SudokuValidator.validate(entered).canSolve)
     }
-
-    // MARK: - Sudoku photo scan pipeline
-
-    func testSudokuPreprocessingUsesCGImagePixelsAtEveryUIImageScale() throws {
-        let cgImage = try XCTUnwrap(makeTestCGImage(width: 90, height: 60))
-
-        for scale in [CGFloat(1), 2, 3] {
-            let prepared = try SudokuImagePreprocessor().prepare(UIImage(cgImage: cgImage, scale: scale, orientation: .up))
-            XCTAssertEqual(prepared.normalized.scale, 1)
-            XCTAssertEqual(prepared.normalized.cgImage?.width, 90)
-            XCTAssertEqual(prepared.normalized.cgImage?.height, 60)
-        }
-    }
-
-    func testNonZeroCoreImageExtentIsNormalizedToOrigin() {
-        let shifted = CIImage(color: .white)
-            .cropped(to: CGRect(x: 37, y: -12, width: 240, height: 180))
-        let normalized = SudokuImageGeometry.zeroOrigin(shifted)
-
-        XCTAssertEqual(normalized.extent.origin.x, 0, accuracy: 0.001)
-        XCTAssertEqual(normalized.extent.origin.y, 0, accuracy: 0.001)
-        XCTAssertEqual(normalized.extent.size, shifted.extent.size)
-    }
-
-    func testVisionNormalizedCoordinatesConvertToUpperLeftPixels() {
-        let point = SudokuImageGeometry.pixelPoint(fromVision: CGPoint(x: 0.25, y: 0.75), pixelWidth: 1200, pixelHeight: 900)
-        let rect = SudokuImageGeometry.pixelRect(fromVision: CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.4), pixelWidth: 1200, pixelHeight: 900)
-
-        XCTAssertEqual(point.x, 300, accuracy: 0.001)
-        XCTAssertEqual(point.y, 225, accuracy: 0.001)
-        XCTAssertEqual(rect, CGRect(x: 120, y: 360, width: 360, height: 360))
-    }
-
-    func testNineByNineSegmentationGeometryCoversCanonicalBoard() {
-        let rects = SudokuImageGeometry.cellRects(pixelWidth: 900, pixelHeight: 900, paddingRatio: 0)
-
-        XCTAssertEqual(rects.count, 81)
-        XCTAssertEqual(rects[0], CGRect(x: 0, y: 0, width: 100, height: 100))
-        XCTAssertEqual(rects[40], CGRect(x: 400, y: 400, width: 100, height: 100))
-        XCTAssertEqual(rects[80], CGRect(x: 800, y: 800, width: 100, height: 100))
-    }
-
-    func testResolvedConflictReturnsToStateDerivedFromCurrentConfidence() {
-        let cells = [
-            SudokuDetectedCell(row: 0, column: 0, recognizedValue: 5, confidence: 0.99, reviewState: .conflict),
-            SudokuDetectedCell(row: 0, column: 1, recognizedValue: 6, confidence: 0.70, reviewState: .conflict),
-            SudokuDetectedCell(row: 0, column: 2, recognizedValue: nil, confidence: nil, reviewState: .conflict)
-        ]
-
-        let reviewed = SudokuScanValidator.markReviewStates(cells)
-
-        XCTAssertEqual(reviewed.map(\.reviewState), [.highConfidence, .needsReview, .blank])
-    }
-
-    func testScanRequiresAtLeastSeventeenEnteredClues() {
-        XCTAssertEqual(SudokuScanConfiguration.minimumCluesForReview, 17)
-        XCTAssertEqual(
-            SudokuImageImportError.ocrCouldNotReadEnoughNumbers.localizedDescription,
-            "Not enough clues were recognized. Review the image or enter missing digits manually."
-        )
-    }
-
-    func testUncertainBlankRemainsMarkedForReview() {
-        let uncertain = SudokuDetectedCell(
-            row: 4, column: 6, recognizedValue: nil, confidence: 0.31,
-            sourceType: .detected, reviewState: .blank
-        )
-
-        let reviewed = SudokuScanValidator.markReviewStates([uncertain])
-
-        XCTAssertNil(reviewed[0].recognizedValue)
-        XCTAssertEqual(reviewed[0].confidence, 0.31)
-        XCTAssertEqual(reviewed[0].reviewState, .lowConfidence)
-        XCTAssertTrue(reviewed[0].needsReview)
-    }
-
-    @MainActor
-    func testStartingNewScanCancelsPreviousOperation() async throws {
-        let firstCancelled = expectation(description: "first scan cancelled")
-        var invocation = 0
-        let viewModel = SudokuImageImportViewModel { _, _ in
-            invocation += 1
-            if invocation == 1 {
-                do { try await Task.sleep(nanoseconds: 2_000_000_000) }
-                catch { firstCancelled.fulfill(); throw error }
-            }
-            return SudokuScanResult(cells: [])
-        }
-        let image = UIImage(cgImage: try XCTUnwrap(makeTestCGImage(width: 10, height: 10)))
-
-        viewModel.process(image)
-        await Task.yield()
-        viewModel.process(image)
-        await fulfillment(of: [firstCancelled], timeout: 1)
-        try await Task.sleep(nanoseconds: 20_000_000)
-
-        XCTAssertFalse(viewModel.isProcessing)
-        XCTAssertEqual(viewModel.scanState, .readyForReview)
-    }
-
-    @MainActor
-    func testStaleScanResultCannotOverwriteNewestReviewState() async throws {
-        var invocation = 0
-        let viewModel = SudokuImageImportViewModel { _, _ in
-            invocation += 1
-            let current = invocation
-            try? await Task.sleep(nanoseconds: current == 1 ? 120_000_000 : 10_000_000)
-            return SudokuScanResult(cells: [SudokuDetectedCell(row: 0, column: 0, recognizedValue: current, confidence: 1)])
-        }
-        let image = UIImage(cgImage: try XCTUnwrap(makeTestCGImage(width: 10, height: 10)))
-
-        viewModel.process(image)
-        await Task.yield()
-        viewModel.process(image)
-        try await Task.sleep(nanoseconds: 180_000_000)
-
-        XCTAssertEqual(viewModel.reviewResult?.cells.first?.recognizedValue, 2)
-        XCTAssertFalse(viewModel.isProcessing)
-    }
-
-    private func makeTestCGImage(width: Int, height: Int) -> CGImage? {
-        let colorSpace = CGColorSpaceCreateDeviceGray()
-        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width, space: colorSpace, bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
-        context.setFillColor(gray: 1, alpha: 1)
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        return context.makeImage()
-    }
-
 
     // MARK: - Experimental puzzle architecture
 

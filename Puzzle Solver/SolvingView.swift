@@ -18,7 +18,6 @@ struct SolvingView: View {
     @State private var solutionSteps: [SlidingPuzzleStep] = []
     @State private var isSolving = false
     @State private var didFinish = false
-    @State private var didStart = false
     @State private var playbackStepIndex = 0
     @State private var solveTask: Task<Void, Never>?
     @State private var solveID = UUID()
@@ -131,8 +130,7 @@ struct SolvingView: View {
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("sliding-solver-result")
         .onAppear {
-            guard !didStart else { return }
-            didStart = true
+            guard !didFinish, solveTask == nil else { return }
             solvePuzzle()
         }
         .onDisappear { cancelSolve() }
@@ -180,6 +178,7 @@ struct SolvingView: View {
         solveTask?.cancel()
         solveTask = nil
         solveID = UUID()
+        isSolving = false
     }
 
     private var solverTimeout: TimeInterval {
@@ -254,6 +253,7 @@ struct SlidingPuzzlePlaybackView: View {
     @State private var isPlaying = false
     @State private var playbackSpeed = 0.7
     @State private var playbackTimer: Timer?
+    @Environment(\.scenePhase) private var scenePhase
 
     private var totalSteps: Int { max(steps.count - 1, 0) }
     private var currentStep: SlidingPuzzleStep? { steps.indices.contains(currentStepIndex) ? steps[currentStepIndex] : nil }
@@ -316,8 +316,9 @@ struct SlidingPuzzlePlaybackView: View {
             currentStepIndex = 0
             activeStepIndex = 0
         }
-        .onDisappear {
-            pausePlayback()
+        .onDisappear { pausePlayback() }
+        .appOnChange(of: scenePhase) { phase in
+            if phase != .active { pausePlayback() }
         }
     }
 
@@ -338,6 +339,7 @@ struct SlidingPuzzlePlaybackView: View {
         playbackTimer?.invalidate()
         playbackTimer = Timer.scheduledTimer(withTimeInterval: playbackSpeed, repeats: true) { _ in
             DispatchQueue.main.async {
+                guard isPlaying else { return }
                 if currentStepIndex < totalSteps {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         currentStepIndex += 1

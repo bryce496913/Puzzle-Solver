@@ -1,15 +1,15 @@
 # Production 3×3 solver limits and preparation
 
-The production sticker-state adapter uses `Cube3x3KociembaSolver`; the retained
-legacy shallow solver is not registered with `CubeSolvingService`.
+The production sticker-state adapter uses `Cube3x3KociembaSolver`. The obsolete
+legacy shallow solver was removed during the final V1 cleanup.
 
 ## Preparation lifecycle
 
 Pruning tables remain generated lazily and cached once per process by
 `Cube3x3PruningTables.shared`. The production adapter does not touch that
 singleton during initialization. Its first access therefore occurs inside
-`CubeSolvingService`'s user-initiated background queue rather than while the
-service is being constructed on the main thread. Bundling generated tables is
+the cube view's detached user-initiated task (or `CubeSolvingService`'s
+background queue), rather than while the view/service is constructed on the main thread. Bundling generated tables is
 not justified by the measured initialization cost and would add asset/version
 synchronization risk.
 
@@ -33,5 +33,5 @@ well above the former shallow DFS limits (5 seconds, 80,000 nodes, and depth 6),
 cover the validated two-phase depth range, and leave roughly 2× node headroom
 for this mixed fixture while retaining deterministic responsiveness caps.
 
-Preparation time, search time, and wrapper total time are logged separately by
-the production adapter. Subsequent solves reuse the process-wide tables.
+Preparation time and search time are recorded in search results; the logger
+is a no-op and does not print production diagnostics. Subsequent solves reuse the process-wide tables.

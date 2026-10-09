@@ -153,6 +153,26 @@ extension View {
     }
 }
 
+// Keep change callbacks consistent across the iOS 16 deployment target and
+// the current SwiftUI API. Neither overload fires for the initial value.
+extension View {
+    @ViewBuilder
+    func appOnChange<Value: Equatable>(of value: Value, perform action: @escaping (Value) -> Void) -> some View {
+        if #available(iOS 17.0, *) {
+            onChange(of: value) { _, newValue in action(newValue) }
+        } else {
+            appLegacyOnChange(of: value, perform: action)
+        }
+    }
+
+    // The older overload is required only on iOS 16. Keeping it in a deprecated
+    // compatibility function avoids warning at modern call sites.
+    @available(iOS, introduced: 14.0, deprecated: 17.0)
+    private func appLegacyOnChange<Value: Equatable>(of value: Value, perform action: @escaping (Value) -> Void) -> some View {
+        onChange(of: value, perform: action)
+    }
+}
+
 struct AppPrimaryButtonStyle: ButtonStyle {
     var isDisabledAppearance = false
     @Environment(\.isEnabled) private var isEnabled
@@ -392,7 +412,7 @@ struct PuzzleAvailabilityDescriptor: Identifiable, Hashable {
     let status: PuzzleAvailability
 
     var placeholderDescription: String {
-        status.isActive ? shortDescription : shortDescription
+        shortDescription
     }
 }
 
@@ -408,7 +428,7 @@ enum PuzzleAvailabilityCatalog {
         PuzzleAvailabilityDescriptor(id: "megaminx", category: .twisty, title: "Megaminx", shortDescription: "Solve dodecahedral Megaminx scrambles.", icon: "pentagon.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "square-1", category: .twisty, title: "Square-1", shortDescription: "Solve shape-shifting Square-1 scrambles.", icon: "square.split.2x2.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "sudoku", category: .logic, title: "Sudoku", shortDescription: "Enter givens, validate conflicts, and solve with clear feedback.", icon: "squareshape.split.3x3", status: .active),
-        PuzzleAvailabilityDescriptor(id: "sudoku-photo-scan", category: .logic, title: "Sudoku Photo Scan", shortDescription: "Scan a paper Sudoku or import a photo, review every clue, then solve on-device.", icon: "camera.viewfinder", status: .active),
+        PuzzleAvailabilityDescriptor(id: "sudoku-photo-scan", category: .logic, title: "Sudoku Photo Scan", shortDescription: "Photo-based Sudoku entry is planned for a future update.", icon: "camera.viewfinder", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "killer-sudoku", category: .logic, title: "Killer Sudoku", shortDescription: "Build sum cages, verify complete coverage, and solve while preserving cage structure.", icon: "sum", status: .active),
         PuzzleAvailabilityDescriptor(id: "nonogram", category: .logic, title: "Nonogram", shortDescription: "Solve picture logic puzzles from row and column clues.", icon: "rectangle.grid.3x2.fill", status: .comingSoon),
         PuzzleAvailabilityDescriptor(id: "kakuro", category: .logic, title: "Kakuro", shortDescription: "Solve crossword-style number-sum puzzles.", icon: "number.square.fill", status: .comingSoon),

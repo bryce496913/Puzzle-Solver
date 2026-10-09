@@ -26,63 +26,6 @@ struct LogicPuzzleMenuView: View {
 
 }
 
-/// A separate production mode: acquisition, mandatory review, then the existing
-/// Sudoku result/uniqueness flow. Images never leave `SudokuScanCoordinator`.
-struct SudokuPhotoScanView: View {
-    @State private var reviewedBoard: SudokuBoard?
-    @State private var manualResult: SudokuScanResult?
-
-    init(initialReviewResult: SudokuScanResult? = nil) {
-        _manualResult = State(initialValue: initialReviewResult)
-    }
-
-    var body: some View {
-        AppScreenContainer(
-            title: "Sudoku Photo Scan",
-            subtitle: "Import on-device, review every recognized clue, then solve."
-        ) {
-            VStack(spacing: 14) {
-                SudokuImageImportView(onUsePuzzle: finishReview)
-
-                Button("Manual fallback") {
-                    manualResult = .emptyManualEntry
-                }
-                .buttonStyle(AppSecondaryButtonStyle())
-                .accessibilityHint("Opens a fully editable review board without choosing an image.")
-
-                Label("Photos are processed only on this device and are never uploaded.", systemImage: "lock.shield")
-                    .font(AppTextStyle.paragraph)
-                    .foregroundColor(AppTheme.text)
-
-                NavigationLink(
-                    destination: Group {
-                        if let reviewedBoard { SudokuResultView(initialBoard: reviewedBoard) }
-                    },
-                    isActive: Binding(get: { reviewedBoard != nil }, set: { if !$0 { reviewedBoard = nil } })
-                ) { EmptyView() }
-                    .hidden()
-            }
-            .appCardStyle()
-            .accessibilityIdentifier("sudoku-photo-scan-import")
-        }
-        .sheet(item: $manualResult) { result in
-            SudokuScanReviewView(
-                result: result,
-                onUsePuzzle: finishReview,
-                onRescan: { manualResult = nil },
-                onRetake: { manualResult = nil },
-                onChooseAnother: { manualResult = nil },
-                onManual: {}
-            )
-        }
-    }
-
-    private func finishReview(_ board: SudokuBoard) {
-        manualResult = nil
-        reviewedBoard = board
-    }
-}
-
 struct LogicGridView<CellContent: View>: View {
     let rows: Int
     let columns: Int
@@ -118,7 +61,6 @@ struct LogicGridView<CellContent: View>: View {
 
 struct SudokuInputView: View {
     /// The production Sudoku flow always starts from a clean, manually editable grid.
-    /// Photo import remains a separate mode so this screen stays focused.
     static let initialBoard = SudokuBoard.empty
 
     @State private var board = SudokuInputView.initialBoard
@@ -489,7 +431,7 @@ struct SudokuResultView: View {
 
 struct LogicPuzzleMenuView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
+        NavigationStack {
             LogicPuzzleMenuView()
         }
     }
