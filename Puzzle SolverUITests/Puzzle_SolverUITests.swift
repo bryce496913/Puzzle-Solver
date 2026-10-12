@@ -247,6 +247,77 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertFalse(app.otherElements["rush-hour-result"].exists)
     }
 
+    // Run these on compact, standard, and large iPhone simulator destinations.
+    func testCompactSliding3x3Picker() { verifyCompactSlidingPicker(size: 3) }
+    func testCompactSliding4x4Picker() { verifyCompactSlidingPicker(size: 4) }
+    func testCompactSliding5x5Picker() { verifyCompactSlidingPicker(size: 5) }
+
+    private func verifyCompactSlidingPicker(size: Int) {
+        let app = launchAtMainMenu()
+        openMode("\(size)×\(size) Sliding Puzzle", category: "Sliding Puzzles", in: app)
+        let keys = (1..<(size * size)).map { app.buttons["sliding-key-\($0)"] }
+            + [app.buttons["sliding-key-blank"]]
+        for key in keys {
+            revealSlidingControl(key, in: app)
+            XCTAssertTrue(key.isEnabled)
+            XCTAssertGreaterThanOrEqual(key.frame.width, 44)
+            XCTAssertGreaterThanOrEqual(key.frame.height, 44)
+            XCTAssertLessThanOrEqual(key.frame.height, 64, "Picker controls should remain compact at default text size")
+            if size == 5 && app.frame.width >= 375 {
+                // A normal-width phone must fit at least five controls per row.
+                let fiveColumnWidth = (app.frame.width - 60 - 4 * 6) / 5
+                XCTAssertLessThanOrEqual(key.frame.width, fiveColumnWidth + 1)
+            }
+            // Horizontal bounds include the screen padding and the card's 14pt inset.
+            XCTAssertGreaterThanOrEqual(key.frame.minX, app.frame.minX + 30 - 1)
+            XCTAssertLessThanOrEqual(key.frame.maxX, app.frame.maxX - 30 + 1)
+            XCTAssertTrue(app.frame.contains(key.frame), "Picker control is clipped")
+        }
+
+        let one = app.buttons["sliding-key-1"]
+        revealSlidingControl(one, in: app)
+        one.tap()
+        XCTAssertFalse(one.isEnabled)
+        XCTAssertEqual(one.label, "Tile 1, already used")
+        let firstCell = app.buttons["sliding-cell-1-1"]
+        revealSlidingControl(firstCell, in: app)
+        XCTAssertEqual(firstCell.label, "Tile 1")
+        let secondCell = app.buttons["sliding-cell-1-2"]
+        XCTAssertEqual(secondCell.value as? String, "Selected")
+
+        let blank = app.buttons["sliding-key-blank"]
+        revealSlidingControl(blank, in: app)
+        blank.tap()
+        XCTAssertFalse(blank.isEnabled)
+        revealSlidingControl(secondCell, in: app)
+        XCTAssertEqual(secondCell.label, "Blank tile")
+
+        let reset = app.buttons["Reset"]
+        revealSlidingControl(reset, in: app)
+        reset.tap()
+        for key in keys {
+            revealSlidingControl(key, in: app)
+            XCTAssertTrue(key.isEnabled, "Reset must restore tile availability")
+        }
+        revealSlidingControl(firstCell, in: app)
+        XCTAssertEqual(firstCell.label, "Empty tile")
+        XCTAssertEqual(firstCell.value as? String, "Selected")
+    }
+
+    private func revealSlidingControl(_ element: XCUIElement, in app: XCUIApplication) {
+        // Lazy grid cells may not exist until scrolled into view. Start at the top
+        // so this helper also works when returning from the picker to the board.
+        for _ in 0..<8 {
+            if element.exists && element.isHittable && app.frame.contains(element.frame) { return }
+            app.swipeDown()
+        }
+        for _ in 0..<10 {
+            if element.exists && element.isHittable && app.frame.contains(element.frame) { return }
+            app.swipeUp()
+        }
+        XCTFail("Sliding control was not fully visible: \(element.identifier)")
+    }
+
     private func verifySliding(size: Int) {
         let app = launchAtMainMenu()
         openMode("\(size)×\(size) Sliding Puzzle", category: "Sliding Puzzles", in: app)

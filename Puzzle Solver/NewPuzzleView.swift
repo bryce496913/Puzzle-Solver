@@ -39,9 +39,6 @@ struct SlidingPuzzleInputView: View {
     @State private var validationMessage = "Select a tile, then choose a number or blank."
 
     private let puzzleSize: Int
-    private var keypadColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(minimum: 44), spacing: 8), count: puzzleSize <= 3 ? 3 : 4)
-    }
     private var usedNumbers: Set<Int> { Set(gridNumbers.flatMap { $0.compactMap { $0 } }) }
     private var missingNumbers: [Int] { (1..<(puzzleSize * puzzleSize)).filter { !usedNumbers.contains($0) } }
     private var unassignedTileCount: Int {
@@ -90,24 +87,14 @@ struct SlidingPuzzleInputView: View {
 
                 AppSectionHeader("Available tiles", subtitle: "Used numbers are dimmed. Choose Blank for the empty space.")
 
-                LazyVGrid(columns: keypadColumns, spacing: 10) {
-                    ForEach(1..<(puzzleSize * puzzleSize), id: \.self) { number in
-                        SlidingKeypadButton(
-                            title: "\(number)",
-                            isUsed: usedNumbers.contains(number),
-                            isHighlighted: selectedTile != nil
-                        ) { assign(number) }
-                        .disabled(selectedTile == nil || usedNumbers.contains(number))
-                    }
-
-                    SlidingKeypadButton(
-                        title: "Blank",
-                        isUsed: !canPlaceBlank,
-                        isHighlighted: selectedTile != nil,
-                        isBlank: true
-                    ) { assignBlank() }
-                    .disabled(selectedTile == nil || !canPlaceBlank)
-                }
+                SlidingTilePicker(
+                    size: puzzleSize,
+                    usedNumbers: usedNumbers,
+                    hasSelectedCell: selectedTile != nil,
+                    canPlaceBlank: canPlaceBlank,
+                    onNumber: assign,
+                    onBlank: assignBlank
+                )
 
                 HStack(spacing: 10) {
                     Button("Load Example") { loadExample() }
@@ -278,6 +265,7 @@ private struct SlidingBoardInputPreview: View {
                         .buttonStyle(PlainButtonStyle())
                         .accessibilityLabel(value.map { "Tile \($0)" } ?? (isBlankTile ? "Blank tile" : "Empty tile"))
                         .accessibilityValue(selectedTile == index ? "Selected" : "Not selected")
+                        .accessibilityIdentifier("sliding-cell-\(row + 1)-\(column + 1)")
                     }
                 }
             }
@@ -285,28 +273,70 @@ private struct SlidingBoardInputPreview: View {
     }
 }
 
+/// Compact selector shared by all shipping sliding-puzzle sizes.
+private struct SlidingTilePicker: View {
+    let size: Int
+    let usedNumbers: Set<Int>
+    let hasSelectedCell: Bool
+    let canPlaceBlank: Bool
+    let onNumber: (Int) -> Void
+    let onBlank: () -> Void
+
+    @ScaledMetric(relativeTo: .body) private var minimumTileWidth = 54.0
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: minimumTileWidth), spacing: 6)], spacing: 6) {
+            ForEach(1..<(size * size), id: \.self) { number in
+                SlidingKeypadButton(title: "\(number)", isUsed: usedNumbers.contains(number)) {
+                    onNumber(number)
+                }
+                .disabled(!hasSelectedCell || usedNumbers.contains(number))
+                .accessibilityIdentifier("sliding-key-\(number)")
+                .accessibilityLabel("Tile \(number)" + (usedNumbers.contains(number) ? ", already used" : ""))
+            }
+
+            SlidingKeypadButton(title: "Blank", isUsed: !canPlaceBlank, isBlank: true, action: onBlank)
+                .disabled(!hasSelectedCell || !canPlaceBlank)
+                .accessibilityIdentifier("sliding-key-blank")
+                .accessibilityLabel("Blank tile")
+        }
+    }
+}
+
 private struct SlidingKeypadButton: View {
     let title: String
     let isUsed: Bool
-    let isHighlighted: Bool
     var isBlank = false
     let action: () -> Void
 
     var body: some View {
-        if isBlank {
-            keypadButton.buttonStyle(AppDangerButtonStyle(isDisabledAppearance: isUsed))
-        } else {
-            keypadButton.buttonStyle(AppSecondaryButtonStyle(isDisabledAppearance: isUsed))
-        }
-    }
-
-    private var keypadButton: some View {
         Button(action: action) {
             Text(title)
-                .appButtonLabel()
-                .foregroundColor(AppTheme.text.opacity(isUsed ? 0.48 : 1))
+                .font(.body.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .padding(.horizontal, 4)
                 .frame(maxWidth: .infinity)
+                .frame(minHeight: 52)
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
+        .buttonStyle(SlidingKeypadButtonStyle(isBlank: isBlank, isUsed: isUsed))
+    }
+}
+
+private struct SlidingKeypadButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    let isBlank: Bool
+    let isUsed: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        let accent = isBlank ? AppTheme.highlight : AppTheme.accent
+        configuration.label
+            .foregroundColor(AppTheme.text)
+            .background(accent.opacity(configuration.isPressed ? 0.3 : (isBlank ? 0.18 : 0.06)))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(accent, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .opacity(isEnabled && !isUsed ? 1 : 0.4)
     }
 }
 
