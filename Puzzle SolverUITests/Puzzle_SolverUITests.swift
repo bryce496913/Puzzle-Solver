@@ -199,6 +199,72 @@ final class Puzzle_SolverUITests: XCTestCase {
         XCTAssertTrue(app.buttons["cube-locked-center-B"].exists)
     }
 
+    // Run both tests on compact, standard, and large iPhone destinations.
+    func testAdvancedCube2x2NetAlignment() { verifyAdvancedCubeNet(size: 2) }
+    func testAdvancedCube3x3NetAlignment() { verifyAdvancedCubeNet(size: 3) }
+
+    private func verifyAdvancedCubeNet(size: Int) {
+        let app = launchAtMainMenu()
+        openMode(size == 2 ? "2×2 Cube" : "3×3 Rubik’s Cube", category: "Twisty Puzzles", in: app)
+        tap(app.buttons["Advanced net input"], in: app)
+        let net = app.otherElements["cube-net"]
+        revealInputControl(net, in: app)
+
+        let storageFaces = ["U", "R", "F", "D", "L", "B"]
+        let names = ["Up", "Right", "Front", "Down", "Left", "Back"]
+        let perFace = size * size
+        for (faceIndex, code) in storageFaces.enumerated() {
+            let label = app.staticTexts["cube-net-label-\(code)"]
+            XCTAssertTrue(label.exists)
+            XCTAssertTrue(app.frame.contains(label.frame), "Face label is clipped")
+            XCTAssertGreaterThanOrEqual(label.frame.minX, app.frame.minX + 29)
+            XCTAssertLessThanOrEqual(label.frame.maxX, app.frame.maxX - 29)
+            for cell in 0..<perFace {
+                let center = size == 3 && cell == 4
+                let key = app.buttons[center ? "cube-locked-center-\(code)" : "cube-sticker-\(faceIndex * perFace + cell)"]
+                XCTAssertTrue(key.exists)
+                XCTAssertTrue(app.frame.contains(key.frame), "Sticker is clipped")
+                XCTAssertGreaterThanOrEqual(key.frame.minX, app.frame.minX + 29)
+                XCTAssertLessThanOrEqual(key.frame.maxX, app.frame.maxX - 29)
+                XCTAssertEqual(key.frame.width, key.frame.height, accuracy: 1)
+                XCTAssertEqual(key.isEnabled, !center)
+                XCTAssertEqual(key.label, center ? "Locked \(names[faceIndex]) center" : "\(names[faceIndex]) sticker row \(cell / size + 1) column \(cell % size + 1)")
+            }
+        }
+        XCTAssertEqual(app.staticTexts["cube-net-label-B"].label, "Back (viewed from behind)")
+
+        func firstSticker(_ face: Int) -> CGRect { app.buttons["cube-sticker-\(face * perFace)"].frame }
+        func faceCenter(_ face: Int) -> CGFloat {
+            let first = firstSticker(face)
+            let last = app.buttons["cube-sticker-\(face * perFace + perFace - 1)"].frame
+            return (first.minX + last.maxX) / 2
+        }
+        let sideFaces = [4, 2, 1, 5] // L, F, R, B in view order; storage remains U, R, F, D, L, B.
+        let front = firstSticker(2)
+        for face in sideFaces {
+            XCTAssertEqual(firstSticker(face).minY, front.minY, accuracy: 1)
+            XCTAssertEqual(firstSticker(face).width, front.width, accuracy: 1)
+        }
+        let gaps = zip(sideFaces, sideFaces.dropFirst()).map { left, right in
+            firstSticker(right).minX - app.buttons["cube-sticker-\(left * perFace + size - 1)"].frame.maxX
+        }
+        for gap in gaps {
+            XCTAssertGreaterThan(gap, 0)
+            XCTAssertEqual(gap, gaps[0], accuracy: 1)
+        }
+        XCTAssertEqual(faceCenter(0), faceCenter(2), accuracy: 1)
+        XCTAssertEqual(faceCenter(3), faceCenter(2), accuracy: 1)
+        XCTAssertLessThan(firstSticker(0).maxY, front.minY)
+        XCTAssertGreaterThan(firstSticker(3).minY, front.maxY)
+
+        // Every first sticker keeps its physical storage index and face label.
+        for face in storageFaces.indices {
+            let sticker = app.buttons["cube-sticker-\(face * perFace)"]
+            sticker.tap()
+            XCTAssertEqual(sticker.value as? String, "Selected")
+        }
+    }
+
     // MARK: - V1 release gate
 
     func testV1Sliding3x3HappyPath() { verifySliding(size: 3) }
@@ -258,7 +324,7 @@ final class Puzzle_SolverUITests: XCTestCase {
         let keys = (1..<(size * size)).map { app.buttons["sliding-key-\($0)"] }
             + [app.buttons["sliding-key-blank"]]
         for key in keys {
-            revealSlidingControl(key, in: app)
+            revealInputControl(key, in: app)
             XCTAssertTrue(key.isEnabled)
             XCTAssertGreaterThanOrEqual(key.frame.width, 44)
             XCTAssertGreaterThanOrEqual(key.frame.height, 44)
@@ -275,36 +341,36 @@ final class Puzzle_SolverUITests: XCTestCase {
         }
 
         let one = app.buttons["sliding-key-1"]
-        revealSlidingControl(one, in: app)
+        revealInputControl(one, in: app)
         one.tap()
         XCTAssertFalse(one.isEnabled)
         XCTAssertEqual(one.label, "Tile 1, already used")
         let firstCell = app.buttons["sliding-cell-1-1"]
-        revealSlidingControl(firstCell, in: app)
+        revealInputControl(firstCell, in: app)
         XCTAssertEqual(firstCell.label, "Tile 1")
         let secondCell = app.buttons["sliding-cell-1-2"]
         XCTAssertEqual(secondCell.value as? String, "Selected")
 
         let blank = app.buttons["sliding-key-blank"]
-        revealSlidingControl(blank, in: app)
+        revealInputControl(blank, in: app)
         blank.tap()
         XCTAssertFalse(blank.isEnabled)
-        revealSlidingControl(secondCell, in: app)
+        revealInputControl(secondCell, in: app)
         XCTAssertEqual(secondCell.label, "Blank tile")
 
         let reset = app.buttons["Reset"]
-        revealSlidingControl(reset, in: app)
+        revealInputControl(reset, in: app)
         reset.tap()
         for key in keys {
-            revealSlidingControl(key, in: app)
+            revealInputControl(key, in: app)
             XCTAssertTrue(key.isEnabled, "Reset must restore tile availability")
         }
-        revealSlidingControl(firstCell, in: app)
+        revealInputControl(firstCell, in: app)
         XCTAssertEqual(firstCell.label, "Empty tile")
         XCTAssertEqual(firstCell.value as? String, "Selected")
     }
 
-    private func revealSlidingControl(_ element: XCUIElement, in app: XCUIApplication) {
+    private func revealInputControl(_ element: XCUIElement, in app: XCUIApplication) {
         // Lazy grid cells may not exist until scrolled into view. Start at the top
         // so this helper also works when returning from the picker to the board.
         for _ in 0..<8 {
@@ -315,7 +381,7 @@ final class Puzzle_SolverUITests: XCTestCase {
             if element.exists && element.isHittable && app.frame.contains(element.frame) { return }
             app.swipeUp()
         }
-        XCTFail("Sliding control was not fully visible: \(element.identifier)")
+        XCTFail("Input control was not fully visible: \(element.identifier)")
     }
 
     private func verifySliding(size: Int) {
