@@ -444,34 +444,69 @@ struct CubeInputView: View {
 
     private func orientationHelper(highlight: CubeFace) -> some View { HStack(alignment: .top, spacing: 12) { Image(systemName: "cube.transparent.fill").font(.system(size: 40)).foregroundColor(AppTheme.highlight); VStack(alignment: .leading) { Text("Physical cube orientation").appH3(); Text("Top: White (Up) • Front: Green (Front)").appParagraph(); Text("Entering now: \(highlight.displayName)").font(AppTextStyle.h3).foregroundColor(AppTheme.highlight) } }.padding(10).background(AppTheme.background.opacity(0.55)).clipShape(RoundedRectangle(cornerRadius: 12)) }
 
+    // Visual columns are independent of storageFaceOrder and sticker indices.
+    private let netSideFaces: [CubeFace] = [.left, .front, .right, .back]
+
     private var cubeNet: some View {
-        // Keep every face reachable when the net is wider than a compact phone.
-        ScrollView(.horizontal) {
-            VStack(spacing: 8) {
-                Text("Top ↑").appH3()
-                face("Up", faceIndex: index(of: .up)).padding(.leading, CGFloat(faceSize * 34))
-                HStack(spacing: 8) {
-                    face("Left", faceIndex: index(of: .left))
-                    face("Front", faceIndex: index(of: .front))
-                    face("Right", faceIndex: index(of: .right))
-                    face("Back (viewed from behind)", faceIndex: index(of: .back))
+        VStack(spacing: 8) {
+            Text("Top ↑").appH3()
+            netPolarFace(.up)
+
+            // One shared header row reserves the tallest label's height for
+            // every face, including wrapped Back guidance and Dynamic Type.
+            HStack(alignment: .bottom, spacing: 6) {
+                ForEach(netSideFaces, id: \.self) { cubeFace in
+                    netFaceLabel(cubeFace)
                 }
-                face("Down", faceIndex: index(of: .down)).padding(.leading, CGFloat(faceSize * 34))
-                Text("Front faces you • each arrow points to the top of that face").appParagraph()
+            }
+            HStack(alignment: .top, spacing: 6) {
+                ForEach(netSideFaces, id: \.self) { cubeFace in
+                    netStickerGrid(cubeFace)
+                }
+            }
+
+            netPolarFace(.down)
+            Text("Front faces you • each arrow points to the top of that face").appParagraph()
+        }
+        .accessibilityIdentifier("cube-net")
+    }
+
+    private func netFaceLabel(_ cubeFace: CubeFace) -> some View {
+        (Text(cubeFace.displayName).font(.caption.weight(.semibold))
+         + Text(cubeFace == .back ? "\nViewed from behind" : "").font(.caption2))
+            .foregroundColor(AppTheme.text)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel(cubeFace == .back ? "Back (viewed from behind)" : cubeFace.displayName)
+            .accessibilityIdentifier("cube-net-label-\(cubeFace.rawValue)")
+    }
+
+    private func netStickerGrid(_ cubeFace: CubeFace) -> some View {
+        stickerGrid(faceIndex: index(of: cubeFace), small: true)
+            .frame(maxWidth: .infinity)
+    }
+
+    private func netPolarFace(_ cubeFace: CubeFace) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            // Up and Down occupy the same second column as Front.
+            ForEach(netSideFaces, id: \.self) { column in
+                if column == .front {
+                    VStack(spacing: 8) {
+                        netFaceLabel(cubeFace)
+                        netStickerGrid(cubeFace)
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    Color.clear.frame(maxWidth: .infinity).frame(height: 0)
+                        .accessibilityHidden(true)
+                }
             }
         }
     }
 
-    private func face(_ label: String, faceIndex: Int) -> some View {
-        let width = CGFloat(faceSize * (faceSize == 2 ? 34 : 24) + (faceSize - 1) * 4)
-        return VStack(spacing: 3) {
-            Text(label).appH3().frame(width: width)
-            stickerGrid(faceIndex: faceIndex, small: true)
-        }
-    }
-
     private func singleFaceGrid(_ cubeFace: CubeFace) -> some View { stickerGrid(faceIndex: index(of: cubeFace), small: false).frame(maxWidth: .infinity) }
-    private func stickerGrid(faceIndex: Int, small: Bool) -> some View { VStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { row in HStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { column in let idx = faceIndex * stickersPerFace + row * faceSize + column; let isCenter = faceSize == 3 && row == 1 && column == 1; Button { cancelSolve(); selectedSticker = idx; stickers[idx] = selectedColor; solveResult = nil; solveState = .idle; progressText = "Sticker updated." } label: { RoundedRectangle(cornerRadius: 6).fill(stickerColor(stickers[idx])).frame(width: small ? (faceSize == 2 ? 34 : 24) : 58, height: small ? (faceSize == 2 ? 34 : 24) : 58).overlay(RoundedRectangle(cornerRadius: 6).stroke(selectedSticker == idx ? AppTheme.highlight : Color.white.opacity(0.7), lineWidth: selectedSticker == idx ? 4 : 1)).overlay(isCenter ? Image(systemName: "lock.fill").font(.caption).foregroundColor(.black.opacity(0.65)) : nil) }.buttonStyle(PlainButtonStyle()).disabled(isCenter).accessibilityIdentifier(isCenter ? "cube-locked-center-\(storageFaceOrder[faceIndex].rawValue)" : "cube-sticker-\(idx)").accessibilityLabel(isCenter ? "Locked \(storageFaceOrder[faceIndex].displayName) center" : "\(storageFaceOrder[faceIndex].displayName) sticker row \(row + 1) column \(column + 1)") } } } } }
+    private func stickerGrid(faceIndex: Int, small: Bool) -> some View { VStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { row in HStack(spacing: 4) { ForEach(0..<faceSize, id: \.self) { column in let idx = faceIndex * stickersPerFace + row * faceSize + column; let isCenter = faceSize == 3 && row == 1 && column == 1; Button { cancelSolve(); selectedSticker = idx; stickers[idx] = selectedColor; solveResult = nil; solveState = .idle; progressText = "Sticker updated." } label: { RoundedRectangle(cornerRadius: 6).fill(stickerColor(stickers[idx])).frame(width: small ? nil : 58, height: small ? nil : 58).aspectRatio(1, contentMode: .fit).overlay(RoundedRectangle(cornerRadius: 6).stroke(selectedSticker == idx ? AppTheme.highlight : Color.white.opacity(0.7), lineWidth: selectedSticker == idx ? 4 : 1)).overlay(isCenter ? Image(systemName: "lock.fill").font(.caption).foregroundColor(.black.opacity(0.65)) : nil) }.buttonStyle(PlainButtonStyle()).disabled(isCenter).accessibilityValue(selectedSticker == idx ? "Selected" : "Not selected").accessibilityIdentifier(isCenter ? "cube-locked-center-\(storageFaceOrder[faceIndex].rawValue)" : "cube-sticker-\(idx)").accessibilityLabel(isCenter ? "Locked \(storageFaceOrder[faceIndex].displayName) center" : "\(storageFaceOrder[faceIndex].displayName) sticker row \(row + 1) column \(column + 1)") } } } } }
 
     private func solve() {
         cancelSolve()
